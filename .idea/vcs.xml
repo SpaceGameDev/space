@@ -2,6 +2,7 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/SpaceUtil" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/SpaceEngine" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/SpaceGame" vcs="Git" />
   </component>
 </project>

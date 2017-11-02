@@ -2,10 +2,10 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/SpaceEngine/SpaceEngine.iml" filepath="$PROJECT_DIR$/SpaceEngine/SpaceEngine.iml" />
+      <module fileurl="file://$PROJECT_DIR$/SpaceGame/SpaceGame.iml" filepath="$PROJECT_DIR$/SpaceGame/SpaceGame.iml" />
+      <module fileurl="file://$PROJECT_DIR$/SpaceUtil/SpaceUtil.iml" filepath="$PROJECT_DIR$/SpaceUtil/SpaceUtil.iml" />
       <module fileurl="file://$PROJECT_DIR$/space.iml" filepath="$PROJECT_DIR$/space.iml" />
-      <module fileurl="file://$PROJECT_DIR$/spaceGame/spaceGame.iml" filepath="$PROJECT_DIR$/spaceGame/spaceGame.iml" />
-      <module fileurl="file://$PROJECT_DIR$/spaceGameEngine/spaceGameEngine.iml" filepath="$PROJECT_DIR$/spaceGameEngine/spaceGameEngine.iml" />
-      <module fileurl="file://$PROJECT_DIR$/spaceGameUtil/spaceGameUtil.iml" filepath="$PROJECT_DIR$/spaceGameUtil/spaceGameUtil.iml" />
     </modules>
   </component>
 </project>
