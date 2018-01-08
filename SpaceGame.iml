@@ -9,6 +9,7 @@
     </content>
     <orderEntry type="jdk" jdkName="1.8" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="module" module-name="SpaceUtil" />
     <orderEntry type="module" module-name="SpaceEngine" />
     <orderEntry type="library" name="LWJGL3 ASSIMP" level="application" />
     <orderEntry type="library" name="LWJGL3 Base" level="application" />
