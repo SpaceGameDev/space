@@ -4,4 +4,8 @@
     <option name="DEFAULT_COMPILER" value="Eclipse" />
     <bytecodeTargetLevel target="1.8" />
   </component>
+  <component name="EclipseCompilerSettings">
+    <option name="DEBUGGING_INFO" value="false" />
+    <option name="GENERATE_NO_WARNINGS" value="true" />
+  </component>
 </project>
