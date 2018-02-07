@@ -2,7 +2,24 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <option name="DEFAULT_COMPILER" value="Eclipse" />
-    <bytecodeTargetLevel target="1.8" />
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="space" />
+        <module name="SpaceEngine" />
+        <module name="SpaceGame" />
+        <module name="SpaceUtil" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel target="1.8">
+      <module name="space" target="1.8" />
+      <module name="SpaceEngine" target="1.8" />
+      <module name="SpaceGame" target="1.8" />
+      <module name="spaceutil" target="1.8" />
+      <module name="SpaceUtil" target="1.8" />
+    </bytecodeTargetLevel>
   </component>
   <component name="EclipseCompilerSettings">
     <option name="DEBUGGING_INFO" value="false" />
