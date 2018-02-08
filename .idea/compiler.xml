@@ -14,11 +14,11 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel target="1.8">
-      <module name="space" target="1.8" />
-      <module name="SpaceEngine" target="1.8" />
-      <module name="SpaceGame" target="1.8" />
+      <module name="space" target="1.9" />
+      <module name="SpaceEngine" target="1.9" />
+      <module name="SpaceGame" target="1.9" />
       <module name="spaceutil" target="1.8" />
-      <module name="SpaceUtil" target="1.8" />
+      <module name="SpaceUtil" target="1.9" />
     </bytecodeTargetLevel>
   </component>
   <component name="EclipseCompilerSettings">
