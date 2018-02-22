@@ -11,47 +11,73 @@
     </parent>
 
     <artifactId>spacegame</artifactId>
-    <version>1.0</version>
+    <version>${spacegame.version}</version>
 
     <build>
         <sourceDirectory>src</sourceDirectory>
     </build>
 
     <dependencies>
+        <!-- internal -->
         <dependency>
             <groupId>firestar99</groupId>
             <artifactId>spaceengine</artifactId>
-            <version>1.0</version>
+            <version>${spacegame.version}</version>
         </dependency>
         <dependency>
             <groupId>firestar99</groupId>
             <artifactId>spaceutil</artifactId>
-            <version>1.0</version>
+            <version>${spacegame.version}</version>
         </dependency>
+
+        <!-- lwjgl -->
         <dependency>
             <groupId>org.lwjgl</groupId>
-            <artifactId>lwjgl-assimp</artifactId>
-            <version>3.1.4</version>
+            <artifactId>lwjgl</artifactId>
+            <version>${lwjgl.version}</version>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-glfw</artifactId>
-            <version>3.1.4</version>
+            <version>${lwjgl.version}</version>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-opengl</artifactId>
-            <version>3.1.4</version>
+            <version>${lwjgl.version}</version>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl-vulkan</artifactId>
-            <version>3.1.4</version>
+            <version>${lwjgl.version}</version>
         </dependency>
         <dependency>
             <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-assimp</artifactId>
+            <version>${lwjgl.version}</version>
+        </dependency>
+
+        <!-- lwjgl native -->
+        <dependency>
+            <groupId>org.lwjgl</groupId>
             <artifactId>lwjgl</artifactId>
-            <version>3.1.6</version>
+            <version>${lwjgl.version}</version>
+            <classifier>${lwjgl.native.target}</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-glfw</artifactId>
+            <version>${lwjgl.version}</version>
+            <classifier>${lwjgl.native.target}</classifier>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.lwjgl</groupId>
+            <artifactId>lwjgl-opengl</artifactId>
+            <version>${lwjgl.version}</version>
+            <classifier>${lwjgl.native.target}</classifier>
+            <scope>runtime</scope>
         </dependency>
     </dependencies>
 
