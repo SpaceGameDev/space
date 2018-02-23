@@ -21,12 +21,12 @@
         <!-- internal -->
         <dependency>
             <groupId>firestar99</groupId>
-            <artifactId>spaceutil</artifactId>
+            <artifactId>spaceengine</artifactId>
             <version>${spacegame.version}</version>
         </dependency>
         <dependency>
             <groupId>firestar99</groupId>
-            <artifactId>spaceengine</artifactId>
+            <artifactId>spaceutil</artifactId>
             <version>${spacegame.version}</version>
         </dependency>
 

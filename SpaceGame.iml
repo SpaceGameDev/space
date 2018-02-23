@@ -7,10 +7,10 @@
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
-    <orderEntry type="inheritedJdk" />
+    <orderEntry type="jdk" jdkName="1.8" jdkType="JavaSDK" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="SpaceUtil" />
     <orderEntry type="module" module-name="SpaceEngine" />
+    <orderEntry type="module" module-name="SpaceUtil" />
     <orderEntry type="library" name="Maven: org.lwjgl:lwjgl:3.1.4" level="project" />
     <orderEntry type="library" name="Maven: org.lwjgl:lwjgl-glfw:3.1.4" level="project" />
     <orderEntry type="library" name="Maven: org.lwjgl:lwjgl-opengl:3.1.4" level="project" />
