@@ -15,6 +15,14 @@
     </annotationProcessing>
     <bytecodeTargetLevel target="9">
       <module name="space" target="1.9" />
+      <module name="space-engine_main" target="1.9" />
+      <module name="space-engine_test" target="1.9" />
+      <module name="space-game_main" target="1.9" />
+      <module name="space-game_test" target="1.9" />
+      <module name="space-util_main" target="1.9" />
+      <module name="space-util_test" target="1.9" />
+      <module name="space_main" target="1.9" />
+      <module name="space_test" target="1.9" />
       <module name="SpaceEngine" target="1.9" />
       <module name="SpaceGame" target="1.9" />
       <module name="SpaceUtil" target="1.9" />

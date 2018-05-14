@@ -1,0 +1,5 @@
+rootProject.name = 'space'
+include 'space-util'
+include 'space-engine'
+include 'space-game'
+
