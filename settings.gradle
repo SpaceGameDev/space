@@ -2,4 +2,8 @@ rootProject.name = 'space'
 include 'space-util'
 include 'space-engine'
 include 'space-game'
+include 'space-engine:space-engine-window'
+findProject(':space-engine:space-engine-window')?.name = 'space-engine-window'
+include 'space-engine:space-engine-window-glfw'
+findProject(':space-engine:space-engine-window-glfw')?.name = 'space-engine-window-glfw'
 

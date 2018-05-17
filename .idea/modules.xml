@@ -4,6 +4,12 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/space.iml" filepath="$PROJECT_DIR$/space.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-engine/space-engine.iml" filepath="$PROJECT_DIR$/.idea/modules/space-engine/space-engine.iml" group="space-engine" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-engine/space-engine-window/space-engine-window.iml" filepath="$PROJECT_DIR$/.idea/modules/space-engine/space-engine-window/space-engine-window.iml" group="space-engine/space-engine-window" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-engine-window-glfw.iml" filepath="$PROJECT_DIR$/.idea/modules/space-engine-window-glfw.iml" group="space-engine/space-engine-window-glfw" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-engine/space-engine-window-glfw/space-engine-window-glfw_main.iml" filepath="$PROJECT_DIR$/.idea/modules/space-engine/space-engine-window-glfw/space-engine-window-glfw_main.iml" group="space-engine/space-engine-window-glfw" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-engine/space-engine-window-glfw/space-engine-window-glfw_test.iml" filepath="$PROJECT_DIR$/.idea/modules/space-engine/space-engine-window-glfw/space-engine-window-glfw_test.iml" group="space-engine/space-engine-window-glfw" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-engine/space-engine-window/space-engine-window_main.iml" filepath="$PROJECT_DIR$/.idea/modules/space-engine/space-engine-window/space-engine-window_main.iml" group="space-engine/space-engine-window" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-engine/space-engine-window/space-engine-window_test.iml" filepath="$PROJECT_DIR$/.idea/modules/space-engine/space-engine-window/space-engine-window_test.iml" group="space-engine/space-engine-window" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-engine/space-engine_main.iml" filepath="$PROJECT_DIR$/.idea/modules/space-engine/space-engine_main.iml" group="space-engine" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-engine/space-engine_test.iml" filepath="$PROJECT_DIR$/.idea/modules/space-engine/space-engine_test.iml" group="space-engine" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-game/space-game.iml" filepath="$PROJECT_DIR$/.idea/modules/space-game/space-game.iml" group="space-game" />

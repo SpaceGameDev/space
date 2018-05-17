@@ -9,6 +9,8 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/space-engine" />
+            <option value="$PROJECT_DIR$/space-engine/space-engine-window" />
+            <option value="$PROJECT_DIR$/space-engine/space-engine-window-glfw" />
             <option value="$PROJECT_DIR$/space-game" />
             <option value="$PROJECT_DIR$/space-util" />
           </set>
