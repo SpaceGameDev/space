@@ -5,7 +5,9 @@ import org.gradle.internal.os.OperatingSystem
 
 apply plugin: 'java'
 
-sourceCompatibility = 1.9
+//properties
+targetCompatibility = 1.9
+sourceCompatibility = targetCompatibility
 ext.lwjglVersion = '3.1.4'
 
 switch (OperatingSystem.current()) {
@@ -20,11 +22,13 @@ switch (OperatingSystem.current()) {
         break
 }
 
+//repos
 repositories {
     mavenLocal()
     mavenCentral()
 }
 
 dependencies {
-    testCompile group: 'junit', name: 'junit', version: '4.12'
+    implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.0'
+    testImplementation group: 'junit', name: 'junit', version: '4.12'
 }
