@@ -2,6 +2,7 @@
 <project version="4">
   <component name="CompilerConfiguration">
     <annotationProcessing>
+      <profile default="true" name="Default" enabled="true" />
       <profile name="Maven default annotation processors profile" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
@@ -17,7 +18,6 @@
       <module name="space-engine-window-glfw_main" target="1.9" />
       <module name="space-engine-window-glfw_test" target="1.9" />
       <module name="space-engine-window_main" target="1.9" />
-      <module name="space-engine-window_main~1" target="1.9" />
       <module name="space-engine-window_test" target="1.9" />
       <module name="space-engine_main" target="1.9" />
       <module name="space-engine_test" target="1.9" />
