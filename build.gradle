@@ -4,8 +4,8 @@ version parent.version
 apply plugin: 'java'
 
 configurations {
-    implementation.dependencies.addAll parent.configurations.implementation.dependencies
-    testImplementation.dependencies.addAll parent.configurations.testImplementation.dependencies
+    implementation.dependencies.addAll rootProject.configurations.implementation.dependencies
+    testImplementation.dependencies.addAll rootProject.configurations.testImplementation.dependencies
 }
 
 repositories {
