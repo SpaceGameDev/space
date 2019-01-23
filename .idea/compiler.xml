@@ -7,7 +7,6 @@
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
-        <module name="space" />
         <module name="SpaceEngine" />
         <module name="SpaceGame" />
         <module name="SpaceUtil" />
@@ -15,6 +14,8 @@
     </annotationProcessing>
     <bytecodeTargetLevel target="9">
       <module name="space" target="1.9" />
+      <module name="space-_main" target="1.9" />
+      <module name="space-_test" target="1.9" />
       <module name="space-engine-window-glfw_main" target="1.9" />
       <module name="space-engine-window-glfw_test" target="1.9" />
       <module name="space-engine-window_main" target="1.9" />

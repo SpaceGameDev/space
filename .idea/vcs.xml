@@ -4,7 +4,5 @@
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/space-engine" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/space-game" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/space-util" vcs="Git" />
   </component>
 </project>

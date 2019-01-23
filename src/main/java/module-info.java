@@ -1,3 +1,3 @@
 module space.game {
-	requires annotations;
+	requires org.jetbrains.annotations;
 }

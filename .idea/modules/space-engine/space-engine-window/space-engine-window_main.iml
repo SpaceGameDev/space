@@ -5,12 +5,10 @@
     <exclude-output />
     <content url="file://$MODULE_DIR$/../../../../space-engine/space-engine-window/src/main">
       <sourceFolder url="file://$MODULE_DIR$/../../../../space-engine/space-engine-window/src/main/java" isTestSource="false" />
-      <sourceFolder url="file://$MODULE_DIR$/../../../../space-engine/space-engine-window/src/main/resources" type="java-resource" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="Gradle: org.jetbrains:annotations:16.0.1" level="project" />
-    <orderEntry type="module" module-name="space-util_main" />
     <orderEntry type="module" module-name="space-engine_main" />
+    <orderEntry type="library" name="Gradle: org.jetbrains:annotations:16.0.3" level="project" />
   </component>
 </module>

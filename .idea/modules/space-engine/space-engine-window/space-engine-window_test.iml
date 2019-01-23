@@ -3,18 +3,12 @@
   <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_9">
     <output-test url="file://$MODULE_DIR$/../../../../space-engine/space-engine-window/out/test/classes" />
     <exclude-output />
-    <content url="file://$MODULE_DIR$/../../../../space-engine/space-engine-window/src/test">
-      <sourceFolder url="file://$MODULE_DIR$/../../../../space-engine/space-engine-window/src/test/java" isTestSource="true" />
-      <sourceFolder url="file://$MODULE_DIR$/../../../../space-engine/space-engine-window/src/test/resources" type="java-test-resource" />
-    </content>
+    <content url="file://$MODULE_DIR$/../../../../space-engine/space-engine-window/src/test" />
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="module" module-name="space-engine-window_main" />
-    <orderEntry type="library" name="Gradle: org.jetbrains:annotations:16.0.1" level="project" />
-    <orderEntry type="module" module-name="space-util_main" />
     <orderEntry type="module" module-name="space-engine_main" />
-    <orderEntry type="library" name="Gradle: junit:junit:4.12" level="project" />
-    <orderEntry type="library" name="Gradle: org.hamcrest:hamcrest-core:1.3" level="project" />
+    <orderEntry type="module" module-name="space-engine-window_main" />
+    <orderEntry type="library" name="Gradle: org.jetbrains:annotations:16.0.3" level="project" />
   </component>
   <component name="TestModuleProperties" production-module="space-engine-window_main" />
 </module>

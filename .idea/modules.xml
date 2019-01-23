@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/space.iml" filepath="$PROJECT_DIR$/space.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-engine/space-engine.iml" filepath="$PROJECT_DIR$/.idea/modules/space-engine/space-engine.iml" group="space-engine" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-engine/space-engine-window/space-engine-window.iml" filepath="$PROJECT_DIR$/.idea/modules/space-engine/space-engine-window/space-engine-window.iml" group="space-engine/space-engine-window" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-engine/space-engine-window-glfw/space-engine-window-glfw.iml" filepath="$PROJECT_DIR$/.idea/modules/space-engine/space-engine-window-glfw/space-engine-window-glfw.iml" group="space-engine/space-engine-window-glfw" />
@@ -12,14 +11,9 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-engine/space-engine-window/space-engine-window_test.iml" filepath="$PROJECT_DIR$/.idea/modules/space-engine/space-engine-window/space-engine-window_test.iml" group="space-engine/space-engine-window" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-engine/space-engine_main.iml" filepath="$PROJECT_DIR$/.idea/modules/space-engine/space-engine_main.iml" group="space-engine" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-engine/space-engine_test.iml" filepath="$PROJECT_DIR$/.idea/modules/space-engine/space-engine_test.iml" group="space-engine" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-game/space-game.iml" filepath="$PROJECT_DIR$/.idea/modules/space-game/space-game.iml" group="space-game" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-game/space-game_main.iml" filepath="$PROJECT_DIR$/.idea/modules/space-game/space-game_main.iml" group="space-game" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-game/space-game_test.iml" filepath="$PROJECT_DIR$/.idea/modules/space-game/space-game_test.iml" group="space-game" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-util/space-util.iml" filepath="$PROJECT_DIR$/.idea/modules/space-util/space-util.iml" group="space-util" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-util/space-util_main.iml" filepath="$PROJECT_DIR$/.idea/modules/space-util/space-util_main.iml" group="space-util" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-util/space-util_test.iml" filepath="$PROJECT_DIR$/.idea/modules/space-util/space-util_test.iml" group="space-util" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space_main.iml" filepath="$PROJECT_DIR$/.idea/modules/space_main.iml" group="space" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space_test.iml" filepath="$PROJECT_DIR$/.idea/modules/space_test.iml" group="space" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-game.iml" filepath="$PROJECT_DIR$/.idea/modules/space-game.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-game_main.iml" filepath="$PROJECT_DIR$/.idea/modules/space-game_main.iml" group="space-game" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/space-game_test.iml" filepath="$PROJECT_DIR$/.idea/modules/space-game_test.iml" group="space-game" />
     </modules>
   </component>
 </project>
