@@ -1,5 +1,6 @@
 plugins {
 	id 'java-library'
+	id 'application'
 }
 
 group 'SpaceGameDev'
@@ -8,6 +9,8 @@ version '1.0'
 targetCompatibility = 1.9
 sourceCompatibility = 1.9
 
+mainClassName = "space.engine.window.glfw.GLFWTest"
+
 repositories {
 	mavenLocal()
 	mavenCentral()
@@ -15,4 +18,5 @@ repositories {
 
 dependencies {
 	implementation project(':space-engine')
+	implementation project(':space-engine:space-engine-window-glfw')
 }
