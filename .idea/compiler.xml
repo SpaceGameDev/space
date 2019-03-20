@@ -13,21 +13,14 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel target="9">
-      <module name="space" target="1.9" />
-      <module name="space-_main" target="1.9" />
-      <module name="space-_test" target="1.9" />
-      <module name="space-engine-window-glfw_main" target="1.9" />
-      <module name="space-engine-window-glfw_test" target="1.9" />
-      <module name="space-engine-window_main" target="1.9" />
-      <module name="space-engine-window_test" target="1.9" />
-      <module name="space-engine_main" target="1.9" />
-      <module name="space-engine_test" target="1.9" />
-      <module name="space-game_main" target="1.9" />
-      <module name="space-game_test" target="1.9" />
-      <module name="space-util_main" target="1.9" />
-      <module name="space-util_test" target="1.9" />
-      <module name="space_main" target="1.9" />
-      <module name="space_test" target="1.9" />
+      <module name="space-engine-window-glfw_main" target="1.10" />
+      <module name="space-engine-window-glfw_test" target="1.10" />
+      <module name="space-engine-window_main" target="1.10" />
+      <module name="space-engine-window_test" target="1.10" />
+      <module name="space-engine_main" target="1.10" />
+      <module name="space-engine_test" target="1.10" />
+      <module name="space-game_main" target="1.10" />
+      <module name="space-game_test" target="1.10" />
     </bytecodeTargetLevel>
   </component>
   <component name="EclipseCompilerSettings">
