@@ -6,8 +6,8 @@ plugins {
 group 'SpaceGameDev'
 version '1.0'
 
-targetCompatibility = 1.9
-sourceCompatibility = 1.9
+targetCompatibility = 1.10
+sourceCompatibility = 1.10
 
 mainClassName = "space.engine.window.glfw.GLFWTest"
 
