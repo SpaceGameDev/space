@@ -1,7 +1,4 @@
 rootProject.name = 'space-game'
-include 'space-engine'
-include 'space-engine:space-engine-window'
-findProject(':space-engine:space-engine-window')?.name = 'space-engine-window'
-include 'space-engine:space-engine-window-glfw'
-findProject(':space-engine:space-engine-window-glfw')?.name = 'space-engine-window-glfw'
 
+include 'space-engine'
+apply from: 'space-engine/settings.gradle'
