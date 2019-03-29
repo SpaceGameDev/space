@@ -1,4 +1,3 @@
 rootProject.name = 'space-game'
 
-include 'space-engine'
-apply from: 'space-engine/settings.gradle'
+includeBuild 'space-engine'

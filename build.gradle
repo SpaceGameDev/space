@@ -17,6 +17,6 @@ repositories {
 }
 
 dependencies {
-	implementation project(':space-engine')
-	implementation project(':space-engine:space-engine-window-glfw')
+	api 'SpaceGameDev:space-engine:1.0'
+	implementation 'SpaceGameDev:space-engine-window-glfw:1.0'
 }

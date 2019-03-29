@@ -6,9 +6,8 @@
 .idea/gradle.xml
 .idea/modules.xml
 .idea/workspace.xml
+.idea/misc.xml
 
 .gradle/
 **/build/
 **/out/
-
-space-engine

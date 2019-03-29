@@ -1,0 +1,3 @@
+[submodule "space-engine"]
+	path = space-engine
+	url = https://github.com/SpaceGameDev/space-engine.git
