@@ -21,16 +21,21 @@ import space.engine.window.glfw.GLFWWindowFramework;
 import space.game.firstTriangle.VkInstance.Builder;
 import space.game.firstTriangle.surface.VkSurface;
 import space.game.firstTriangle.surface.VkSurfaceGLFW;
+import space.game.firstTriangle.surface.VkSurfaceSwapChainDetails;
+import space.game.firstTriangle.surface.VkSwapChain;
 
 import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import static java.util.Objects.requireNonNull;
+import static org.lwjgl.vulkan.KHRSurface.*;
+import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.buffer.Allocator.allocatorStack;
 import static space.engine.window.Window.*;
 import static space.engine.window.WindowContext.API_TYPE;
+import static space.engine.window.extensions.VideoModeExtension.*;
 import static space.game.firstTriangle.VkException.assertVk;
 
 public class FirstTriangle {
@@ -111,7 +116,7 @@ public class FirstTriangle {
 				
 				VkPhysicalDevice vkPhysicalDevice = vkInstance.getPhysicalDevices()
 															  .stream()
-															  .filter(device -> device.properties().deviceType() == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+															  .filter(device -> device.properties().deviceType() == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
 															  .findFirst()
 															  .orElseGet(() -> vkInstance.getPhysicalDevices()
 																						 .stream()
@@ -139,9 +144,19 @@ public class FirstTriangle {
 																				.orElseThrow(() -> new RuntimeException("No graphics queue!"));
 				
 				VkDevice.Builder vkDeviceBuilder = VkDevice.builder(vkPhysicalDevice);
+				vkDeviceBuilder.addExtension(vkPhysicalDevice.extensionNameMap().get(VK_KHR_SWAPCHAIN_EXTENSION_NAME));
 				Supplier<VkQueue> vkQueueGraphicsSupplier = vkDeviceBuilder.addQueueRequest(vkQueueFamilyGraphics, 0.5f);
 				VkDevice vkDevice = vkDeviceBuilder.build(new Object[] {frame});
 				VkQueue vkQueueGraphics = requireNonNull(vkQueueGraphicsSupplier.get());
+				
+				VkSurfaceSwapChainDetails swapChainDetails = new VkSurfaceSwapChainDetails(vkPhysicalDevice, windowSurface, new Object[] {frame});
+				VkSwapChain swapChain = VkSwapChain.builder(vkDevice, swapChainDetails)
+												   .setImageFormat(VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+												   .setSwapExtend(windowAtt.get(WIDTH), windowAtt.get(HEIGHT))
+												   .setImageUsageBit(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)
+												   .setImageSharingModeExclusive()
+												   .setBestPresentMode(new int[] {VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR})
+												   .build(new Object[] {frame});
 				
 				//main loop
 				{
@@ -152,6 +167,7 @@ public class FirstTriangle {
 						
 						
 						window.pollEventsTask().awaitUninterrupted();
+						Thread.sleep(1000L / 60);
 					}
 				}
 				

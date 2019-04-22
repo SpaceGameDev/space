@@ -86,6 +86,8 @@ public class VkDevice extends org.lwjgl.vulkan.VkDevice implements FreeableWrapp
 			
 			@Override
 			public VkQueue get() {
+				if (queue == null)
+					throw new RuntimeException("queue queried before device was created!");
 				return queue;
 			}
 		}
