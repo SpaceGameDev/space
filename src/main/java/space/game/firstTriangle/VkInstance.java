@@ -303,15 +303,11 @@ public class VkInstance extends org.lwjgl.vulkan.VkInstance implements FreeableW
 		
 		@Override
 		public int invoke(int messageSeverity, int messageTypes, long pCallbackData, long pUserData) {
-			if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-				try (Frame frame = allocatorStack().frame()) {
-					VkDebugUtilsMessengerCallbackDataEXT message = LwjglStructAllocator.wrapStruct(VkDebugUtilsMessengerCallbackDataEXT::create, pCallbackData);
-					throw new VkException("DebugCallback error: " + message.pMessageString());
-				}
-			}
-			
 			LogLevel logLevel;
 			switch (messageSeverity) {
+				case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+					logLevel = LogLevel.ERROR;
+					break;
 				case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
 					logLevel = LogLevel.WARNING;
 					break;
@@ -325,10 +321,8 @@ public class VkInstance extends org.lwjgl.vulkan.VkInstance implements FreeableW
 					throw new IllegalArgumentException("messageSeverity: " + messageSeverity);
 			}
 			
-			try (Frame frame = allocatorStack().frame()) {
-				VkDebugUtilsMessengerCallbackDataEXT message = LwjglStructAllocator.wrapStruct(VkDebugUtilsMessengerCallbackDataEXT::create, pCallbackData);
-				logger.log(logLevel, message.pMessageString());
-			}
+			VkDebugUtilsMessengerCallbackDataEXT message = LwjglStructAllocator.wrapStruct(VkDebugUtilsMessengerCallbackDataEXT::create, pCallbackData);
+			logger.log(logLevel, message.pMessageString());
 			
 			return VK_FALSE;
 		}
