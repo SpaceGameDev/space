@@ -7,25 +7,28 @@ import space.engine.buffer.AllocatorStack.Frame;
 import space.engine.buffer.pointer.PointerBufferInt;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.freeableStorage.FreeableStorage;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.buffer.Allocator.*;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.game.firstTriangle.VkException.assertVk;
 
 public class VkPhysicalDevice extends org.lwjgl.vulkan.VkPhysicalDevice implements FreeableWrapper {
 	
-	protected VkPhysicalDevice(long handle, VkInstance instance, Object[] parent) {
+	public static VkPhysicalDevice wrap(long handle, VkInstance instance, Object[] parents) {
+		return new VkPhysicalDevice(handle, instance, Freeable::createDummy, parents);
+	}
+	
+	public VkPhysicalDevice(long handle, VkInstance instance, BiFunction<VkPhysicalDevice, Object[], Freeable> storageCreator, Object[] parents) {
 		super(handle, instance);
 		this.vkInstance = instance;
-		this.storage = Freeable.createDummy(this, addIfNotContained(parent, instance));
+		this.storage = storageCreator.apply(this, parents);
 		
 		try (Frame frame = allocatorStack().frame()) {
 			//properties
@@ -59,13 +62,18 @@ public class VkPhysicalDevice extends org.lwjgl.vulkan.VkPhysicalDevice implemen
 	//parents
 	private final VkInstance vkInstance;
 	
+	public VkInstance instance() {
+		return vkInstance;
+	}
+	
 	@Override
+	@Deprecated
 	public VkInstance getInstance() {
 		return vkInstance;
 	}
 	
 	//storage
-	private final FreeableStorage storage;
+	private final Freeable storage;
 	
 	@Override
 	public @NotNull Freeable getStorage() {
@@ -84,7 +92,7 @@ public class VkPhysicalDevice extends org.lwjgl.vulkan.VkPhysicalDevice implemen
 	private final org.lwjgl.vulkan.VkQueueFamilyProperties.Buffer queuePropertiesBuffer;
 	private final Collection<VkQueueFamilyProperties> queueProperties;
 	
-	public Collection<VkQueueFamilyProperties> getQueueProperties() {
+	public Collection<VkQueueFamilyProperties> queueProperties() {
 		return queueProperties;
 	}
 	

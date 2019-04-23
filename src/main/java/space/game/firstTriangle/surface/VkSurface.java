@@ -8,57 +8,74 @@ import space.engine.sync.barrier.Barrier;
 import space.engine.window.Window;
 import space.game.firstTriangle.VkInstance;
 
+import java.util.function.BiFunction;
+
 import static org.lwjgl.vulkan.KHRSurface.nvkDestroySurfaceKHR;
 import static space.engine.freeableStorage.Freeable.addIfNotContained;
 
 public class VkSurface<WINDOW extends Window> implements FreeableWrapper {
 	
-	private final VkInstance instance;
-	private final WINDOW window;
-	private final Storage storage;
-	private final long surface;
+	//create
+	public static <WINDOW extends Window> VkSurface<WINDOW> create(long address, VkInstance instance, WINDOW window, Object[] parents) {
+		return new VkSurface<>(address, instance, window, Storage::new, parents);
+	}
 	
-	public VkSurface(VkInstance instance, WINDOW window, long surface, Object[] parents) {
+	public static <WINDOW extends Window> VkSurface<WINDOW> wrap(long address, VkInstance instance, WINDOW window, Object[] parents) {
+		return new VkSurface<>(address, instance, window, Freeable::createDummy, parents);
+	}
+	
+	//struct
+	public VkSurface(long address, VkInstance instance, WINDOW window, BiFunction<VkSurface, Object[], Freeable> storageCreator, Object[] parents) {
 		this.instance = instance;
 		this.window = window;
-		this.storage = new Storage(this, instance, surface, addIfNotContained(parents, instance, window));
-		this.surface = surface;
+		this.address = address;
+		this.storage = storageCreator.apply(this, addIfNotContained(parents, instance, window));
+	}
+	
+	//instance
+	private final VkInstance instance;
+	
+	public VkInstance instance() {
+		return instance;
+	}
+	
+	//window
+	private final WINDOW window;
+	
+	public WINDOW window() {
+		return window;
+	}
+	
+	//address
+	private final long address;
+	
+	public long address() {
+		return address;
 	}
 	
 	//storage
-	public static class Storage extends FreeableStorage {
-		
-		private final VkInstance instance;
-		private final long surface;
-		
-		public Storage(VkSurface referent, VkInstance instance, long surface, Object[] parents) {
-			super(referent, parents);
-			this.instance = instance;
-			this.surface = surface;
-		}
-		
-		@Override
-		protected @NotNull Barrier handleFree() {
-			nvkDestroySurfaceKHR(instance, surface, 0);
-			return Barrier.ALWAYS_TRIGGERED_BARRIER;
-		}
-	}
+	private final Freeable storage;
 	
 	@Override
 	public @NotNull Freeable getStorage() {
 		return storage;
 	}
 	
-	//getter
-	public VkInstance getInstance() {
-		return instance;
-	}
-	
-	public WINDOW getWindow() {
-		return window;
-	}
-	
-	public long getSurface() {
-		return surface;
+	public static class Storage extends FreeableStorage {
+		
+		private final VkInstance instance;
+		private final long address;
+		
+		public Storage(VkSurface surface, Object[] parents) {
+			super(surface, parents);
+			this.instance = surface.instance;
+			this.address = surface.address;
+		}
+		
+		@Override
+		protected @NotNull Barrier handleFree() {
+			nvkDestroySurfaceKHR(instance, address, 0);
+			return Barrier.ALWAYS_TRIGGERED_BARRIER;
+		}
 	}
 }

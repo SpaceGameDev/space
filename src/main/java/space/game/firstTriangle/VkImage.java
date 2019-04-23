@@ -13,25 +13,38 @@ import static space.engine.freeableStorage.Freeable.addIfNotContained;
 
 public class VkImage implements FreeableWrapper {
 	
-	public static VkImage create(VkDevice device, long image, Object[] parents) {
-		return new VkImage(device, (vkImage, objects) -> new Storage(vkImage, parents), image, parents);
+	//create
+	public static VkImage create(VkDevice device, long address, Object[] parents) {
+		return new VkImage(device, address, Storage::new, parents);
 	}
 	
-	public static VkImage wrap(VkDevice device, long image, Object[] parents) {
-		return new VkImage(device, (vkImage, objects) -> Freeable.createDummy(vkImage, parents), image, parents);
+	public static VkImage wrap(VkDevice device, long address, Object[] parents) {
+		return new VkImage(device, address, Freeable::createDummy, parents);
 	}
 	
-	protected VkImage(VkDevice device, BiFunction<VkImage, Object[], Freeable> storage, long image, Object[] parents) {
+	//const
+	public VkImage(VkDevice device, long address, BiFunction<VkImage, Object[], Freeable> storageCreator, Object[] parents) {
 		this.device = device;
-		this.storage = storage.apply(this, addIfNotContained(parents, device));
-		this.image = image;
+		this.address = address;
+		this.storage = storageCreator.apply(this, addIfNotContained(parents, device));
 	}
 	
-	//device
+	//parents
 	private final VkDevice device;
 	
-	public VkDevice getDevice() {
+	public VkDevice device() {
 		return device;
+	}
+	
+	public VkInstance instance() {
+		return device.instance();
+	}
+	
+	//address
+	private final long address;
+	
+	public long address() {
+		return address;
 	}
 	
 	//storage
@@ -42,27 +55,20 @@ public class VkImage implements FreeableWrapper {
 		return storage;
 	}
 	
-	//image
-	private final long image;
-	
-	public long getImage() {
-		return image;
-	}
-	
 	public static class Storage extends FreeableStorage {
 		
 		private final VkDevice device;
-		private final long image;
+		private final long address;
 		
 		public Storage(@NotNull VkImage image, @NotNull Object[] parents) {
 			super(image, parents);
-			this.device = image.getDevice();
-			this.image = image.getImage();
+			this.device = image.device();
+			this.address = image.address();
 		}
 		
 		@Override
 		protected @NotNull Barrier handleFree() {
-			nvkDestroyImage(device, image, 0);
+			nvkDestroyImage(device, address, 0);
 			return Barrier.ALWAYS_TRIGGERED_BARRIER;
 		}
 	}

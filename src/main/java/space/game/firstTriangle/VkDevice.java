@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -36,6 +37,7 @@ import static space.engine.lwjgl.PointerBufferWrapper.wrapPointer;
 
 public class VkDevice extends org.lwjgl.vulkan.VkDevice implements FreeableWrapper {
 	
+	//builder
 	public static Builder builder(VkPhysicalDevice vkPhysicalDevice) {
 		return new Builder(vkPhysicalDevice);
 	}
@@ -122,7 +124,7 @@ public class VkDevice extends org.lwjgl.vulkan.VkDevice implements FreeableWrapp
 		public VkDevice build(Object[] parents) {
 			validate();
 			try (Frame frame = allocatorStack().frame()) {
-				Collection<VkQueueFamilyProperties> queueProperties = physicalDevice.getQueueProperties();
+				Collection<VkQueueFamilyProperties> queueProperties = physicalDevice.queueProperties();
 				List<List<QueueRequest>> queueRequests = this.queueRequests.values().stream().filter(Objects::nonNull).filter(l -> !l.isEmpty()).collect(Collectors.toList());
 				VkDeviceQueueCreateInfo.Buffer queueInfos = mallocBuffer(allocatorHeap(), VkDeviceQueueCreateInfo::create, VkDeviceQueueCreateInfo.SIZEOF, queueRequests.size(), new Object[] {frame});
 				for (int i = 0; i < queueRequests.size(); i++) {
@@ -156,7 +158,7 @@ public class VkDevice extends org.lwjgl.vulkan.VkDevice implements FreeableWrapp
 				
 				PointerBufferPointer device = PointerBufferPointer.malloc(frame);
 				nvkCreateDevice(physicalDevice, info.address(), 0, device.address());
-				VkDevice vkDevice = new VkDevice(device.getPointer(), physicalDevice, info, parents);
+				VkDevice vkDevice = create(device.getPointer(), physicalDevice, info, parents);
 				
 				PointerBufferPointer queue = PointerBufferPointer.malloc(frame);
 				for (List<QueueRequest> queueRequestByFamily : queueRequests) {
@@ -172,16 +174,41 @@ public class VkDevice extends org.lwjgl.vulkan.VkDevice implements FreeableWrapp
 		}
 	}
 	
-	//object
-	protected VkDevice(long handle, VkPhysicalDevice physicalDevice, VkDeviceCreateInfo ci, Object[] parents) {
+	//create
+	public static VkDevice create(long handle, VkPhysicalDevice physicalDevice, VkDeviceCreateInfo ci, Object[] parents) {
+		return new VkDevice(handle, physicalDevice, ci, Storage::new, parents);
+	}
+	
+	public static VkDevice wrap(long handle, VkPhysicalDevice physicalDevice, VkDeviceCreateInfo ci, Object[] parents) {
+		return new VkDevice(handle, physicalDevice, ci, Freeable::createDummy, parents);
+	}
+	
+	//const
+	public VkDevice(long handle, VkPhysicalDevice physicalDevice, VkDeviceCreateInfo ci, BiFunction<VkDevice, Object[], Freeable> storageCreator, Object[] parents) {
 		super(handle, physicalDevice, ci);
-		this.instance = physicalDevice.getInstance();
 		this.physicalDevice = physicalDevice;
-		this.storage = new Storage(this, addIfNotContained(parents, physicalDevice));
+		this.storage = storageCreator.apply(this, addIfNotContained(parents, physicalDevice));
+	}
+	
+	//parents
+	private final VkPhysicalDevice physicalDevice;
+	
+	public VkInstance instance() {
+		return physicalDevice.instance();
+	}
+	
+	public VkPhysicalDevice physicalDevice() {
+		return physicalDevice;
+	}
+	
+	@Override
+	@Deprecated
+	public VkPhysicalDevice getPhysicalDevice() {
+		return physicalDevice;
 	}
 	
 	//storage
-	private final Storage storage;
+	private final Freeable storage;
 	
 	public static class Storage extends FreeableStorage {
 		
@@ -205,18 +232,5 @@ public class VkDevice extends org.lwjgl.vulkan.VkDevice implements FreeableWrapp
 	@Override
 	public @NotNull Freeable getStorage() {
 		return storage;
-	}
-	
-	//parents
-	private final VkInstance instance;
-	private final VkPhysicalDevice physicalDevice;
-	
-	public VkInstance getInstance() {
-		return instance;
-	}
-	
-	@Override
-	public VkPhysicalDevice getPhysicalDevice() {
-		return physicalDevice;
 	}
 }

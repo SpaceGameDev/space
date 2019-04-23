@@ -108,17 +108,17 @@ public class FirstTriangle {
 				logger.log(LogLevel.INFO, new String2D(
 						Stream.concat(
 								Stream.of("Physical Devices: "),
-								vkInstance.getPhysicalDevices().stream()
+								vkInstance.physicalDevices().stream()
 										  .map(VkPhysicalDevice::properties)
 										  .map(property -> property.deviceNameString() + " (id: 0x" + property.deviceID() + ") type: " + property.deviceType())
 						).toArray(String[]::new)
 				));
 				
-				VkPhysicalDevice vkPhysicalDevice = vkInstance.getPhysicalDevices()
+				VkPhysicalDevice vkPhysicalDevice = vkInstance.physicalDevices()
 															  .stream()
-															  .filter(device -> device.properties().deviceType() == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+															  .filter(device -> device.properties().deviceType() == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
 															  .findFirst()
-															  .orElseGet(() -> vkInstance.getPhysicalDevices()
+															  .orElseGet(() -> vkInstance.physicalDevices()
 																						 .stream()
 																						 .findFirst()
 																						 .orElseThrow(() -> new RuntimeException("No GPU found!"))
@@ -127,7 +127,7 @@ public class FirstTriangle {
 				
 				VkSurface<GLFWWindow> windowSurface = VkSurfaceGLFW.createSurfaceFromGlfwWindow(vkInstance, window, new Object[] {frame});
 				
-				VkQueueFamilyProperties vkQueueFamilyGraphics = vkPhysicalDevice.getQueueProperties()
+				VkQueueFamilyProperties vkQueueFamilyGraphics = vkPhysicalDevice.queueProperties()
 																				.stream()
 																				.filter(queueFamily -> (queueFamily.queueFlags() & VK_QUEUE_GRAPHICS_BIT) != 0)
 																				.filter(queueFamily -> {
@@ -135,7 +135,7 @@ public class FirstTriangle {
 																						PointerBufferInt success = PointerBufferInt.malloc(frame1);
 																						assertVk(KHRSurface.nvkGetPhysicalDeviceSurfaceSupportKHR(vkPhysicalDevice,
 																																				  queueFamily.index(),
-																																				  windowSurface.getSurface(),
+																																				  windowSurface.address(),
 																																				  success.address()));
 																						return success.getInt() == VK_TRUE;
 																					}
@@ -149,7 +149,7 @@ public class FirstTriangle {
 				VkDevice vkDevice = vkDeviceBuilder.build(new Object[] {frame});
 				VkQueue vkQueueGraphics = requireNonNull(vkQueueGraphicsSupplier.get());
 				
-				VkSurfaceSwapChainDetails swapChainDetails = new VkSurfaceSwapChainDetails(vkPhysicalDevice, windowSurface, new Object[] {frame});
+				VkSurfaceSwapChainDetails swapChainDetails = VkSurfaceSwapChainDetails.wrap(vkPhysicalDevice, windowSurface, new Object[] {frame});
 				VkSwapChain swapChain = VkSwapChain.builder(vkDevice, swapChainDetails)
 												   .setImageFormat(VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 												   .setSwapExtend(windowAtt.get(WIDTH), windowAtt.get(HEIGHT))

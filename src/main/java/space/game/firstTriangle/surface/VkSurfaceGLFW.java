@@ -73,7 +73,7 @@ public class VkSurfaceGLFW {
 		try (Frame frame = allocatorStack().frame()) {
 			PointerBufferPointer surfacePtr = PointerBufferPointer.malloc(frame);
 			assertVk(nglfwCreateWindowSurface(instance.address(), window.getWindowPointer(), 0, surfacePtr.address()));
-			return new VkSurface<>(instance, window, surfacePtr.getPointer(), parents);
+			return VkSurface.create(surfacePtr.getPointer(), instance, window, parents);
 		}
 	}
 }

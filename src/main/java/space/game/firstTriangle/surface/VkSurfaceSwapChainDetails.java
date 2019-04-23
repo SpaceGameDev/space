@@ -1,8 +1,6 @@
 package space.game.firstTriangle.surface;
 
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.vulkan.VkInstance;
-import org.lwjgl.vulkan.VkPhysicalDevice;
 import org.lwjgl.vulkan.VkSurfaceCapabilitiesKHR;
 import org.lwjgl.vulkan.VkSurfaceFormatKHR;
 import space.engine.buffer.AllocatorStack.Frame;
@@ -10,8 +8,11 @@ import space.engine.buffer.array.ArrayBufferInt;
 import space.engine.buffer.pointer.PointerBufferInt;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
+import space.game.firstTriangle.VkInstance;
+import space.game.firstTriangle.VkPhysicalDevice;
 
 import java.util.Collection;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import static org.lwjgl.vulkan.KHRSurface.*;
@@ -23,21 +24,25 @@ import static space.game.firstTriangle.VkException.assertVk;
 
 public class VkSurfaceSwapChainDetails implements FreeableWrapper {
 	
-	public VkSurfaceSwapChainDetails(VkPhysicalDevice physicalDevice, VkSurface<?> vkSurface, Object[] parents) {
-		if (physicalDevice.getInstance() != vkSurface.getInstance())
+	public static VkSurfaceSwapChainDetails wrap(VkPhysicalDevice physicalDevice, VkSurface<?> vkSurface, Object[] parents) {
+		return new VkSurfaceSwapChainDetails(physicalDevice, vkSurface, Freeable::createDummy, parents);
+	}
+	
+	public VkSurfaceSwapChainDetails(VkPhysicalDevice physicalDevice, VkSurface<?> vkSurface, BiFunction<VkSurfaceSwapChainDetails, Object[], Freeable> storageCreator, Object[] parents) {
+		if (physicalDevice.instance() != vkSurface.instance())
 			throw new IllegalArgumentException("physicalDevice and surface are required to have the same VkInstance");
 		
 		//parents
-		this.instance = physicalDevice.getInstance();
+		this.instance = physicalDevice.instance();
 		this.physicalDevice = physicalDevice;
 		this.surface = vkSurface;
 		
 		//storage
-		this.storage = Freeable.createDummy(this, addIfNotContained(parents, physicalDevice, vkSurface));
+		this.storage = storageCreator.apply(this, addIfNotContained(parents, physicalDevice, vkSurface));
 		
 		try (Frame frame = allocatorStack().frame()) {
 			//capabilities
-			long surface = vkSurface.getSurface();
+			long surface = vkSurface.address();
 			VkSurfaceCapabilitiesKHR capabilities = mallocStruct(allocatorHeap(), VkSurfaceCapabilitiesKHR::create, VkSurfaceCapabilitiesKHR.SIZEOF, new Object[] {storage});
 			assertVk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, capabilities));
 			this.capabilities = capabilities;

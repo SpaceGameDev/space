@@ -31,6 +31,7 @@ import space.engine.sync.barrier.Barrier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
@@ -44,6 +45,7 @@ import static space.game.firstTriangle.VkException.assertVk;
 
 public class VkInstance extends org.lwjgl.vulkan.VkInstance implements FreeableWrapper {
 	
+	//builder
 	public static Builder builder() {
 		return new Builder();
 	}
@@ -197,20 +199,28 @@ public class VkInstance extends org.lwjgl.vulkan.VkInstance implements FreeableW
 				
 				PointerBufferPointer instance = PointerBufferPointer.malloc(frame);
 				assertVk(nvkCreateInstance(vkInstanceCreateInfo.address(), 0, instance.address()));
-				return new VkInstance(instance.getPointer(), vkInstanceCreateInfo, logger, initDebugCallback, parents);
+				return create(instance.getPointer(), vkInstanceCreateInfo, logger, initDebugCallback, parents);
 			}
 		}
 	}
 	
+	//create
+	public static VkInstance create(long handle, @NotNull VkInstanceCreateInfo ci, @NotNull Logger logger, boolean initDebugCallback, @NotNull Object[] parents) {
+		return new VkInstance(handle, ci, logger, initDebugCallback, Storage::new, parents);
+	}
+	
+	public static VkInstance wrap(long handle, @NotNull VkInstanceCreateInfo ci, @NotNull Logger logger, boolean initDebugCallback, @NotNull Object[] parents) {
+		return new VkInstance(handle, ci, logger, initDebugCallback, Freeable::createDummy, parents);
+	}
+	
 	//object
-	public VkInstance(long handle, @NotNull VkInstanceCreateInfo ci, @NotNull Logger logger, boolean initDebugCallback, @NotNull Object[] parents) {
+	public VkInstance(long handle, @NotNull VkInstanceCreateInfo ci, @NotNull Logger logger, boolean initDebugCallback, BiFunction<VkInstance, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
 		super(handle, ci);
 		
 		//logger
 		this.logger = logger;
 		
-		//debugCallback
-		long debugMessenger;
+		//debugMessenger
 		if (initDebugCallback) {
 			try (Frame frame = allocatorStack().frame()) {
 				VkDebugUtilsMessengerCreateInfoEXT debugInfo = mallocStruct(frame, VkDebugUtilsMessengerCreateInfoEXT::create, VkDebugUtilsMessengerCreateInfoEXT.SIZEOF).set(
@@ -219,7 +229,7 @@ public class VkInstance extends org.lwjgl.vulkan.VkInstance implements FreeableW
 						0,
 						VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
 						VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-						debugCallback,
+						this.debugMessengerCallback,
 						0
 				);
 				PointerBufferPointer debugMessengerPtr = PointerBufferPointer.malloc(frame);
@@ -231,7 +241,7 @@ public class VkInstance extends org.lwjgl.vulkan.VkInstance implements FreeableW
 		}
 		
 		//storage
-		this.storage = new Storage(this, debugMessenger, parents);
+		this.storage = storageCreator.apply(this, parents);
 		
 		//physical devices
 		while (true) {
@@ -241,50 +251,11 @@ public class VkInstance extends org.lwjgl.vulkan.VkInstance implements FreeableW
 				ArrayBufferPointer devices = ArrayBufferPointer.malloc(allocatorHeap(), Integer.toUnsignedLong(count.getInt()), new Object[] {frame});
 				if (assertVk(nvkEnumeratePhysicalDevices(this, count.address(), devices.address())) == VK_SUCCESS) {
 					this.physicalDevices = devices.stream()
-												  .mapToObj(p -> new VkPhysicalDevice(p, this, new Object[] {this}))
+												  .mapToObj(phyPtr -> VkPhysicalDevice.wrap(phyPtr, this, new Object[] {this}))
 												  .collect(Collectors.toCollection(() -> new ObservableCollection<>(new ArrayList<>())));
 					break;
 				}
 			}
-		}
-	}
-	
-	//storage
-	private final Storage storage;
-	
-	@Override
-	public @NotNull Freeable getStorage() {
-		return storage;
-	}
-	
-	/**
-	 * destory objects without reference to vkInstance
-	 */
-	public static class Storage extends FreeableStorage {
-		
-		private final long function_vkDestroyInstance;
-		private final long function_vkDestroyDebugUtilsMessengerEXT;
-		private final long instance;
-		private final long debugMessenger;
-		
-		public Storage(@NotNull VkInstance instance, long debugMessenger, @NotNull Object[] parents) {
-			super(instance, parents);
-			
-			VKCapabilitiesInstance capabilities = instance.getCapabilities();
-			this.function_vkDestroyInstance = capabilities.vkDestroyInstance;
-			this.function_vkDestroyDebugUtilsMessengerEXT = debugMessenger != 0 ? capabilities.vkDestroyDebugUtilsMessengerEXT : 0;
-			this.instance = instance.address();
-			this.debugMessenger = debugMessenger;
-		}
-		
-		@Override
-		protected @NotNull Barrier handleFree() {
-			//vkCreateDebugUtilsMessengerEXT
-			if (function_vkDestroyDebugUtilsMessengerEXT != 0)
-				callPJPV(function_vkDestroyDebugUtilsMessengerEXT, instance, debugMessenger, 0);
-			//nvkDestroyInstance
-			JNI.callPPV(function_vkDestroyInstance, instance, 0);
-			return Barrier.ALWAYS_TRIGGERED_BARRIER;
 		}
 	}
 	
@@ -295,11 +266,16 @@ public class VkInstance extends org.lwjgl.vulkan.VkInstance implements FreeableW
 		return logger;
 	}
 	
-	//debugCallback
+	//debugMessenger
 	@SuppressWarnings("FieldCanBeLocal")
-	private final @NotNull DebugCallback debugCallback = new DebugCallback();
+	private final @NotNull DebugMessenger debugMessengerCallback = new DebugMessenger();
+	private final long debugMessenger;
 	
-	public class DebugCallback implements VkDebugUtilsMessengerCallbackEXTI {
+	public long getDebugMessenger() {
+		return debugMessenger;
+	}
+	
+	public class DebugMessenger implements VkDebugUtilsMessengerCallbackEXTI {
 		
 		@Override
 		public int invoke(int messageSeverity, int messageTypes, long pCallbackData, long pUserData) {
@@ -328,10 +304,49 @@ public class VkInstance extends org.lwjgl.vulkan.VkInstance implements FreeableW
 		}
 	}
 	
+	//storage
+	private final Freeable storage;
+	
+	@Override
+	public @NotNull Freeable getStorage() {
+		return storage;
+	}
+	
+	/**
+	 * destory objects without reference to vkInstance
+	 */
+	public static class Storage extends FreeableStorage {
+		
+		private final long function_vkDestroyInstance;
+		private final long function_vkDestroyDebugUtilsMessengerEXT;
+		private final long instance;
+		private final long debugMessenger;
+		
+		public Storage(@NotNull VkInstance instance, @NotNull Object[] parents) {
+			super(instance, parents);
+			
+			VKCapabilitiesInstance capabilities = instance.getCapabilities();
+			this.function_vkDestroyInstance = capabilities.vkDestroyInstance;
+			this.function_vkDestroyDebugUtilsMessengerEXT = instance.debugMessenger != 0 ? capabilities.vkDestroyDebugUtilsMessengerEXT : 0;
+			this.instance = instance.address();
+			this.debugMessenger = instance.debugMessenger;
+		}
+		
+		@Override
+		protected @NotNull Barrier handleFree() {
+			//vkCreateDebugUtilsMessengerEXT
+			if (function_vkDestroyDebugUtilsMessengerEXT != 0)
+				callPJPV(function_vkDestroyDebugUtilsMessengerEXT, instance, debugMessenger, 0);
+			//nvkDestroyInstance
+			JNI.callPPV(function_vkDestroyInstance, instance, 0);
+			return Barrier.ALWAYS_TRIGGERED_BARRIER;
+		}
+	}
+	
 	//physical devices
 	private final @NotNull ObservableCollection<VkPhysicalDevice> physicalDevices;
 	
-	public @NotNull ObservableCollection<VkPhysicalDevice> getPhysicalDevices() {
+	public @NotNull ObservableCollection<VkPhysicalDevice> physicalDevices() {
 		return physicalDevices;
 	}
 }

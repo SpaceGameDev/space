@@ -20,6 +20,7 @@ import space.game.firstTriangle.VkQueueFamilyProperties;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import static org.lwjgl.vulkan.KHRSurface.*;
@@ -32,6 +33,7 @@ import static space.game.firstTriangle.VkException.assertVk;
 
 public class VkSwapChain implements FreeableWrapper {
 	
+	//builder
 	public static Builder builder(VkDevice device, VkSurfaceSwapChainDetails swapChainDetails) {
 		return new Builder(device, swapChainDetails);
 	}
@@ -252,7 +254,7 @@ public class VkSwapChain implements FreeableWrapper {
 						VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
 						0,
 						0,
-						swapChainDetails.getSurface().getSurface(),
+						swapChainDetails.getSurface().address(),
 						imageCount,
 						imageFormat,
 						imageColorSpace,
@@ -272,31 +274,41 @@ public class VkSwapChain implements FreeableWrapper {
 				
 				PointerBufferPointer swapChainPtr = PointerBufferPointer.malloc(frame);
 				assertVk(nvkCreateSwapchainKHR(device, info.address(), 0, swapChainPtr.address()));
-				return new VkSwapChain(device, swapChainDetails, swapChainPtr.getPointer(), imageFormat, parents);
+				return VkSwapChain.create(swapChainPtr.getPointer(), device, swapChainDetails, imageFormat, parents);
 			}
 		}
 	}
 	
-	public VkSwapChain(VkDevice device, VkSurfaceSwapChainDetails swapChainDetails, long swapChain, int imageFormat, @NotNull Object[] parents) {
+	//create
+	public static VkSwapChain create(long address, VkDevice device, VkSurfaceSwapChainDetails swapChainDetails, int imageFormat, @NotNull Object[] parents) {
+		return new VkSwapChain(address, device, swapChainDetails, imageFormat, Storage::new, parents);
+	}
+	
+	public static VkSwapChain wrap(long address, VkDevice device, VkSurfaceSwapChainDetails swapChainDetails, int imageFormat, @NotNull Object[] parents) {
+		return new VkSwapChain(address, device, swapChainDetails, imageFormat, Freeable::createDummy, parents);
+	}
+	
+	//const
+	public VkSwapChain(long address, VkDevice device, VkSurfaceSwapChainDetails swapChainDetails, int imageFormat, BiFunction<VkSwapChain, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
 		this.device = device;
 		this.swapChainDetails = swapChainDetails;
-		this.storage = new Storage(this, device, swapChain, addIfNotContained(parents, device));
-		this.swapChain = swapChain;
+		this.address = address;
+		this.storage = storageCreator.apply(this, addIfNotContained(parents, device));
 		
 		//images
 		try (Frame frame = allocatorStack().frame()) {
 			PointerBufferInt count = PointerBufferInt.malloc(frame);
 			ArrayBufferPointer imagesBuffer;
 			while (true) {
-				assertVk(nvkGetSwapchainImagesKHR(device, swapChain, count.address(), 0));
+				assertVk(nvkGetSwapchainImagesKHR(device, address, count.address(), 0));
 				imagesBuffer = ArrayBufferPointer.malloc(allocatorHeap(), count.getInt(), new Object[] {frame});
-				if (assertVk(nvkGetSwapchainImagesKHR(device, swapChain, count.address(), imagesBuffer.address())) == VK_SUCCESS)
+				if (assertVk(nvkGetSwapchainImagesKHR(device, address, count.address(), imagesBuffer.address())) == VK_SUCCESS)
 					break;
 				Freeable.freeObject(imagesBuffer);
 			}
 			
 			this.images = imagesBuffer.stream().mapToObj(ptr -> VkImage.wrap(device, ptr, new Object[] {this})).collect(Collectors.toUnmodifiableList());
-			this.imageViews = images.stream().map(image -> VkImageView.create(
+			this.imageViews = images.stream().map(image -> VkImageView.alloc(
 					image,
 					VK_IMAGE_VIEW_TYPE_2D,
 					imageFormat,
@@ -314,61 +326,60 @@ public class VkSwapChain implements FreeableWrapper {
 		}
 	}
 	
-	//device
+	//parents
 	private final VkDevice device;
+	private final VkSurfaceSwapChainDetails swapChainDetails;
 	
-	public VkDevice getDevice() {
+	public VkDevice device() {
 		return device;
 	}
 	
-	private final VkSurfaceSwapChainDetails swapChainDetails;
-	
-	public VkSurfaceSwapChainDetails getSwapChainDetails() {
+	public VkSurfaceSwapChainDetails swapChainDetails() {
 		return swapChainDetails;
 	}
 	
 	//storage
-	private final Storage storage;
+	private final Freeable storage;
 	
 	@Override
 	public @NotNull Freeable getStorage() {
 		return storage;
 	}
 	
+	//address
+	private final long address;
+	
+	public long address() {
+		return address;
+	}
+	
 	public static class Storage extends FreeableStorage {
 		
 		private final VkDevice device;
-		private final long swapChain;
+		private final long address;
 		
-		public Storage(@Nullable Object referent, VkDevice device, long swapChain, @NotNull Object[] parents) {
-			super(referent, parents);
-			this.device = device;
-			this.swapChain = swapChain;
+		public Storage(@NotNull VkSwapChain swapChain, @NotNull Object[] parents) {
+			super(swapChain, parents);
+			this.device = swapChain.device();
+			this.address = swapChain.address();
 		}
 		
 		@Override
 		protected @NotNull Barrier handleFree() {
-			nvkDestroySwapchainKHR(device, swapChain, 0);
+			nvkDestroySwapchainKHR(device, address, 0);
 			return Barrier.ALWAYS_TRIGGERED_BARRIER;
 		}
-	}
-	
-	//swapChain
-	private final long swapChain;
-	
-	public long getSwapChain() {
-		return swapChain;
 	}
 	
 	//images
 	private final List<VkImage> images;
 	private final List<VkImageView> imageViews;
 	
-	public List<VkImage> getImages() {
+	public List<VkImage> images() {
 		return images;
 	}
 	
-	public List<VkImageView> getImageViews() {
+	public List<VkImageView> imageViews() {
 		return imageViews;
 	}
 }
