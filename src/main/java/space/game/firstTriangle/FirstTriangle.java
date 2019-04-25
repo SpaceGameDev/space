@@ -199,6 +199,7 @@ public class FirstTriangle {
 				VkQueue queueGraphics = requireNonNull(queueGraphicsSupplier.get());
 				
 				VkSurfaceSwapChainDetails swapChainDetails = VkSurfaceSwapChainDetails.wrap(physicalDevice, surface, new Object[] {frame});
+				int[] bestSurfaceFormat = swapChainDetails.getBestSurfaceFormat(new int[][] {{VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}});
 				VkSwapChain swapChain = VkSwapChain.alloc(
 						mallocStruct(frame, VkSwapchainCreateInfoKHR::create, VkSwapchainCreateInfoKHR.SIZEOF).set(
 								VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -206,8 +207,8 @@ public class FirstTriangle {
 								0,
 								surface.address(),
 								swapChainDetails.capabilities().minImageCount() + 1,
-								VK_FORMAT_R8G8B8A8_UNORM,
-								VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
+								bestSurfaceFormat[0],
+								bestSurfaceFormat[1],
 								mallocStruct(frame, VkExtent2D::create, VkExtent2D.SIZEOF).set(
 										windowAtt.get(WIDTH), windowAtt.get(HEIGHT)
 								),

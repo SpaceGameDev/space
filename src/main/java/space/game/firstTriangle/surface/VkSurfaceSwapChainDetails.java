@@ -128,6 +128,26 @@ public class VkSurfaceSwapChainDetails implements FreeableWrapper {
 		return false;
 	}
 	
+	public int[] getBestSurfaceFormat(int[][] formatsToChooseFrom) {
+		if (formatUndefined && formatsToChooseFrom.length > 0)
+			return formatsToChooseFrom[0];
+		
+		for (int[] format : formatsToChooseFrom)
+			if (isSurfaceFormatSupported(format[0], format[1]))
+				return format;
+		throw new RuntimeException("No best SurfaceFormat found!");
+	}
+	
+	public VkSurfaceFormatKHR getBestSurfaceFormat(VkSurfaceFormatKHR[] formatsToChooseFrom) {
+		if (formatUndefined && formatsToChooseFrom.length > 0)
+			return formatsToChooseFrom[0];
+		
+		for (VkSurfaceFormatKHR format : formatsToChooseFrom)
+			if (isSurfaceFormatSupported(format.format(), format.colorSpace()))
+				return format;
+		throw new RuntimeException("No best SurfaceFormat found!");
+	}
+	
 	//presentModes
 	private final @NotNull Collection<Integer> presentModes;
 	
@@ -143,6 +163,6 @@ public class VkSurfaceSwapChainDetails implements FreeableWrapper {
 		for (int presentMode : presentModesToChooseFrom)
 			if (isPresentModeSupported(presentMode))
 				return presentMode;
-		throw new RuntimeException("No best present mode found!");
+		throw new RuntimeException("No best PresentMode found!");
 	}
 }
