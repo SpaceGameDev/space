@@ -24,16 +24,15 @@ import static space.game.firstTriangle.VkException.assertVk;
 
 public class VkSurfaceSwapChainDetails implements FreeableWrapper {
 	
-	public static VkSurfaceSwapChainDetails wrap(VkPhysicalDevice physicalDevice, VkSurface<?> vkSurface, Object[] parents) {
+	public static @NotNull VkSurfaceSwapChainDetails wrap(@NotNull VkPhysicalDevice physicalDevice, @NotNull VkSurface<?> vkSurface, @NotNull Object[] parents) {
 		return new VkSurfaceSwapChainDetails(physicalDevice, vkSurface, Freeable::createDummy, parents);
 	}
 	
-	public VkSurfaceSwapChainDetails(VkPhysicalDevice physicalDevice, VkSurface<?> vkSurface, BiFunction<VkSurfaceSwapChainDetails, Object[], Freeable> storageCreator, Object[] parents) {
+	public VkSurfaceSwapChainDetails(@NotNull VkPhysicalDevice physicalDevice, @NotNull VkSurface<?> vkSurface, @NotNull BiFunction<VkSurfaceSwapChainDetails, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
 		if (physicalDevice.instance() != vkSurface.instance())
 			throw new IllegalArgumentException("physicalDevice and surface are required to have the same VkInstance");
 		
 		//parents
-		this.instance = physicalDevice.instance();
 		this.physicalDevice = physicalDevice;
 		this.surface = vkSurface;
 		
@@ -75,24 +74,23 @@ public class VkSurfaceSwapChainDetails implements FreeableWrapper {
 	}
 	
 	//parents
-	private final VkInstance instance;
-	private final VkPhysicalDevice physicalDevice;
-	private final VkSurface<?> surface;
+	private final @NotNull VkPhysicalDevice physicalDevice;
+	private final @NotNull VkSurface<?> surface;
 	
-	public VkInstance getInstance() {
-		return instance;
+	public @NotNull VkInstance instance() {
+		return physicalDevice.instance();
 	}
 	
-	public VkPhysicalDevice getPhysicalDevice() {
+	public VkPhysicalDevice physicalDevice() {
 		return physicalDevice;
 	}
 	
-	public VkSurface<?> getSurface() {
+	public VkSurface<?> surface() {
 		return surface;
 	}
 	
 	//storage
-	private final Freeable storage;
+	private final @NotNull Freeable storage;
 	
 	@Override
 	public @NotNull Freeable getStorage() {
@@ -100,19 +98,19 @@ public class VkSurfaceSwapChainDetails implements FreeableWrapper {
 	}
 	
 	//capabilities
-	private final VkSurfaceCapabilitiesKHR capabilities;
+	private final @NotNull VkSurfaceCapabilitiesKHR capabilities;
 	
-	public VkSurfaceCapabilitiesKHR capabilities() {
+	public @NotNull VkSurfaceCapabilitiesKHR capabilities() {
 		return capabilities;
 	}
 	
 	//formats
 	@SuppressWarnings({"FieldCanBeLocal", "unused"})
-	private final VkSurfaceFormatKHR.Buffer formatBuffer;
-	private final Collection<VkSurfaceFormatKHR> formats;
+	private final @NotNull VkSurfaceFormatKHR.Buffer formatBuffer;
+	private final @NotNull Collection<VkSurfaceFormatKHR> formats;
 	private final boolean formatUndefined;
 	
-	public Collection<VkSurfaceFormatKHR> formats() {
+	public @NotNull Collection<VkSurfaceFormatKHR> formats() {
 		return formats;
 	}
 	
@@ -131,9 +129,9 @@ public class VkSurfaceSwapChainDetails implements FreeableWrapper {
 	}
 	
 	//presentModes
-	private final Collection<Integer> presentModes;
+	private final @NotNull Collection<Integer> presentModes;
 	
-	public Collection<Integer> presentModes() {
+	public @NotNull Collection<Integer> presentModes() {
 		return presentModes;
 	}
 	

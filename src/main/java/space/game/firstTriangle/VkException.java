@@ -1,5 +1,7 @@
 package space.game.firstTriangle;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,7 +36,7 @@ public class VkException extends RuntimeException {
 		super("Vk error: " + ERROR_MAP.get(error) + " (" + error + ")");
 	}
 	
-	public VkException(String message) {
+	public VkException(@NotNull String message) {
 		super(message);
 	}
 }

@@ -20,15 +20,15 @@ import static space.game.firstTriangle.VkException.assertVk;
 public class VkLayers {
 	
 	@SuppressWarnings("FieldCanBeLocal")
-	private static final VkLayerProperties.Buffer buffer;
-	private static final Map<String, VkLayerProperties> map;
+	private static final @NotNull VkLayerProperties.Buffer buffer;
+	private static final @NotNull Map<String, VkLayerProperties> map;
 	
 	static {
 		buffer = findLayers();
 		map = buffer.stream().collect(Collectors.toUnmodifiableMap(VkLayerProperties::layerNameString, o -> o));
 	}
 	
-	private static VkLayerProperties.Buffer findLayers() {
+	private static @NotNull VkLayerProperties.Buffer findLayers() {
 		while (true) {
 			try (Frame frame = Allocator.allocatorStack().frame()) {
 				PointerBufferInt count = PointerBufferInt.malloc(frame);

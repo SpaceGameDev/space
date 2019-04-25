@@ -2,7 +2,6 @@ package space.game.firstTriangle;
 
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.vulkan.VkComponentMapping;
-import org.lwjgl.vulkan.VkImageSubresourceRange;
 import org.lwjgl.vulkan.VkImageViewCreateInfo;
 import space.engine.buffer.AllocatorStack.Frame;
 import space.engine.buffer.pointer.PointerBufferPointer;
@@ -14,71 +13,56 @@ import space.engine.sync.barrier.Barrier;
 import java.util.function.BiFunction;
 
 import static org.lwjgl.vulkan.VK10.*;
-import static space.engine.buffer.Allocator.allocatorStack;
+import static space.engine.buffer.Allocator.*;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 import static space.game.firstTriangle.VkException.assertVk;
 
 public class VkImageView implements FreeableWrapper {
 	
+	public static final VkComponentMapping SWIZZLE_MASK_IDENTITY = mallocStruct(allocatorHeap(), VkComponentMapping::create, VkComponentMapping.SIZEOF, new Object[] {ROOT_LIST}).set(
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY,
+			VK_COMPONENT_SWIZZLE_IDENTITY
+	);
+	
 	//alloc
-	public static VkImageView alloc(VkImage image, int viewType, int format, int swizzleR, int swizzleG, int swizzleB, int swizzleA, int aspectMask, int mipLevelBase, int mipLevelCount, int arrayLayerBase, int arrayLayerCount, Object[] parents) {
+	public static @NotNull VkImageView alloc(@NotNull VkImageViewCreateInfo info, @NotNull VkImage image, @NotNull Object[] parents) {
 		try (Frame frame = allocatorStack().frame()) {
-			VkImageViewCreateInfo info = mallocStruct(frame, VkImageViewCreateInfo::create, VkImageViewCreateInfo.SIZEOF).set(
-					VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-					0,
-					0,
-					image.address(),
-					viewType,
-					format,
-					mallocStruct(frame, VkComponentMapping::create, VkComponentMapping.SIZEOF).set(
-							swizzleR,
-							swizzleG,
-							swizzleB,
-							swizzleA
-					),
-					mallocStruct(frame, VkImageSubresourceRange::create, VkImageSubresourceRange.SIZEOF).set(
-							aspectMask,
-							mipLevelBase,
-							mipLevelCount,
-							arrayLayerBase,
-							arrayLayerCount
-					)
-			);
-			
 			PointerBufferPointer imageViewPtr = PointerBufferPointer.malloc(frame);
 			assertVk(nvkCreateImageView(image.device(), info.address(), 0, imageViewPtr.address()));
-			return create(image, imageViewPtr.getPointer(), parents);
+			return create(imageViewPtr.getPointer(), image, parents);
 		}
 	}
 	
 	//create
-	public static VkImageView create(VkImage image, long imageView, Object[] parents) {
-		return new VkImageView(image, imageView, Storage::new, parents);
+	public static @NotNull VkImageView create(long imageView, @NotNull VkImage image, @NotNull Object[] parents) {
+		return new VkImageView(imageView, image, Storage::new, parents);
 	}
 	
-	public static VkImageView wrap(VkImage image, long imageView, Object[] parents) {
-		return new VkImageView(image, imageView, Freeable::createDummy, parents);
+	public static @NotNull VkImageView wrap(long imageView, @NotNull VkImage image, @NotNull Object[] parents) {
+		return new VkImageView(imageView, image, Freeable::createDummy, parents);
 	}
 	
 	//const
-	public VkImageView(VkImage image, long address, BiFunction<VkImageView, Object[], Freeable> storageCreator, Object[] parents) {
+	public VkImageView(long address, @NotNull VkImage image, @NotNull BiFunction<VkImageView, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
 		this.image = image;
 		this.address = address;
 		this.storage = storageCreator.apply(this, Freeable.addIfNotContained(parents, image));
 	}
 	
 	//parents
-	private final VkImage image;
+	private final @NotNull VkImage image;
 	
-	public VkImage image() {
+	public @NotNull VkImage image() {
 		return image;
 	}
 	
-	public VkDevice device() {
+	public @NotNull VkDevice device() {
 		return image.device();
 	}
 	
-	public VkInstance instance() {
+	public @NotNull VkInstance instance() {
 		return image.instance();
 	}
 	
@@ -90,7 +74,7 @@ public class VkImageView implements FreeableWrapper {
 	}
 	
 	//storage
-	private final Freeable storage;
+	private final @NotNull Freeable storage;
 	
 	@Override
 	public @NotNull Freeable getStorage() {
@@ -99,7 +83,7 @@ public class VkImageView implements FreeableWrapper {
 	
 	public static class Storage extends FreeableStorage {
 		
-		private final VkImage image;
+		private final @NotNull VkImage image;
 		private final long address;
 		
 		public Storage(@NotNull VkImageView imageView, @NotNull Object[] parents) {

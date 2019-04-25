@@ -4,14 +4,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.vulkan.VkDeviceCreateInfo;
 import org.lwjgl.vulkan.VkDeviceQueueCreateInfo;
-import org.lwjgl.vulkan.VkExtensionProperties;
-import org.lwjgl.vulkan.VkPhysicalDeviceFeatures;
+import org.lwjgl.vulkan.VkDeviceQueueCreateInfo.Buffer;
 import org.lwjgl.vulkan.VkQueue;
+import space.engine.buffer.Allocator;
+import space.engine.buffer.AllocatorStack;
 import space.engine.buffer.AllocatorStack.Frame;
-import space.engine.buffer.Buffer;
-import space.engine.buffer.StringConverter;
 import space.engine.buffer.array.ArrayBufferFloat;
-import space.engine.buffer.array.ArrayBufferPointer;
 import space.engine.buffer.pointer.PointerBufferPointer;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
@@ -21,194 +19,158 @@ import space.engine.indexmap.IndexMapArray;
 import space.engine.sync.barrier.Barrier;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import static org.lwjgl.system.JNI.callPPV;
 import static org.lwjgl.vulkan.VK10.*;
-import static space.engine.buffer.Allocator.*;
+import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
+import static space.engine.buffer.Allocator.allocatorStack;
 import static space.engine.freeableStorage.Freeable.addIfNotContained;
-import static space.engine.lwjgl.LwjglStructAllocator.*;
-import static space.engine.lwjgl.PointerBufferWrapper.wrapPointer;
+import static space.engine.lwjgl.LwjglStructAllocator.mallocBuffer;
+import static space.game.firstTriangle.VkException.assertVk;
 
 public class VkDevice extends org.lwjgl.vulkan.VkDevice implements FreeableWrapper {
 	
-	//builder
-	public static Builder builder(VkPhysicalDevice vkPhysicalDevice) {
-		return new Builder(vkPhysicalDevice);
-	}
-	
-	public static class Builder {
+	/**
+	 * The {@link QueueRequestHandler} handles the querying of queues for a {@link VkDevice}.
+	 *
+	 * <ol>
+	 * <li>add any QueueRequests with {@link #addRequest(VkQueueFamilyProperties, float)}.</li>
+	 * <li>generate the {@link VkDeviceQueueCreateInfo.Buffer} with {@link #generateDeviceQueueRequestCreateInfoBuffer(Allocator, Object[])}<br>
+	 * and add them to your {@link VkDeviceCreateInfo#pQueueCreateInfos(Buffer)}</li>
+	 * <li>create your {@link VkDevice}</li>
+	 * <li>call {@link #fillQueueRequestsWithQueues(VkDevice)} to fill out any QueueRequests</li>
+	 * </ol>
+	 */
+	public static class QueueRequestHandler {
 		
-		private final VkPhysicalDevice physicalDevice;
+		private @Nullable IndexMap<List<QueueRequest>> requests = new IndexMapArray<>();
+		private @Nullable QueueRequest[][] requestsFiltered;
 		
-		public Builder(VkPhysicalDevice physicalDevice) {
-			this.physicalDevice = physicalDevice;
-		}
-		
-		public VkPhysicalDevice getPhysicalDevice() {
-			return physicalDevice;
-		}
-		
-		//features
-		private @Nullable VkPhysicalDeviceFeatures features;
-		
-		public Builder setFeatures(VkPhysicalDeviceFeatures features) {
-			this.features = features;
-			return this;
-		}
-		
-		public @Nullable VkPhysicalDeviceFeatures getFeatures() {
-			return features;
-		}
-		
-		//queues
-		private @NotNull IndexMap<List<QueueRequest>> queueRequests = new IndexMapArray<>();
-		
-		public Supplier<VkQueue> addQueueRequest(VkQueueFamilyProperties familyProperties, float priority) {
+		public Supplier<VkQueue> addRequest(@NotNull VkQueueFamilyProperties familyProperties, float priority) {
+			if (requests == null)
+				throw new IllegalStateException("already generated QueueBuffer!");
+			
 			QueueRequest request = new QueueRequest(familyProperties, priority);
-			queueRequests.computeIfAbsent(request.familyProperties.index(), ArrayList::new).add(request);
+			requests.computeIfAbsent(request.familyProperties.index(), ArrayList::new).add(request);
 			return request;
 		}
 		
-		private static class QueueRequest implements Supplier<VkQueue> {
-			
-			private final VkQueueFamilyProperties familyProperties;
-			private final float priority;
-			private VkQueue queue;
-			
-			public QueueRequest(VkQueueFamilyProperties familyProperties, float priority) {
-				this.familyProperties = familyProperties;
-				this.priority = priority;
+		public VkDeviceQueueCreateInfo.Buffer generateDeviceQueueRequestCreateInfoBuffer(AllocatorStack.Frame allocator) {
+			return generateDeviceQueueRequestCreateInfoBuffer(allocator, EMPTY_OBJECT_ARRAY);
+		}
+		
+		public VkDeviceQueueCreateInfo.Buffer generateDeviceQueueRequestCreateInfoBuffer(Allocator allocator, Object[] parents) {
+			if (requests == null)
+				throw new IllegalStateException("already generated QueueBuffer!");
+			if (requestsFiltered == null) {
+				requestsFiltered = Objects.requireNonNull(requests).values().stream().filter(Objects::nonNull).filter(l -> !l.isEmpty()).map(list -> list.toArray(new QueueRequest[0])).toArray(QueueRequest[][]::new);
+				requests = null;
 			}
 			
-			@Override
-			public VkQueue get() {
-				if (queue == null)
-					throw new RuntimeException("queue queried before device was created!");
-				return queue;
-			}
-		}
-		
-		public @NotNull IndexMap<List<QueueRequest>> getQueueRequests() {
-			return queueRequests;
-		}
-		
-		//extensions
-		private @NotNull Collection<VkExtensionProperties> extensions = new ArrayList<>();
-		
-		public Builder addExtension(VkExtensionProperties extension) {
-			this.extensions.add(Objects.requireNonNull(extension));
-			return this;
-		}
-		
-		public Builder addExtension(Collection<VkExtensionProperties> extension) {
-			extension.forEach(Objects::requireNonNull);
-			this.extensions.addAll(extension);
-			return this;
-		}
-		
-		public @NotNull Collection<VkExtensionProperties> getExtensions() {
-			return extensions;
-		}
-		
-		public void validate() {
-		
-		}
-		
-		//build
-		public VkDevice build(Object[] parents) {
-			validate();
-			try (Frame frame = allocatorStack().frame()) {
-				Collection<VkQueueFamilyProperties> queueProperties = physicalDevice.queueProperties();
-				List<List<QueueRequest>> queueRequests = this.queueRequests.values().stream().filter(Objects::nonNull).filter(l -> !l.isEmpty()).collect(Collectors.toList());
-				VkDeviceQueueCreateInfo.Buffer queueInfos = mallocBuffer(allocatorHeap(), VkDeviceQueueCreateInfo::create, VkDeviceQueueCreateInfo.SIZEOF, queueRequests.size(), new Object[] {frame});
-				for (int i = 0; i < queueRequests.size(); i++) {
-					List<QueueRequest> queueRequestOfFamily = queueRequests.get(i);
-					VkQueueFamilyProperties familyProperties = queueRequestOfFamily.get(0).familyProperties;
-					ArrayBufferFloat priorities = ArrayBufferFloat.malloc(frame, queueRequestOfFamily.size());
-					for (int j = 0; j < queueRequestOfFamily.size(); j++)
-						priorities.putFloat(j, queueRequestOfFamily.get(i).priority);
-					
-					queueInfos.get(i).set(
-							VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-							0,
-							0,
-							familyProperties.index(),
-							priorities.nioBuffer()
-					);
-				}
+			VkDeviceQueueCreateInfo.Buffer queueInfos = mallocBuffer(allocator, VkDeviceQueueCreateInfo::create, VkDeviceQueueCreateInfo.SIZEOF, requestsFiltered.length, parents);
+			for (int i = 0; i < requestsFiltered.length; i++) {
+				QueueRequest[] queueRequestOfFamily = requestsFiltered[i];
+				VkQueueFamilyProperties familyProperties = queueRequestOfFamily[0].familyProperties;
+				ArrayBufferFloat priorities = ArrayBufferFloat.malloc(allocator, queueRequestOfFamily.length, new Object[] {queueInfos});
+				for (int j = 0; j < queueRequestOfFamily.length; j++)
+					priorities.putFloat(j, queueRequestOfFamily[j].priority);
 				
-				VkDeviceCreateInfo info = callocStruct(frame, VkDeviceCreateInfo::create, VkDeviceCreateInfo.SIZEOF).set(
-						VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+				queueInfos.get(i).set(
+						VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
 						0,
 						0,
-						queueInfos,
-						null /* deprecated */,
-						wrapPointer(ArrayBufferPointer.alloc(frame, extensions
-								.stream()
-								.map(ex -> StringConverter.stringToUTF8(allocatorHeap(), ex.extensionNameString(), true, new Object[] {frame}))
-								.toArray(Buffer[]::new))),
-						features
+						familyProperties.index(),
+						priorities.nioBuffer()
 				);
-				
-				PointerBufferPointer device = PointerBufferPointer.malloc(frame);
-				nvkCreateDevice(physicalDevice, info.address(), 0, device.address());
-				VkDevice vkDevice = create(device.getPointer(), physicalDevice, info, parents);
-				
+			}
+			return queueInfos;
+		}
+		
+		public void fillQueueRequestsWithQueues(VkDevice device) {
+			if (requestsFiltered == null)
+				throw new IllegalStateException("already filled out QueueRequests");
+			
+			try (Frame frame = allocatorStack().frame()) {
 				PointerBufferPointer queue = PointerBufferPointer.malloc(frame);
-				for (List<QueueRequest> queueRequestByFamily : queueRequests) {
-					for (int j = 0; j < queueRequestByFamily.size(); j++) {
-						QueueRequest queueRequest = queueRequestByFamily.get(j);
-						nvkGetDeviceQueue(vkDevice, queueRequest.familyProperties.index(), j, queue.address());
-						queueRequest.queue = new VkQueue(queue.getPointer(), vkDevice);
+				for (QueueRequest[] queueRequestByFamily : requestsFiltered) {
+					for (int j = 0; j < queueRequestByFamily.length; j++) {
+						QueueRequest queueRequest = queueRequestByFamily[j];
+						nvkGetDeviceQueue(device, queueRequest.familyProperties.index(), j, queue.address());
+						queueRequest.queue = new VkQueue(queue.getPointer(), device);
 					}
 				}
-				
-				return vkDevice;
 			}
+			requestsFiltered = null;
+		}
+	}
+	
+	private static class QueueRequest implements Supplier<VkQueue> {
+		
+		private final @NotNull VkQueueFamilyProperties familyProperties;
+		private final float priority;
+		private @Nullable VkQueue queue;
+		
+		public QueueRequest(@NotNull VkQueueFamilyProperties familyProperties, float priority) {
+			this.familyProperties = familyProperties;
+			this.priority = priority;
+		}
+		
+		@Override
+		public VkQueue get() {
+			if (queue == null)
+				throw new RuntimeException("queue queried before device was created!");
+			return queue;
+		}
+	}
+	
+	//alloc
+	public static VkDevice alloc(@NotNull VkDeviceCreateInfo info, @NotNull VkPhysicalDevice physicalDevice, @NotNull Object[] parents) {
+		try (Frame frame = allocatorStack().frame()) {
+			PointerBufferPointer device = PointerBufferPointer.malloc(frame);
+			assertVk(nvkCreateDevice(physicalDevice, info.address(), 0, device.address()));
+			return create(device.getPointer(), physicalDevice, info, parents);
 		}
 	}
 	
 	//create
-	public static VkDevice create(long handle, VkPhysicalDevice physicalDevice, VkDeviceCreateInfo ci, Object[] parents) {
+	public static VkDevice create(long handle, @NotNull VkPhysicalDevice physicalDevice, @NotNull VkDeviceCreateInfo ci, @NotNull Object[] parents) {
 		return new VkDevice(handle, physicalDevice, ci, Storage::new, parents);
 	}
 	
-	public static VkDevice wrap(long handle, VkPhysicalDevice physicalDevice, VkDeviceCreateInfo ci, Object[] parents) {
+	public static VkDevice wrap(long handle, @NotNull VkPhysicalDevice physicalDevice, @NotNull VkDeviceCreateInfo ci, @NotNull Object[] parents) {
 		return new VkDevice(handle, physicalDevice, ci, Freeable::createDummy, parents);
 	}
 	
 	//const
-	public VkDevice(long handle, VkPhysicalDevice physicalDevice, VkDeviceCreateInfo ci, BiFunction<VkDevice, Object[], Freeable> storageCreator, Object[] parents) {
+	public VkDevice(long handle, @NotNull VkPhysicalDevice physicalDevice, @NotNull VkDeviceCreateInfo ci, @NotNull BiFunction<VkDevice, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
 		super(handle, physicalDevice, ci);
 		this.physicalDevice = physicalDevice;
 		this.storage = storageCreator.apply(this, addIfNotContained(parents, physicalDevice));
 	}
 	
 	//parents
-	private final VkPhysicalDevice physicalDevice;
+	private final @NotNull VkPhysicalDevice physicalDevice;
 	
 	public VkInstance instance() {
 		return physicalDevice.instance();
 	}
 	
-	public VkPhysicalDevice physicalDevice() {
+	public @NotNull VkPhysicalDevice physicalDevice() {
 		return physicalDevice;
 	}
 	
 	@Override
 	@Deprecated
-	public VkPhysicalDevice getPhysicalDevice() {
+	public @NotNull VkPhysicalDevice getPhysicalDevice() {
 		return physicalDevice;
 	}
 	
 	//storage
-	private final Freeable storage;
+	private final @NotNull Freeable storage;
 	
 	public static class Storage extends FreeableStorage {
 		

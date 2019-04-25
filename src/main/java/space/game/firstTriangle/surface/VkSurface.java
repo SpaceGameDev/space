@@ -16,16 +16,16 @@ import static space.engine.freeableStorage.Freeable.addIfNotContained;
 public class VkSurface<WINDOW extends Window> implements FreeableWrapper {
 	
 	//create
-	public static <WINDOW extends Window> VkSurface<WINDOW> create(long address, VkInstance instance, WINDOW window, Object[] parents) {
+	public static <WINDOW extends Window> VkSurface<WINDOW> create(long address, @NotNull VkInstance instance, @NotNull WINDOW window, @NotNull Object[] parents) {
 		return new VkSurface<>(address, instance, window, Storage::new, parents);
 	}
 	
-	public static <WINDOW extends Window> VkSurface<WINDOW> wrap(long address, VkInstance instance, WINDOW window, Object[] parents) {
+	public static <WINDOW extends Window> VkSurface<WINDOW> wrap(long address, @NotNull VkInstance instance, @NotNull WINDOW window, @NotNull Object[] parents) {
 		return new VkSurface<>(address, instance, window, Freeable::createDummy, parents);
 	}
 	
 	//struct
-	public VkSurface(long address, VkInstance instance, WINDOW window, BiFunction<VkSurface, Object[], Freeable> storageCreator, Object[] parents) {
+	public VkSurface(long address, @NotNull VkInstance instance, @NotNull WINDOW window, @NotNull BiFunction<VkSurface, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
 		this.instance = instance;
 		this.window = window;
 		this.address = address;
@@ -33,16 +33,16 @@ public class VkSurface<WINDOW extends Window> implements FreeableWrapper {
 	}
 	
 	//instance
-	private final VkInstance instance;
+	private final @NotNull VkInstance instance;
 	
-	public VkInstance instance() {
+	public @NotNull VkInstance instance() {
 		return instance;
 	}
 	
 	//window
-	private final WINDOW window;
+	private final @NotNull WINDOW window;
 	
-	public WINDOW window() {
+	public @NotNull WINDOW window() {
 		return window;
 	}
 	
@@ -54,7 +54,7 @@ public class VkSurface<WINDOW extends Window> implements FreeableWrapper {
 	}
 	
 	//storage
-	private final Freeable storage;
+	private final @NotNull Freeable storage;
 	
 	@Override
 	public @NotNull Freeable getStorage() {
@@ -63,10 +63,10 @@ public class VkSurface<WINDOW extends Window> implements FreeableWrapper {
 	
 	public static class Storage extends FreeableStorage {
 		
-		private final VkInstance instance;
+		private final @NotNull VkInstance instance;
 		private final long address;
 		
-		public Storage(VkSurface surface, Object[] parents) {
+		public Storage(@NotNull VkSurface surface, Object[] parents) {
 			super(surface, parents);
 			this.instance = surface.instance;
 			this.address = surface.address;

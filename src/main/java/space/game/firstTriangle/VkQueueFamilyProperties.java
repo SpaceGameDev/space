@@ -1,14 +1,15 @@
 package space.game.firstTriangle;
 
+import org.jetbrains.annotations.NotNull;
 import org.lwjgl.system.NativeType;
 import org.lwjgl.vulkan.VkExtent3D;
 
 public class VkQueueFamilyProperties {
 	
 	private final int index;
-	private final org.lwjgl.vulkan.VkQueueFamilyProperties delegate;
+	private final @NotNull org.lwjgl.vulkan.VkQueueFamilyProperties delegate;
 	
-	public VkQueueFamilyProperties(int index, org.lwjgl.vulkan.VkQueueFamilyProperties delegate) {
+	public VkQueueFamilyProperties(int index, @NotNull org.lwjgl.vulkan.VkQueueFamilyProperties delegate) {
 		this.index = index;
 		this.delegate = delegate;
 	}
@@ -32,11 +33,11 @@ public class VkQueueFamilyProperties {
 		return delegate.timestampValidBits();
 	}
 	
-	public VkExtent3D minImageTransferGranularity() {
+	public @NotNull VkExtent3D minImageTransferGranularity() {
 		return delegate.minImageTransferGranularity();
 	}
 	
-	public org.lwjgl.vulkan.VkQueueFamilyProperties getLwjglQueue() {
+	public @NotNull org.lwjgl.vulkan.VkQueueFamilyProperties getLwjglQueue() {
 		return delegate;
 	}
 }

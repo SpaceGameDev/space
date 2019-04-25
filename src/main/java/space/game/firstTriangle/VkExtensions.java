@@ -20,15 +20,15 @@ import static space.game.firstTriangle.VkException.assertVk;
 public class VkExtensions {
 	
 	@SuppressWarnings("FieldCanBeLocal")
-	private static final VkExtensionProperties.Buffer buffer;
-	private static final Map<String, VkExtensionProperties> map;
+	private static final @NotNull VkExtensionProperties.Buffer buffer;
+	private static final @NotNull Map<String, VkExtensionProperties> map;
 	
 	static {
 		buffer = findExtensions();
 		map = buffer.stream().collect(Collectors.toUnmodifiableMap(VkExtensionProperties::extensionNameString, o -> o));
 	}
 	
-	private static VkExtensionProperties.Buffer findExtensions() {
+	private static @NotNull VkExtensionProperties.Buffer findExtensions() {
 		while (true) {
 			try (Frame frame = Allocator.allocatorStack().frame()) {
 				PointerBufferInt count = PointerBufferInt.malloc(frame);

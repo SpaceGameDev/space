@@ -21,11 +21,11 @@ import static space.game.firstTriangle.VkException.assertVk;
 
 public class VkPhysicalDevice extends org.lwjgl.vulkan.VkPhysicalDevice implements FreeableWrapper {
 	
-	public static VkPhysicalDevice wrap(long handle, VkInstance instance, Object[] parents) {
+	public static @NotNull VkPhysicalDevice wrap(long handle, @NotNull VkInstance instance, @NotNull Object[] parents) {
 		return new VkPhysicalDevice(handle, instance, Freeable::createDummy, parents);
 	}
 	
-	public VkPhysicalDevice(long handle, VkInstance instance, BiFunction<VkPhysicalDevice, Object[], Freeable> storageCreator, Object[] parents) {
+	public VkPhysicalDevice(long handle, @NotNull VkInstance instance, @NotNull BiFunction<VkPhysicalDevice, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
 		super(handle, instance);
 		this.vkInstance = instance;
 		this.storage = storageCreator.apply(this, parents);
@@ -60,15 +60,15 @@ public class VkPhysicalDevice extends org.lwjgl.vulkan.VkPhysicalDevice implemen
 	}
 	
 	//parents
-	private final VkInstance vkInstance;
+	private final @NotNull VkInstance vkInstance;
 	
-	public VkInstance instance() {
+	public @NotNull VkInstance instance() {
 		return vkInstance;
 	}
 	
 	@Override
 	@Deprecated
-	public VkInstance getInstance() {
+	public @NotNull VkInstance getInstance() {
 		return vkInstance;
 	}
 	
@@ -81,31 +81,31 @@ public class VkPhysicalDevice extends org.lwjgl.vulkan.VkPhysicalDevice implemen
 	}
 	
 	//properties
-	private final VkPhysicalDeviceProperties properties;
+	private final @NotNull VkPhysicalDeviceProperties properties;
 	
-	public VkPhysicalDeviceProperties properties() {
+	public @NotNull VkPhysicalDeviceProperties properties() {
 		return properties;
 	}
 	
 	//queueProperties
 	@SuppressWarnings({"FieldCanBeLocal", "unused"})
-	private final org.lwjgl.vulkan.VkQueueFamilyProperties.Buffer queuePropertiesBuffer;
-	private final Collection<VkQueueFamilyProperties> queueProperties;
+	private final @NotNull org.lwjgl.vulkan.VkQueueFamilyProperties.Buffer queuePropertiesBuffer;
+	private final @NotNull Collection<VkQueueFamilyProperties> queueProperties;
 	
-	public Collection<VkQueueFamilyProperties> queueProperties() {
+	public @NotNull Collection<VkQueueFamilyProperties> queueProperties() {
 		return queueProperties;
 	}
 	
 	//extensions
 	@SuppressWarnings({"FieldCanBeLocal", "unused"})
-	private final org.lwjgl.vulkan.VkExtensionProperties.Buffer extensionsBuffer;
-	private final Map<String, VkExtensionProperties> extensions;
+	private final @NotNull org.lwjgl.vulkan.VkExtensionProperties.Buffer extensionsBuffer;
+	private final @NotNull Map<String, VkExtensionProperties> extensions;
 	
-	public Map<String, VkExtensionProperties> extensionNameMap() {
+	public @NotNull Map<String, VkExtensionProperties> extensionNameMap() {
 		return extensions;
 	}
 	
-	public Collection<VkExtensionProperties> extensions() {
+	public @NotNull Collection<VkExtensionProperties> extensions() {
 		return extensions.values();
 	}
 }
