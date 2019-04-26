@@ -28,7 +28,7 @@ version '1.0'
 targetCompatibility = 1.10
 sourceCompatibility = 1.10
 
-mainClassName = "space.engine.window.glfw.GLFWTest"
+mainClassName = "space.game.firstTriangle.FirstTriangle"
 
 repositories {
 	mavenLocal()
