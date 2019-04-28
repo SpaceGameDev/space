@@ -55,7 +55,7 @@ public class VkPhysicalDevice extends org.lwjgl.vulkan.VkPhysicalDevice implemen
 				Freeable.freeObject(extensionsBuffer);
 			}
 			this.extensionsBuffer = extensionsBuffer;
-			this.extensions = extensionsBuffer.stream().collect(Collectors.toUnmodifiableMap(VkExtensionProperties::extensionNameString, o -> o));
+			this.extensions = extensionsBuffer.stream().collect(Collectors.toUnmodifiableMap(VkExtensionProperties::extensionNameString, o -> o, (o, o2) -> o));
 		}
 	}
 	

@@ -5,7 +5,6 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.vulkan.VkDeviceCreateInfo;
 import org.lwjgl.vulkan.VkDeviceQueueCreateInfo;
 import org.lwjgl.vulkan.VkDeviceQueueCreateInfo.Buffer;
-import org.lwjgl.vulkan.VkQueue;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack;
 import space.engine.buffer.AllocatorStack.Frame;
@@ -100,7 +99,7 @@ public class VkDevice extends org.lwjgl.vulkan.VkDevice implements FreeableWrapp
 					for (int j = 0; j < queueRequestByFamily.length; j++) {
 						QueueRequest queueRequest = queueRequestByFamily[j];
 						nvkGetDeviceQueue(device, queueRequest.familyProperties.index(), j, queue.address());
-						queueRequest.queue = new VkQueue(queue.getPointer(), device);
+						queueRequest.queue = VkQueue.wrap(queue.getPointer(), device, queueRequest.familyProperties, new Object[] {device});
 					}
 				}
 			}

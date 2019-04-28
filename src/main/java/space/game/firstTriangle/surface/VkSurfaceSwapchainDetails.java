@@ -22,13 +22,13 @@ import static space.engine.freeableStorage.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.game.firstTriangle.VkException.assertVk;
 
-public class VkSurfaceSwapChainDetails implements FreeableWrapper {
+public class VkSurfaceSwapchainDetails implements FreeableWrapper {
 	
-	public static @NotNull VkSurfaceSwapChainDetails wrap(@NotNull VkPhysicalDevice physicalDevice, @NotNull VkSurface<?> vkSurface, @NotNull Object[] parents) {
-		return new VkSurfaceSwapChainDetails(physicalDevice, vkSurface, Freeable::createDummy, parents);
+	public static @NotNull VkSurfaceSwapchainDetails wrap(@NotNull VkPhysicalDevice physicalDevice, @NotNull VkSurface<?> vkSurface, @NotNull Object[] parents) {
+		return new VkSurfaceSwapchainDetails(physicalDevice, vkSurface, Freeable::createDummy, parents);
 	}
 	
-	public VkSurfaceSwapChainDetails(@NotNull VkPhysicalDevice physicalDevice, @NotNull VkSurface<?> vkSurface, @NotNull BiFunction<VkSurfaceSwapChainDetails, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
+	public VkSurfaceSwapchainDetails(@NotNull VkPhysicalDevice physicalDevice, @NotNull VkSurface<?> vkSurface, @NotNull BiFunction<VkSurfaceSwapchainDetails, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
 		if (physicalDevice.instance() != vkSurface.instance())
 			throw new IllegalArgumentException("physicalDevice and surface are required to have the same VkInstance");
 		
