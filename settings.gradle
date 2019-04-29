@@ -1,3 +1,4 @@
 rootProject.name = 'space-game'
 
+includeBuild 'space-engine/glslang-validator-gradle-plugin'
 includeBuild 'space-engine'
