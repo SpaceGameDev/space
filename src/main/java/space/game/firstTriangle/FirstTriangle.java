@@ -35,14 +35,17 @@ import org.lwjgl.vulkan.VkSubmitInfo;
 import org.lwjgl.vulkan.VkSubpassDescription;
 import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR;
 import org.lwjgl.vulkan.VkViewport;
-import space.engine.buffer.AllocatorStack.Frame;
+import space.engine.buffer.Allocator;
+import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.StringConverter;
 import space.engine.buffer.array.ArrayBufferFloat;
 import space.engine.buffer.array.ArrayBufferInt;
 import space.engine.buffer.array.ArrayBufferLong;
 import space.engine.buffer.array.ArrayBufferPointer;
 import space.engine.buffer.pointer.PointerBufferInt;
+import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.FreeableStorageCleaner;
+import space.engine.freeableStorage.stack.FreeableStack.Frame;
 import space.engine.key.attribute.AttributeList;
 import space.engine.key.attribute.AttributeListModify;
 import space.engine.logger.BaseLogger;
@@ -89,7 +92,6 @@ import static java.util.Objects.requireNonNull;
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK10.*;
-import static space.engine.buffer.Allocator.*;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.engine.lwjgl.PointerBufferWrapper.wrapPointer;
 import static space.engine.vulkan.VkException.assertVk;
@@ -106,7 +108,7 @@ public class FirstTriangle {
 	
 	public static void main(String[] args) throws InterruptedException, IOException {
 		FreeableStorageCleaner.setCleanupLogger(baseLogger);
-		try (Frame side = allocatorStack().frame()) {
+		try (Frame side = Freeable.frame()) {
 			
 			//extensions
 			logger.log(LogLevel.INFO, new String2D(
@@ -148,7 +150,7 @@ public class FirstTriangle {
 			
 			//instance
 			VkInstance instance;
-			try (Frame frame = allocatorStack().frame()) {
+			try (AllocatorFrame frame = Allocator.frame()) {
 				instance = VkInstance.alloc(
 						mallocStruct(frame, VkInstanceCreateInfo::create, VkInstanceCreateInfo.SIZEOF).set(
 								VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -222,8 +224,8 @@ public class FirstTriangle {
 																		.stream()
 																		.filter(queueFamily -> (queueFamily.queueFlags() & VK_QUEUE_GRAPHICS_BIT) != 0)
 																		.filter(queueFamily -> {
-																			try (Frame frame1 = allocatorStack().frame()) {
-																				PointerBufferInt success = PointerBufferInt.malloc(frame1);
+																			try (AllocatorFrame frame = Allocator.frame()) {
+																				PointerBufferInt success = PointerBufferInt.malloc(frame);
 																				assertVk(KHRSurface.nvkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice,
 																																		  queueFamily.index(),
 																																		  surface.address(),
@@ -241,7 +243,7 @@ public class FirstTriangle {
 			Supplier<VkQueue> queueGraphicsSupplier = queueRequestHandler.addRequest(queueGraphicsFamily, 1f);
 			
 			VkDevice device;
-			try (Frame frame = allocatorStack().frame()) {
+			try (AllocatorFrame frame = Allocator.frame()) {
 				device = VkDevice.alloc(
 						mallocStruct(frame, VkDeviceCreateInfo::create, VkDeviceCreateInfo.SIZEOF).set(
 								VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
@@ -261,8 +263,8 @@ public class FirstTriangle {
 			
 			//swapExtend
 			VkRect2D swapExtend;
-			try (Frame frame = allocatorStack().frame()) {
-				swapExtend = mallocStruct(allocatorHeap(), VkRect2D::create, VkRect2D.SIZEOF, new Object[] {side}).set(
+			try (AllocatorFrame frame = Allocator.frame()) {
+				swapExtend = mallocStruct(Allocator.heap(), VkRect2D::create, VkRect2D.SIZEOF, new Object[] {side}).set(
 						mallocStruct(frame, VkOffset2D::create, VkOffset2D.SIZEOF).set(
 								0, 0
 						),
@@ -276,7 +278,7 @@ public class FirstTriangle {
 			VkSurfaceDetails swapChainDetails = VkSurfaceDetails.wrap(physicalDevice, surface, new Object[] {side});
 			int[] bestSurfaceFormat = swapChainDetails.getBestSurfaceFormat(new int[][] {{VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}});
 			VkSwapchain swapChain;
-			try (Frame frame = allocatorStack().frame()) {
+			try (AllocatorFrame frame = Allocator.frame()) {
 				swapChain = VkSwapchain.alloc(
 						mallocStruct(frame, VkSwapchainCreateInfoKHR::create, VkSwapchainCreateInfoKHR.SIZEOF).set(
 								VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -306,7 +308,7 @@ public class FirstTriangle {
 			
 			//renderPass
 			VkRenderPass renderPass;
-			try (Frame frame = allocatorStack().frame()) {
+			try (AllocatorFrame frame = Allocator.frame()) {
 				renderPass = VkRenderPass.alloc(mallocStruct(frame, VkRenderPassCreateInfo::create, VkRenderPassCreateInfo.SIZEOF).set(
 						VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
 						0,
@@ -347,7 +349,7 @@ public class FirstTriangle {
 			
 			//pipeline layout
 			VkPipelineLayout pipelineLayout;
-			try (Frame frame = allocatorStack().frame()) {
+			try (AllocatorFrame frame = Allocator.frame()) {
 				pipelineLayout = VkPipelineLayout.alloc(mallocStruct(frame, VkPipelineLayoutCreateInfo::create, VkPipelineLayoutCreateInfo.SIZEOF).set(
 						VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 						0,
@@ -367,7 +369,7 @@ public class FirstTriangle {
 			
 			//pipeline
 			VkGraphicsPipeline pipeline;
-			try (Frame frame = allocatorStack().frame()) {
+			try (AllocatorFrame frame = Allocator.frame()) {
 				pipeline = VkGraphicsPipeline.alloc(mallocStruct(frame, VkGraphicsPipelineCreateInfo::create, VkGraphicsPipelineCreateInfo.SIZEOF).set(
 						VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 						0,
@@ -485,7 +487,7 @@ public class FirstTriangle {
 			VkFramebuffer[] framebuffers = Arrays
 					.stream(swapChainImageViews)
 					.map(swapChainImageView -> {
-						try (Frame frame = allocatorStack().frame()) {
+						try (AllocatorFrame frame = Allocator.frame()) {
 							return VkFramebuffer.alloc(mallocStruct(frame, VkFramebufferCreateInfo::create, VkFramebufferCreateInfo.SIZEOF).set(
 									VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
 									0,
@@ -501,7 +503,7 @@ public class FirstTriangle {
 					.toArray(VkFramebuffer[]::new);
 			
 			VkCommandPool commandPool;
-			try (Frame frame = allocatorStack().frame()) {
+			try (AllocatorFrame frame = Allocator.frame()) {
 				commandPool = VkCommandPool.alloc(mallocStruct(frame, VkCommandPoolCreateInfo::create, VkCommandPoolCreateInfo.SIZEOF).set(
 						VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 						0,
@@ -512,7 +514,7 @@ public class FirstTriangle {
 			
 			VkCommandBuffer[] commandBuffers = commandPool.allocCmdBuffers(VK_COMMAND_BUFFER_LEVEL_PRIMARY, framebuffers.length, new Object[] {side});
 			for (int i = 0; i < commandBuffers.length; i++) {
-				try (Frame frame = allocatorStack().frame()) {
+				try (AllocatorFrame frame = Allocator.frame()) {
 					VkCommandBuffer commandBuffer = commandBuffers[i];
 					commandBuffer.beginCommandBuffer(mallocStruct(frame, VkCommandBufferBeginInfo::create, VkCommandBufferBeginInfo.SIZEOF).set(
 							VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -547,7 +549,7 @@ public class FirstTriangle {
 			}
 			
 			VkSemaphore semaphoreImageAvailable, semaphoreRenderFinished;
-			try (Frame frame = allocatorStack().frame()) {
+			try (AllocatorFrame frame = Allocator.frame()) {
 				semaphoreImageAvailable = VkSemaphore.alloc(mallocStruct(frame, VkSemaphoreCreateInfo::create, VkSemaphoreCreateInfo.SIZEOF).set(
 						VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
 						0,
@@ -565,7 +567,7 @@ public class FirstTriangle {
 			window.getWindowCloseEvent().addHook(window1 -> isRunning[0] = false);
 			
 			while (isRunning[0]) {
-				try (Frame frame = allocatorStack().frame()) {
+				try (AllocatorFrame frame = Allocator.frame()) {
 					PointerBufferInt imageIndexPtr = PointerBufferInt.malloc(frame);
 					nvkAcquireNextImageKHR(device, swapChain.address(), Long.MAX_VALUE, semaphoreImageAvailable.address(), 0, imageIndexPtr.address());
 					int imageIndex = imageIndexPtr.getInt();
