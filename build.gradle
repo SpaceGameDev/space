@@ -1,6 +1,7 @@
 plugins {
 	id 'java-library'
 	id 'application'
+	id 'glslang-validator'
 }
 
 group 'SpaceGameDev'
@@ -9,7 +10,7 @@ version '1.0'
 targetCompatibility = 1.10
 sourceCompatibility = 1.10
 
-mainClassName = "space.engine.window.glfw.GLFWTest"
+mainClassName = "space.game.firstTriangle.FirstTriangle"
 
 repositories {
 	mavenLocal()
@@ -18,5 +19,7 @@ repositories {
 
 dependencies {
 	api 'SpaceGameDev:space-engine:1.0'
+	implementation 'SpaceGameDev:space-engine-vulkan:1.0'
 	implementation 'SpaceGameDev:space-engine-window-glfw:1.0'
+	implementation 'SpaceGameDev:space-engine-vulkan-glfw:1.0'
 }
