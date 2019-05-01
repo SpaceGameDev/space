@@ -5,7 +5,6 @@ import org.lwjgl.vulkan.KHRSurface;
 import org.lwjgl.vulkan.VkApplicationInfo;
 import org.lwjgl.vulkan.VkAttachmentDescription;
 import org.lwjgl.vulkan.VkAttachmentReference;
-import org.lwjgl.vulkan.VkClearColorValue;
 import org.lwjgl.vulkan.VkClearValue;
 import org.lwjgl.vulkan.VkCommandBufferBeginInfo;
 import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
@@ -313,36 +312,30 @@ public class FirstTriangle {
 						VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
 						0,
 						0,
-						allocBuffer(frame, VkAttachmentDescription::create, VkAttachmentDescription.SIZEOF, new VkAttachmentDescription[] {
-								mallocStruct(frame, VkAttachmentDescription::create, VkAttachmentDescription.SIZEOF).set(
+						allocBuffer(frame, VkAttachmentDescription::create, VkAttachmentDescription.SIZEOF, vkAttachmentDescription -> vkAttachmentDescription.set(
+								0,
+								bestSurfaceFormat[0],
+								VK_SAMPLE_COUNT_1_BIT,
+								VK_ATTACHMENT_LOAD_OP_CLEAR,
+								VK_ATTACHMENT_STORE_OP_STORE,
+								VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+								VK_ATTACHMENT_STORE_OP_DONT_CARE,
+								VK_IMAGE_LAYOUT_UNDEFINED,
+								VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
+						)),
+						allocBuffer(frame, VkSubpassDescription::create, VkSubpassDescription.SIZEOF, vkSubpassDescription -> vkSubpassDescription.set(
+								0,
+								VK_PIPELINE_BIND_POINT_GRAPHICS,
+								null,
+								1,
+								allocBuffer(frame, VkAttachmentReference::create, VkAttachmentReference.SIZEOF, vkAttachmentReference -> vkAttachmentReference.set(
 										0,
-										bestSurfaceFormat[0],
-										VK_SAMPLE_COUNT_1_BIT,
-										VK_ATTACHMENT_LOAD_OP_CLEAR,
-										VK_ATTACHMENT_STORE_OP_STORE,
-										VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-										VK_ATTACHMENT_STORE_OP_DONT_CARE,
-										VK_IMAGE_LAYOUT_UNDEFINED,
-										VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
-								)
-						}),
-						allocBuffer(frame, VkSubpassDescription::create, VkSubpassDescription.SIZEOF, new VkSubpassDescription[] {
-								mallocStruct(frame, VkSubpassDescription::create, VkSubpassDescription.SIZEOF).set(
-										0,
-										VK_PIPELINE_BIND_POINT_GRAPHICS,
-										null,
-										1,
-										allocBuffer(frame, VkAttachmentReference::create, VkAttachmentReference.SIZEOF, new VkAttachmentReference[] {
-												mallocStruct(frame, VkAttachmentReference::create, VkAttachmentReference.SIZEOF).set(
-														0,
-														VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-												)
-										}),
-										null,
-										null,
-										null
-								)
-						}),
+										VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+								)),
+								null,
+								null,
+								null
+						)),
 						null
 				), device, new Object[] {side});
 			}
@@ -374,26 +367,26 @@ public class FirstTriangle {
 						VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
 						0,
 						0,
-						allocBuffer(frame, VkPipelineShaderStageCreateInfo::create, VkPipelineShaderStageCreateInfo.SIZEOF, new VkPipelineShaderStageCreateInfo[] {
-								mallocStruct(frame, VkPipelineShaderStageCreateInfo::create, VkPipelineShaderStageCreateInfo.SIZEOF).set(
-										VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-										0,
-										0,
-										VK_SHADER_STAGE_VERTEX_BIT,
-										shaderModuleVert.address(),
-										StringConverter.stringToUTF8(frame, "main", true).nioBuffer(),
-										null
-								),
-								mallocStruct(frame, VkPipelineShaderStageCreateInfo::create, VkPipelineShaderStageCreateInfo.SIZEOF).set(
-										VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-										0,
-										0,
-										VK_SHADER_STAGE_FRAGMENT_BIT,
-										shaderModuleFrag.address(),
-										StringConverter.stringToUTF8(frame, "main", true).nioBuffer(),
-										null
-								)
-						}),
+						allocBuffer(frame, VkPipelineShaderStageCreateInfo::create, VkPipelineShaderStageCreateInfo.SIZEOF,
+									vkPipelineShaderStageCreateInfo -> vkPipelineShaderStageCreateInfo.set(
+											VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+											0,
+											0,
+											VK_SHADER_STAGE_VERTEX_BIT,
+											shaderModuleVert.address(),
+											StringConverter.stringToUTF8(frame, "main", true).nioBuffer(),
+											null
+									),
+									vkPipelineShaderStageCreateInfo -> vkPipelineShaderStageCreateInfo.set(
+											VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+											0,
+											0,
+											VK_SHADER_STAGE_FRAGMENT_BIT,
+											shaderModuleFrag.address(),
+											StringConverter.stringToUTF8(frame, "main", true).nioBuffer(),
+											null
+									)
+						),
 						mallocStruct(frame, VkPipelineVertexInputStateCreateInfo::create, VkPipelineVertexInputStateCreateInfo.SIZEOF).set(
 								VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 								0,
@@ -415,17 +408,16 @@ public class FirstTriangle {
 								0,
 								0,
 								1,
-								allocBuffer(frame, VkViewport::create, VkViewport.SIZEOF, new VkViewport[] {
-										mallocStruct(frame, VkViewport::create, VkViewport.SIZEOF).set(
-												swapExtend.offset().x(), swapExtend.offset().y(),
-												swapExtend.extent().width(), swapExtend.extent().height(),
-												0, 1
-										)
-								}),
+								allocBuffer(frame, VkViewport::create, VkViewport.SIZEOF, vkViewPort -> vkViewPort.set(
+										swapExtend.offset().x(),
+										swapExtend.offset().y(),
+										swapExtend.extent().width(),
+										swapExtend.extent().height(),
+										0,
+										1
+								)),
 								1,
-								allocBuffer(frame, VkRect2D::create, VkRect2D.SIZEOF, new VkRect2D[] {
-										swapExtend
-								})
+								wrapBuffer(VkRect2D::create, swapExtend)
 						),
 						mallocStruct(frame, VkPipelineRasterizationStateCreateInfo::create, VkPipelineRasterizationStateCreateInfo.SIZEOF).set(
 								VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -460,18 +452,18 @@ public class FirstTriangle {
 								0,
 								false,
 								VK_LOGIC_OP_COPY,
-								allocBuffer(frame, VkPipelineColorBlendAttachmentState::create, VkPipelineColorBlendAttachmentState.SIZEOF, new VkPipelineColorBlendAttachmentState[] {
-										mallocStruct(frame, VkPipelineColorBlendAttachmentState::create, VkPipelineColorBlendAttachmentState.SIZEOF).set(
-												false,
-												VK_BLEND_FACTOR_ONE,
-												VK_BLEND_FACTOR_ZERO,
-												VK_BLEND_OP_ADD,
-												VK_BLEND_FACTOR_ONE,
-												VK_BLEND_FACTOR_ZERO,
-												VK_BLEND_OP_ADD,
-												VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
-										)
-								}),
+								allocBuffer(frame, VkPipelineColorBlendAttachmentState::create, VkPipelineColorBlendAttachmentState.SIZEOF,
+											vkPipelineColorBlendAttachmentState -> vkPipelineColorBlendAttachmentState.set(
+													false,
+													VK_BLEND_FACTOR_ONE,
+													VK_BLEND_FACTOR_ZERO,
+													VK_BLEND_OP_ADD,
+													VK_BLEND_FACTOR_ONE,
+													VK_BLEND_FACTOR_ZERO,
+													VK_BLEND_OP_ADD,
+													VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+											)
+								),
 								ArrayBufferFloat.alloc(frame, new float[] {0, 0, 0, 0}).nioBuffer()
 						),
 						null,
@@ -529,15 +521,13 @@ public class FirstTriangle {
 							renderPass.address(),
 							framebuffers[i].address(),
 							swapExtend,
-							allocBuffer(frame, VkClearValue::create, VkClearValue.SIZEOF, new VkClearValue[] {
-									mallocStruct(frame, VkClearValue::create, VkClearValue.SIZEOF).color(
-											mallocStruct(frame, VkClearColorValue::create, VkClearColorValue.SIZEOF)
-													.float32(0, 0.5f)
-													.float32(1, 0.0f)
-													.float32(2, 0.0f)
-													.float32(3, 1.0f)
-									)
-							})
+							allocBuffer(frame, VkClearValue::create, VkClearValue.SIZEOF, vkClearValue ->
+									vkClearValue.color()
+												.float32(0, 0.5f)
+												.float32(1, 0.0f)
+												.float32(2, 0.0f)
+												.float32(3, 1.0f)
+							)
 					), VK_SUBPASS_CONTENTS_INLINE);
 					
 					vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.address());
