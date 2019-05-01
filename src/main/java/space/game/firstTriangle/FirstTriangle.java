@@ -1,5 +1,6 @@
 package space.game.firstTriangle;
 
+import org.jetbrains.annotations.NotNull;
 import org.lwjgl.vulkan.EXTDebugUtils;
 import org.lwjgl.vulkan.KHRSurface;
 import org.lwjgl.vulkan.VkApplicationInfo;
@@ -11,6 +12,7 @@ import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
 import org.lwjgl.vulkan.VkDeviceCreateInfo;
 import org.lwjgl.vulkan.VkExtensionProperties;
 import org.lwjgl.vulkan.VkExtent2D;
+import org.lwjgl.vulkan.VkFenceCreateInfo;
 import org.lwjgl.vulkan.VkFramebufferCreateInfo;
 import org.lwjgl.vulkan.VkGraphicsPipelineCreateInfo;
 import org.lwjgl.vulkan.VkInstanceCreateInfo;
@@ -57,6 +59,7 @@ import space.engine.vulkan.VkCommandPool;
 import space.engine.vulkan.VkDevice;
 import space.engine.vulkan.VkDevice.QueueRequestHandler;
 import space.engine.vulkan.VkExtensions;
+import space.engine.vulkan.VkFence;
 import space.engine.vulkan.VkFramebuffer;
 import space.engine.vulkan.VkGraphicsPipeline;
 import space.engine.vulkan.VkImageView;
@@ -85,7 +88,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.IntFunction;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static java.util.Objects.requireNonNull;
@@ -103,6 +108,7 @@ public class FirstTriangle {
 	
 	public static boolean VK_LAYER_LUNARG_standard_validation = false;
 	public static boolean VK_LAYER_RENDERDOC_Capture = false;
+	public static final int MAX_FRAMES_IN_FLIGHT = 2;
 	public static BaseLogger baseLogger = BaseLogger.defaultPrinter(BaseLogger.defaultHandler(new BaseLogger()));
 	private static Logger logger = baseLogger.subLogger("firstTriangle");
 	
@@ -547,44 +553,53 @@ public class FirstTriangle {
 				}
 			}
 			
-			VkSemaphore semaphoreImageAvailable, semaphoreRenderFinished;
+			VkSemaphore[] semaphoreImageAvailable, semaphoreRenderFinished;
+			VkFence[] fenceFrameDone;
 			try (AllocatorFrame frame = Allocator.frame()) {
-				semaphoreImageAvailable = VkSemaphore.alloc(mallocStruct(frame, VkSemaphoreCreateInfo::create, VkSemaphoreCreateInfo.SIZEOF).set(
+				VkSemaphoreCreateInfo semaphoreInfo = mallocStruct(frame, VkSemaphoreCreateInfo::create, VkSemaphoreCreateInfo.SIZEOF).set(
 						VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
 						0,
 						0
-				), device, new Object[] {side});
-				semaphoreRenderFinished = VkSemaphore.alloc(mallocStruct(frame, VkSemaphoreCreateInfo::create, VkSemaphoreCreateInfo.SIZEOF).set(
-						VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+				);
+				IntFunction<@NotNull VkSemaphore> semaphoreMap = i -> VkSemaphore.alloc(semaphoreInfo, device, new Object[] {side});
+				semaphoreImageAvailable = IntStream.range(0, MAX_FRAMES_IN_FLIGHT).mapToObj(semaphoreMap).toArray(VkSemaphore[]::new);
+				semaphoreRenderFinished = IntStream.range(0, MAX_FRAMES_IN_FLIGHT).mapToObj(semaphoreMap).toArray(VkSemaphore[]::new);
+				
+				VkFenceCreateInfo fenceInfo = mallocStruct(frame, VkFenceCreateInfo::create, VkFenceCreateInfo.SIZEOF).set(
+						VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
 						0,
-						0
-				), device, new Object[] {side});
+						VK_FENCE_CREATE_SIGNALED_BIT
+				);
+				fenceFrameDone = IntStream.range(0, MAX_FRAMES_IN_FLIGHT).mapToObj(i -> VkFence.alloc(fenceInfo, device, new Object[] {side})).toArray(VkFence[]::new);
 			}
 			
 			//main loop
 			boolean[] isRunning = {true};
 			window.getWindowCloseEvent().addHook(window1 -> isRunning[0] = false);
 			
-			while (isRunning[0]) {
+			for (int i = 0; isRunning[0]; i = (i + 1) % MAX_FRAMES_IN_FLIGHT) {
+				vkWaitForFences(device, fenceFrameDone[i].address(), true, Long.MAX_VALUE);
+				vkResetFences(device, fenceFrameDone[i].address());
+				
 				try (AllocatorFrame frame = Allocator.frame()) {
 					PointerBufferInt imageIndexPtr = PointerBufferInt.malloc(frame);
-					nvkAcquireNextImageKHR(device, swapChain.address(), Long.MAX_VALUE, semaphoreImageAvailable.address(), 0, imageIndexPtr.address());
+					nvkAcquireNextImageKHR(device, swapChain.address(), Long.MAX_VALUE, semaphoreImageAvailable[i].address(), 0, imageIndexPtr.address());
 					int imageIndex = imageIndexPtr.getInt();
 					
-					queueGraphics.submit(mallocStruct(frame, VkSubmitInfo::create, VkSubmitInfo.SIZEOF).set(
+					vkQueueSubmit(queueGraphics, mallocStruct(frame, VkSubmitInfo::create, VkSubmitInfo.SIZEOF).set(
 							VK_STRUCTURE_TYPE_SUBMIT_INFO,
 							0,
 							1,
-							ArrayBufferLong.alloc(frame, new long[] {semaphoreImageAvailable.address()}).nioBuffer(),
+							ArrayBufferLong.alloc(frame, new long[] {semaphoreImageAvailable[i].address()}).nioBuffer(),
 							ArrayBufferInt.alloc(frame, new int[] {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT}).nioBuffer(),
 							wrapPointer(ArrayBufferPointer.alloc(frame, new long[] {commandBuffers[imageIndex].address()})),
-							ArrayBufferLong.alloc(frame, new long[] {semaphoreRenderFinished.address()}).nioBuffer()
-					));
+							ArrayBufferLong.alloc(frame, new long[] {semaphoreRenderFinished[i].address()}).nioBuffer()
+					), fenceFrameDone[i].address());
 					
 					swapChain.present(mallocStruct(frame, VkPresentInfoKHR::create, VkPresentInfoKHR.SIZEOF).set(
 							VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 							0,
-							ArrayBufferLong.alloc(frame, new long[] {semaphoreRenderFinished.address()}).nioBuffer(),
+							ArrayBufferLong.alloc(frame, new long[] {semaphoreRenderFinished[i].address()}).nioBuffer(),
 							1,
 							ArrayBufferLong.alloc(frame, new long[] {swapChain.address()}).nioBuffer(),
 							ArrayBufferInt.alloc(frame, new int[] {imageIndex}).nioBuffer(),
@@ -595,7 +610,7 @@ public class FirstTriangle {
 				window.pollEventsTask().awaitUninterrupted();
 //				Thread.sleep(1000L / 100);
 			}
-			vkDeviceWaitIdle(device);
+			vkWaitForFences(device, Arrays.stream(fenceFrameDone).mapToLong(VkFence::address).toArray(), true, Long.MAX_VALUE);
 			
 			logger.log(LogLevel.INFO, "Exit!");
 		}
