@@ -99,8 +99,8 @@ import static space.engine.window.extensions.VideoModeExtension.*;
 
 public class FirstTriangle {
 	
-	public static boolean VK_LAYER_LUNARG_standard_validation = true;
-	public static boolean VK_LAYER_RENDERDOC_Capture = true;
+	public static boolean VK_LAYER_LUNARG_standard_validation = false;
+	public static boolean VK_LAYER_RENDERDOC_Capture = false;
 	public static BaseLogger baseLogger = BaseLogger.defaultPrinter(BaseLogger.defaultHandler(new BaseLogger()));
 	private static Logger logger = baseLogger.subLogger("firstTriangle");
 	
@@ -167,7 +167,7 @@ public class FirstTriangle {
 								wrapPointer(ArrayBufferPointer.alloc(frame, instanceExtensions.stream().map(VkExtensionProperties::extensionName).toArray(java.nio.Buffer[]::new)))
 						),
 						baseLogger.subLogger("vulkan"),
-						true,
+						VK_LAYER_LUNARG_standard_validation,
 						new Object[] {side}
 				);
 			}
