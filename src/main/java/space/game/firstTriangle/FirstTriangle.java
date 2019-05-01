@@ -31,6 +31,7 @@ import org.lwjgl.vulkan.VkRenderPassBeginInfo;
 import org.lwjgl.vulkan.VkRenderPassCreateInfo;
 import org.lwjgl.vulkan.VkSemaphoreCreateInfo;
 import org.lwjgl.vulkan.VkSubmitInfo;
+import org.lwjgl.vulkan.VkSubpassDependency;
 import org.lwjgl.vulkan.VkSubpassDescription;
 import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR;
 import org.lwjgl.vulkan.VkViewport;
@@ -336,7 +337,15 @@ public class FirstTriangle {
 								null,
 								null
 						)),
-						null
+						allocBuffer(frame, VkSubpassDependency::create, VkSubpassDependency.SIZEOF, vkSubpassDependency -> vkSubpassDependency.set(
+								VK_SUBPASS_EXTERNAL,
+								0,
+								VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+								VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+								0,
+								VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+								0
+						))
 				), device, new Object[] {side});
 			}
 			
@@ -567,7 +576,7 @@ public class FirstTriangle {
 							0,
 							1,
 							ArrayBufferLong.alloc(frame, new long[] {semaphoreImageAvailable.address()}).nioBuffer(),
-							ArrayBufferInt.alloc(frame, new int[] {VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT}).nioBuffer(),
+							ArrayBufferInt.alloc(frame, new int[] {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT}).nioBuffer(),
 							wrapPointer(ArrayBufferPointer.alloc(frame, new long[] {commandBuffers[imageIndex].address()})),
 							ArrayBufferLong.alloc(frame, new long[] {semaphoreRenderFinished.address()}).nioBuffer()
 					));
@@ -583,11 +592,10 @@ public class FirstTriangle {
 					), queueGraphics);
 				}
 				
-				vkDeviceWaitIdle(device);
-				
 				window.pollEventsTask().awaitUninterrupted();
 //				Thread.sleep(1000L / 100);
 			}
+			vkDeviceWaitIdle(device);
 			
 			logger.log(LogLevel.INFO, "Exit!");
 		}
