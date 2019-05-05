@@ -10,7 +10,7 @@ version '1.0'
 targetCompatibility = 1.10
 sourceCompatibility = 1.10
 
-mainClassName = "space.game.firstTriangle.FirstTriangle"
+mainClassName = "space.engine.window.glfw.GLFWTest"
 
 repositories {
 	mavenLocal()
@@ -19,7 +19,5 @@ repositories {
 
 dependencies {
 	api 'SpaceGameDev:space-engine:1.0'
-	implementation 'SpaceGameDev:space-engine-vulkan:1.0'
 	implementation 'SpaceGameDev:space-engine-window-glfw:1.0'
-	implementation 'SpaceGameDev:space-engine-vulkan-glfw:1.0'
 }
