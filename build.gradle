@@ -20,6 +20,7 @@ repositories {
 dependencies {
 	api 'SpaceGameDev:space-engine:1.0'
 	implementation 'SpaceGameDev:space-engine-vulkan:1.0'
+	implementation 'SpaceGameDev:space-engine-vulkan-managed:1.0'
 	implementation 'SpaceGameDev:space-engine-window-glfw:1.0'
 	implementation 'SpaceGameDev:space-engine-vulkan-glfw:1.0'
 }
