@@ -5,7 +5,6 @@ import org.lwjgl.util.vma.VmaAllocationCreateInfo;
 import org.lwjgl.util.vma.VmaAllocatorCreateInfo;
 import org.lwjgl.util.vma.VmaVulkanFunctions;
 import org.lwjgl.vulkan.EXTDebugUtils;
-import org.lwjgl.vulkan.KHRSurface;
 import org.lwjgl.vulkan.VkApplicationInfo;
 import org.lwjgl.vulkan.VkAttachmentDescription;
 import org.lwjgl.vulkan.VkAttachmentReference;
@@ -13,7 +12,6 @@ import org.lwjgl.vulkan.VkBufferCreateInfo;
 import org.lwjgl.vulkan.VkClearValue;
 import org.lwjgl.vulkan.VkCommandBufferBeginInfo;
 import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
-import org.lwjgl.vulkan.VkDeviceCreateInfo;
 import org.lwjgl.vulkan.VkExtensionProperties;
 import org.lwjgl.vulkan.VkExtent2D;
 import org.lwjgl.vulkan.VkFenceCreateInfo;
@@ -62,8 +60,6 @@ import space.engine.logger.Logger;
 import space.engine.string.String2D;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
-import space.engine.vulkan.VkDevice;
-import space.engine.vulkan.VkDevice.QueueRequestHandler;
 import space.engine.vulkan.VkExtensions;
 import space.engine.vulkan.VkFence;
 import space.engine.vulkan.VkFramebuffer;
@@ -74,10 +70,11 @@ import space.engine.vulkan.VkLayers;
 import space.engine.vulkan.VkPhysicalDevice;
 import space.engine.vulkan.VkPipelineLayout;
 import space.engine.vulkan.VkQueue;
-import space.engine.vulkan.VkQueueFamilyProperties;
 import space.engine.vulkan.VkRenderPass;
 import space.engine.vulkan.VkSemaphore;
 import space.engine.vulkan.VkShaderModule;
+import space.engine.vulkan.managed.device.ManagedDevice;
+import space.engine.vulkan.managed.device.ManagedDeviceQuadQueues;
 import space.engine.vulkan.surface.VkSurface;
 import space.engine.vulkan.surface.VkSurfaceDetails;
 import space.engine.vulkan.surface.VkSwapchain;
@@ -97,11 +94,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.IntFunction;
-import java.util.function.Supplier;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static java.util.Objects.requireNonNull;
 import static org.lwjgl.util.vma.Vma.VMA_MEMORY_USAGE_CPU_TO_GPU;
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
@@ -109,7 +104,7 @@ import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.engine.lwjgl.PointerBufferWrapper.wrapPointer;
 import static space.engine.primitive.Primitives.FP32;
-import static space.engine.vulkan.VkException.assertVk;
+import static space.engine.vulkan.managed.device.ManagedDevice.QUEUE_TYPE_GRAPHICS;
 import static space.engine.window.Window.*;
 import static space.engine.window.WindowContext.API_TYPE;
 import static space.engine.window.extensions.VideoModeExtension.*;
@@ -213,6 +208,32 @@ public class FirstTriangle {
 													  );
 			logger.log(LogLevel.INFO, "Selecting: " + physicalDevice.properties().deviceNameString());
 			
+			//device
+			List<VkExtensionProperties> deviceExtensions = new ArrayList<>();
+			deviceExtensions.add(physicalDevice.extensionNameMap().get(VK_KHR_SWAPCHAIN_EXTENSION_NAME));
+			ManagedDevice device = ManagedDeviceQuadQueues.alloc(physicalDevice, deviceExtensions, null, false, new Object[] {side});
+			VkQueue queueGraphics = device.getQueue(QUEUE_TYPE_GRAPHICS, 0);
+			
+			//vmaAllocator
+			VmaAllocator vmaAllocator;
+			try (AllocatorFrame frame = Allocator.frame()) {
+				vmaAllocator = VmaAllocator.alloc(mallocStruct(frame, VmaAllocatorCreateInfo::create, VmaAllocatorCreateInfo.SIZEOF).set(
+						0,
+						device.physicalDevice(),
+						device,
+						0,
+						null,
+						null,
+						0,
+						null,
+						mallocStruct(frame, VmaVulkanFunctions::create, VmaVulkanFunctions.SIZEOF).set(
+								instance,
+								device
+						),
+						null
+				), device, new Object[] {side});
+			}
+			
 			//windowContext
 			AttributeList<WindowContext> windowContextAtt;
 			{
@@ -234,68 +255,6 @@ public class FirstTriangle {
 			
 			//surface
 			VkSurface<GLFWWindow> surface = VkSurfaceGLFW.createSurfaceFromGlfwWindow(instance, window, new Object[] {side});
-			
-			//queueFamily
-			VkQueueFamilyProperties queueGraphicsFamily = physicalDevice.queueProperties()
-																		.stream()
-																		.filter(queueFamily -> (queueFamily.queueFlags() & VK_QUEUE_GRAPHICS_BIT) != 0)
-																		.filter(queueFamily -> {
-																			try (AllocatorFrame frame = Allocator.frame()) {
-																				PointerBufferInt success = PointerBufferInt.malloc(frame);
-																				assertVk(KHRSurface.nvkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice,
-																																		  queueFamily.index(),
-																																		  surface.address(),
-																																		  success.address()));
-																				return success.getInt() == VK_TRUE;
-																			}
-																		})
-																		.findFirst()
-																		.orElseThrow(() -> new RuntimeException("No graphics queue!"));
-			
-			//device
-			List<VkExtensionProperties> deviceExtensions = new ArrayList<>();
-			deviceExtensions.add(physicalDevice.extensionNameMap().get(VK_KHR_SWAPCHAIN_EXTENSION_NAME));
-			QueueRequestHandler queueRequestHandler = new QueueRequestHandler();
-			Supplier<VkQueue> queueGraphicsSupplier = queueRequestHandler.addRequest(queueGraphicsFamily, 1f);
-			
-			VkDevice device;
-			try (AllocatorFrame frame = Allocator.frame()) {
-				device = VkDevice.alloc(
-						mallocStruct(frame, VkDeviceCreateInfo::create, VkDeviceCreateInfo.SIZEOF).set(
-								VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-								0,
-								0,
-								queueRequestHandler.generateDeviceQueueRequestCreateInfoBuffer(frame),
-								null,
-								wrapPointer(ArrayBufferPointer.alloc(frame, deviceExtensions.stream().map(VkExtensionProperties::extensionName).toArray(java.nio.Buffer[]::new))),
-								null
-						),
-						physicalDevice,
-						new Object[] {side}
-				);
-			}
-			queueRequestHandler.fillQueueRequestsWithQueues(device);
-			VkQueue queueGraphics = requireNonNull(queueGraphicsSupplier.get());
-			
-			//vmaAllocator
-			VmaAllocator vmaAllocator;
-			try (AllocatorFrame frame = Allocator.frame()) {
-				vmaAllocator = VmaAllocator.alloc(mallocStruct(frame, VmaAllocatorCreateInfo::create, VmaAllocatorCreateInfo.SIZEOF).set(
-						0,
-						device.physicalDevice(),
-						device,
-						0,
-						null,
-						null,
-						0,
-						null,
-						mallocStruct(frame, VmaVulkanFunctions::create, VmaVulkanFunctions.SIZEOF).set(
-								instance,
-								device
-						),
-						null
-				), device, new Object[] {side});
-			}
 			
 			//swapExtend
 			VkRect2D swapExtend;
@@ -590,7 +549,7 @@ public class FirstTriangle {
 						VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
 						0,
 						0,
-						queueGraphicsFamily.index()
+						queueGraphics.queueFamily().index()
 				), device, new Object[] {side});
 			}
 			
