@@ -74,7 +74,6 @@ import space.engine.vulkan.managed.device.ManagedDevice;
 import space.engine.vulkan.managed.device.ManagedDeviceQuadQueues;
 import space.engine.vulkan.managed.instance.ManagedInstance;
 import space.engine.vulkan.surface.VkSurface;
-import space.engine.vulkan.surface.VkSurfaceDetails;
 import space.engine.vulkan.surface.VkSwapchain;
 import space.engine.vulkan.surface.glfw.VkSurfaceGLFW;
 import space.engine.vulkan.vma.VkBuffer;
@@ -234,7 +233,7 @@ public class FirstTriangle {
 			GLFWWindow window = windowContext.createWindow(windowAtt, new Object[] {side}).awaitGet();
 			
 			//surface
-			VkSurface<GLFWWindow> surface = VkSurfaceGLFW.createSurfaceFromGlfwWindow(instance, window, new Object[] {side});
+			VkSurface<GLFWWindow> surface = VkSurfaceGLFW.createSurfaceFromGlfwWindow(physicalDevice, window, new Object[] {side});
 			
 			//swapExtend
 			VkRect2D swapExtend;
@@ -250,8 +249,7 @@ public class FirstTriangle {
 			}
 			
 			//swapchain
-			VkSurfaceDetails swapChainDetails = VkSurfaceDetails.wrap(physicalDevice, surface, new Object[] {side});
-			int[] bestSurfaceFormat = swapChainDetails.getBestSurfaceFormat(new int[][] {{VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}});
+			int[] bestSurfaceFormat = surface.getBestSurfaceFormat(new int[][] {{VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}});
 			VkSwapchain swapChain;
 			try (AllocatorFrame frame = Allocator.frame()) {
 				swapChain = VkSwapchain.alloc(
@@ -260,7 +258,7 @@ public class FirstTriangle {
 								0,
 								0,
 								surface.address(),
-								swapChainDetails.capabilities().minImageCount() + 1,
+								surface.capabilities().minImageCount() + 1,
 								bestSurfaceFormat[0],
 								bestSurfaceFormat[1],
 								swapExtend.extent(),
@@ -268,14 +266,14 @@ public class FirstTriangle {
 								VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 								VK_SHARING_MODE_EXCLUSIVE,
 								null,
-								swapChainDetails.capabilities().currentTransform(),
+								surface.capabilities().currentTransform(),
 								VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-								swapChainDetails.getBestPresentMode(new int[] {VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR}),
+								surface.getBestPresentMode(new int[] {VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR}),
 								true,
 								0
 						),
 						device,
-						swapChainDetails,
+						surface,
 						new Object[] {side}
 				);
 			}
