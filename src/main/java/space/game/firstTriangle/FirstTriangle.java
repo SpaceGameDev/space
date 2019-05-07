@@ -73,6 +73,7 @@ import space.engine.vulkan.VkQueue;
 import space.engine.vulkan.VkRenderPass;
 import space.engine.vulkan.VkSemaphore;
 import space.engine.vulkan.VkShaderModule;
+import space.engine.vulkan.exception.UnsupportedDeviceException;
 import space.engine.vulkan.managed.device.ManagedDevice;
 import space.engine.vulkan.managed.device.ManagedDeviceQuadQueues;
 import space.engine.vulkan.surface.VkSurface;
@@ -117,7 +118,7 @@ public class FirstTriangle {
 	public static BaseLogger baseLogger = BaseLogger.defaultPrinter(BaseLogger.defaultHandler(new BaseLogger()));
 	private static Logger logger = baseLogger.subLogger("firstTriangle");
 	
-	public static void main(String[] args) throws InterruptedException, IOException {
+	public static void main(String[] args) throws InterruptedException, IOException, UnsupportedDeviceException {
 		FreeableStorageCleaner.setCleanupLogger(baseLogger);
 		try (Frame side = Freeable.frame()) {
 			
@@ -197,21 +198,24 @@ public class FirstTriangle {
 					).toArray(String[]::new)
 			));
 			
-			VkPhysicalDevice physicalDevice = instance.physicalDevices()
-													  .stream()
-													  .filter(device -> device.properties().deviceType() == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
-													  .findFirst()
-													  .orElseGet(() -> instance.physicalDevices()
-																			   .stream()
-																			   .findFirst()
-																			   .orElseThrow(() -> new RuntimeException("No GPU found!"))
-													  );
+			List<String> deviceExtensionsRequired = new ArrayList<>();
+			List<String> deviceExtensionsOptional = new ArrayList<>();
+			deviceExtensionsRequired.add(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+			
+			VkPhysicalDevice physicalDevice = Objects.requireNonNull(instance.getBestPhysicalDevice(new int[][] {
+					{VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU},
+					{VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU},
+					{VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU},
+					{} //whatever the system has
+			}, deviceExtensionsRequired, deviceExtensionsOptional));
 			logger.log(LogLevel.INFO, "Selecting: " + physicalDevice.properties().deviceNameString());
 			
 			//device
-			List<VkExtensionProperties> deviceExtensions = new ArrayList<>();
-			deviceExtensions.add(physicalDevice.extensionNameMap().get(VK_KHR_SWAPCHAIN_EXTENSION_NAME));
-			ManagedDevice device = ManagedDeviceQuadQueues.alloc(physicalDevice, deviceExtensions, null, false, new Object[] {side});
+			ManagedDevice device = ManagedDeviceQuadQueues.alloc(physicalDevice,
+																 physicalDevice.makeExtensionList(deviceExtensionsRequired, deviceExtensionsOptional),
+																 null,
+																 false,
+																 new Object[] {side});
 			VkQueue queueGraphics = device.getQueue(QUEUE_TYPE_GRAPHICS, 0);
 			
 			//vmaAllocator
