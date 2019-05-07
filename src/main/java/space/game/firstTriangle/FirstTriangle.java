@@ -92,7 +92,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.IntFunction;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import static org.lwjgl.util.vma.Vma.VMA_MEMORY_USAGE_CPU_TO_GPU;
 import static org.lwjgl.vulkan.KHRSurface.*;
@@ -119,27 +118,9 @@ public class FirstTriangle {
 		FreeableStorageCleaner.setCleanupLogger(baseLogger);
 		try (Frame side = Freeable.frame()) {
 			
-			//extensions
-			logger.log(LogLevel.INFO, new String2D(
-					Stream.concat(
-							Stream.of("Extensions: "),
-							VkInstanceExtensions.extensions().stream()
-												.map(ex -> ex.extensionNameString() + " v" + ex.specVersion())
-					).toArray(String[]::new)
-			));
-			
-			//layers
-			logger.log(LogLevel.INFO, new String2D(
-					Stream.concat(
-							Stream.of("Layers: "),
-							VkInstanceValidationLayers
-									.layers().stream()
-									.flatMap(layer -> Stream.of(
-											layer.layerNameString() + " v" + layer.specVersion(),
-											"    " + layer.descriptionString()
-									))
-					).toArray(String[]::new)
-			));
+			//log extensions / layers
+			logger.log(LogLevel.INFO, new String2D("Extensions: ").append(VkInstanceExtensions.generateInfoString()));
+			logger.log(LogLevel.INFO, new String2D("Layers: ").append(VkInstanceValidationLayers.generateInfoString()));
 			
 			//windowFramework
 			GLFWWindowFramework windowFramework = new GLFWWindowFramework();
@@ -148,7 +129,6 @@ public class FirstTriangle {
 			//extension / layer selection
 			List<String> instanceExtensions = new ArrayList<>();
 			List<String> instanceLayers = new ArrayList<>();
-			
 			if (VK_LAYER_LUNARG_standard_validation) {
 				instanceExtensions.add(EXTDebugUtils.VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 				instanceLayers.add("VK_LAYER_LUNARG_standard_validation");
@@ -169,21 +149,14 @@ public class FirstTriangle {
 			);
 			
 			//physical device
-			logger.log(LogLevel.INFO, new String2D(
-					Stream.concat(
-							Stream.of("Physical Devices: "),
-							instance.physicalDevices().stream()
-									.map(VkPhysicalDevice::properties)
-									.map(property -> property.deviceNameString() + " (id: 0x" + property.deviceID() + ") type: " + property.deviceType())
-					).toArray(String[]::new)
-			));
+			logger.log(LogLevel.INFO, new String2D("Physical Devices: ").append(instance.physicalDevicesGenerateInfoString()));
 			
 			List<String> deviceExtensionsRequired = new ArrayList<>();
 			List<String> deviceExtensionsOptional = new ArrayList<>();
 			deviceExtensionsRequired.add(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 			
 			VkPhysicalDevice physicalDevice = Objects.requireNonNull(instance.getBestPhysicalDevice(DEFAULT_BEST_PHYSICAL_DEVICE_TYPES, deviceExtensionsRequired, deviceExtensionsOptional));
-			logger.log(LogLevel.INFO, "Selecting: " + physicalDevice.properties().deviceNameString());
+			logger.log(LogLevel.INFO, "Selecting: " + physicalDevice.identification());
 			
 			//device
 			ManagedDevice device = ManagedDeviceQuadQueues.alloc(physicalDevice,
