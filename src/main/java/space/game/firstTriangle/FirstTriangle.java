@@ -5,20 +5,16 @@ import org.lwjgl.util.vma.VmaAllocationCreateInfo;
 import org.lwjgl.util.vma.VmaAllocatorCreateInfo;
 import org.lwjgl.util.vma.VmaVulkanFunctions;
 import org.lwjgl.vulkan.EXTDebugUtils;
-import org.lwjgl.vulkan.VkApplicationInfo;
 import org.lwjgl.vulkan.VkAttachmentDescription;
 import org.lwjgl.vulkan.VkAttachmentReference;
 import org.lwjgl.vulkan.VkBufferCreateInfo;
 import org.lwjgl.vulkan.VkClearValue;
 import org.lwjgl.vulkan.VkCommandBufferBeginInfo;
 import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
-import org.lwjgl.vulkan.VkExtensionProperties;
 import org.lwjgl.vulkan.VkExtent2D;
 import org.lwjgl.vulkan.VkFenceCreateInfo;
 import org.lwjgl.vulkan.VkFramebufferCreateInfo;
 import org.lwjgl.vulkan.VkGraphicsPipelineCreateInfo;
-import org.lwjgl.vulkan.VkInstanceCreateInfo;
-import org.lwjgl.vulkan.VkLayerProperties;
 import org.lwjgl.vulkan.VkOffset2D;
 import org.lwjgl.vulkan.VkPipelineColorBlendAttachmentState;
 import org.lwjgl.vulkan.VkPipelineColorBlendStateCreateInfo;
@@ -60,22 +56,23 @@ import space.engine.logger.Logger;
 import space.engine.string.String2D;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
-import space.engine.vulkan.VkExtensions;
 import space.engine.vulkan.VkFence;
 import space.engine.vulkan.VkFramebuffer;
 import space.engine.vulkan.VkGraphicsPipeline;
 import space.engine.vulkan.VkImageView;
 import space.engine.vulkan.VkInstance;
-import space.engine.vulkan.VkLayers;
+import space.engine.vulkan.VkInstanceExtensions;
+import space.engine.vulkan.VkInstanceValidationLayers;
 import space.engine.vulkan.VkPhysicalDevice;
 import space.engine.vulkan.VkPipelineLayout;
 import space.engine.vulkan.VkQueue;
 import space.engine.vulkan.VkRenderPass;
 import space.engine.vulkan.VkSemaphore;
 import space.engine.vulkan.VkShaderModule;
-import space.engine.vulkan.exception.UnsupportedDeviceException;
+import space.engine.vulkan.exception.UnsupportedConfigurationException;
 import space.engine.vulkan.managed.device.ManagedDevice;
 import space.engine.vulkan.managed.device.ManagedDeviceQuadQueues;
+import space.engine.vulkan.managed.instance.ManagedInstance;
 import space.engine.vulkan.surface.VkSurface;
 import space.engine.vulkan.surface.VkSurfaceDetails;
 import space.engine.vulkan.surface.VkSwapchain;
@@ -105,6 +102,7 @@ import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.engine.lwjgl.PointerBufferWrapper.wrapPointer;
 import static space.engine.primitive.Primitives.FP32;
+import static space.engine.vulkan.VkInstance.DEFAULT_BEST_PHYSICAL_DEVICE_TYPES;
 import static space.engine.vulkan.managed.device.ManagedDevice.QUEUE_TYPE_GRAPHICS;
 import static space.engine.window.Window.*;
 import static space.engine.window.WindowContext.API_TYPE;
@@ -118,7 +116,7 @@ public class FirstTriangle {
 	public static BaseLogger baseLogger = BaseLogger.defaultPrinter(BaseLogger.defaultHandler(new BaseLogger()));
 	private static Logger logger = baseLogger.subLogger("firstTriangle");
 	
-	public static void main(String[] args) throws InterruptedException, IOException, UnsupportedDeviceException {
+	public static void main(String[] args) throws InterruptedException, IOException, UnsupportedConfigurationException {
 		FreeableStorageCleaner.setCleanupLogger(baseLogger);
 		try (Frame side = Freeable.frame()) {
 			
@@ -126,8 +124,8 @@ public class FirstTriangle {
 			logger.log(LogLevel.INFO, new String2D(
 					Stream.concat(
 							Stream.of("Extensions: "),
-							VkExtensions.extensions().stream()
-										.map(ex -> ex.extensionNameString() + " v" + ex.specVersion())
+							VkInstanceExtensions.extensions().stream()
+												.map(ex -> ex.extensionNameString() + " v" + ex.specVersion())
 					).toArray(String[]::new)
 			));
 			
@@ -135,7 +133,8 @@ public class FirstTriangle {
 			logger.log(LogLevel.INFO, new String2D(
 					Stream.concat(
 							Stream.of("Layers: "),
-							VkLayers.layers().stream()
+							VkInstanceValidationLayers
+									.layers().stream()
 									.flatMap(layer -> Stream.of(
 											layer.layerNameString() + " v" + layer.specVersion(),
 											"    " + layer.descriptionString()
@@ -148,45 +147,27 @@ public class FirstTriangle {
 			VkSurfaceGLFW.assertSupported(windowFramework);
 			
 			//extension / layer selection
-			List<VkExtensionProperties> instanceExtensions = new ArrayList<>();
-			List<VkLayerProperties> instanceLayers = new ArrayList<>();
+			List<String> instanceExtensions = new ArrayList<>();
+			List<String> instanceLayers = new ArrayList<>();
 			
 			if (VK_LAYER_LUNARG_standard_validation) {
-				instanceExtensions.add(Objects.requireNonNull(VkExtensions.extensionNameMap().get(EXTDebugUtils.VK_EXT_DEBUG_UTILS_EXTENSION_NAME)));
-				instanceLayers.add(Objects.requireNonNull(VkLayers.layerNameMap().get("VK_LAYER_LUNARG_standard_validation")));
+				instanceExtensions.add(EXTDebugUtils.VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+				instanceLayers.add("VK_LAYER_LUNARG_standard_validation");
 			}
 			if (VK_LAYER_RENDERDOC_Capture) {
-				instanceLayers.add(Objects.requireNonNull(VkLayers.layerNameMap().get("VK_LAYER_RENDERDOC_Capture")));
+				instanceLayers.add("VK_LAYER_RENDERDOC_Capture");
 			}
 			instanceExtensions.addAll(VkSurfaceGLFW.getRequiredInstanceExtensions(windowFramework));
 			
 			//instance
-			VkInstance instance;
-			try (AllocatorFrame frame = Allocator.frame()) {
-				instance = VkInstance.alloc(
-						mallocStruct(frame, VkInstanceCreateInfo::create, VkInstanceCreateInfo.SIZEOF).set(
-								VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-								0,
-								0,
-								mallocStruct(frame, VkApplicationInfo::create, VkApplicationInfo.SIZEOF).set(
-										VK_STRUCTURE_TYPE_APPLICATION_INFO,
-										0,
-										StringConverter.stringToUTF8(frame, "space-first-triangle", true).nioBuffer(),
-										1,
-										StringConverter.stringToUTF8(frame, "space-engine", true).nioBuffer(),
-										1,
-										VK_API_VERSION_1_0
-								),
-								wrapPointer(ArrayBufferPointer.alloc(frame, instanceLayers.stream().map(VkLayerProperties::layerName).toArray(java.nio.Buffer[]::new))),
-								wrapPointer(ArrayBufferPointer.alloc(frame, instanceExtensions.stream().map(VkExtensionProperties::extensionName).toArray(java.nio.Buffer[]::new)))
-						),
-						baseLogger.subLogger("vulkan"),
-						VK_LAYER_LUNARG_standard_validation,
-						new Object[] {side}
-				);
-			}
-			
-			logger.log(LogLevel.INFO, "created VkInstance: " + instance);
+			VkInstance instance = ManagedInstance.alloc(
+					"firstTriangle",
+					1,
+					baseLogger.subLogger("Vulkan"),
+					VkInstanceValidationLayers.makeLayerList(instanceLayers, List.of()),
+					VkInstanceExtensions.makeExtensionList(instanceExtensions, List.of()),
+					new Object[] {side}
+			);
 			
 			//physical device
 			logger.log(LogLevel.INFO, new String2D(
@@ -202,12 +183,7 @@ public class FirstTriangle {
 			List<String> deviceExtensionsOptional = new ArrayList<>();
 			deviceExtensionsRequired.add(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 			
-			VkPhysicalDevice physicalDevice = Objects.requireNonNull(instance.getBestPhysicalDevice(new int[][] {
-					{VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU},
-					{VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU},
-					{VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU},
-					{} //whatever the system has
-			}, deviceExtensionsRequired, deviceExtensionsOptional));
+			VkPhysicalDevice physicalDevice = Objects.requireNonNull(instance.getBestPhysicalDevice(DEFAULT_BEST_PHYSICAL_DEVICE_TYPES, deviceExtensionsRequired, deviceExtensionsOptional));
 			logger.log(LogLevel.INFO, "Selecting: " + physicalDevice.properties().deviceNameString());
 			
 			//device
