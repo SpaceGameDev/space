@@ -53,7 +53,6 @@ import space.engine.key.attribute.AttributeListModify;
 import space.engine.logger.BaseLogger;
 import space.engine.logger.LogLevel;
 import space.engine.logger.Logger;
-import space.engine.string.String2D;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
 import space.engine.vulkan.VkFence;
@@ -119,8 +118,8 @@ public class FirstTriangle {
 		try (Frame side = Freeable.frame()) {
 			
 			//log extensions / layers
-			logger.log(LogLevel.INFO, new String2D("Extensions: ").concat(VkInstanceExtensions.generateInfoString()));
-			logger.log(LogLevel.INFO, new String2D("Layers: ").concat(VkInstanceValidationLayers.generateInfoString()));
+			logger.log(LogLevel.INFO, "Extensions: " + VkInstanceExtensions.generateInfoString());
+			logger.log(LogLevel.INFO, "Layers: " + VkInstanceValidationLayers.generateInfoString());
 			
 			//windowFramework
 			GLFWWindowFramework windowFramework = new GLFWWindowFramework();
@@ -149,7 +148,7 @@ public class FirstTriangle {
 			);
 			
 			//physical device
-			logger.log(LogLevel.INFO, new String2D("Physical Devices: ").concat(instance.physicalDevicesGenerateInfoString()));
+			logger.log(LogLevel.INFO, "Physical Devices: " + instance.physicalDevicesGenerateInfoString());
 			
 			List<String> deviceExtensionsRequired = new ArrayList<>();
 			List<String> deviceExtensionsOptional = new ArrayList<>();
