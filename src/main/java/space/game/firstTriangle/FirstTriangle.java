@@ -119,8 +119,8 @@ public class FirstTriangle {
 		try (Frame side = Freeable.frame()) {
 			
 			//log extensions / layers
-			logger.log(LogLevel.INFO, new String2D("Extensions: ").append(VkInstanceExtensions.generateInfoString()));
-			logger.log(LogLevel.INFO, new String2D("Layers: ").append(VkInstanceValidationLayers.generateInfoString()));
+			logger.log(LogLevel.INFO, new String2D("Extensions: ").concat(VkInstanceExtensions.generateInfoString()));
+			logger.log(LogLevel.INFO, new String2D("Layers: ").concat(VkInstanceValidationLayers.generateInfoString()));
 			
 			//windowFramework
 			GLFWWindowFramework windowFramework = new GLFWWindowFramework();
@@ -149,7 +149,7 @@ public class FirstTriangle {
 			);
 			
 			//physical device
-			logger.log(LogLevel.INFO, new String2D("Physical Devices: ").append(instance.physicalDevicesGenerateInfoString()));
+			logger.log(LogLevel.INFO, new String2D("Physical Devices: ").concat(instance.physicalDevicesGenerateInfoString()));
 			
 			List<String> deviceExtensionsRequired = new ArrayList<>();
 			List<String> deviceExtensionsOptional = new ArrayList<>();
