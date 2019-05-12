@@ -53,6 +53,7 @@ import space.engine.key.attribute.AttributeListModify;
 import space.engine.logger.BaseLogger;
 import space.engine.logger.LogLevel;
 import space.engine.logger.Logger;
+import space.engine.observable.NoUpdate;
 import space.engine.observable.ObservableReference;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
@@ -595,11 +596,12 @@ public class FirstTriangle {
 							if (next || prev) {
 								MODEL_ID.set(() -> {
 									int current = MODEL_ID.assertGet();
-									if (next) {
-										return current + 1 < MODELS.length ? current + 1 : 0;
-									} else { //prev
-										return current > 0 ? current - 1 : MODELS.length - 1;
+									if (next && current + 1 < MODELS.length) {
+										return current + 1;
+									} else if (prev && current > 0) {
+										return current - 1;
 									}
+									throw new NoUpdate();
 								});
 							}
 						}
