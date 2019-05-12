@@ -483,10 +483,10 @@ public class FirstTriangle {
 					})
 					.toArray(VkFramebuffer[]::new);
 			
-			ObservableReference<float[]> vertexData = ObservableReference.generatingReference(() -> MODELS[MODEL_ID.get()], MODEL_ID);
+			ObservableReference<float[]> vertexData = ObservableReference.generatingReference(() -> MODELS[MODEL_ID.assertGet()], MODEL_ID);
 			
 			ObservableReference<VkBuffer> vertexBuffer = ObservableReference.generatingReference(() -> {
-				float[] data = vertexData.get();
+				float[] data = vertexData.assertGet();
 				
 				try (AllocatorFrame frame = Allocator.frame()) {
 					return VkBuffer.alloc(mallocStruct(frame, VkBufferCreateInfo::create, VkBufferCreateInfo.SIZEOF).set(
@@ -522,7 +522,7 @@ public class FirstTriangle {
 			
 			//commandBuffer
 			ObservableReference<VkCommandBuffer[]> commandBuffers = ObservableReference.generatingReference(() -> {
-				VkBuffer vkBuffer = vertexBuffer.get();
+				VkBuffer vkBuffer = vertexBuffer.assertGet();
 				
 				VkCommandBuffer[] commandBufferArray = commandPool.allocCmdBuffers(VK_COMMAND_BUFFER_LEVEL_PRIMARY, framebuffers.length, new Object[] {side});
 				for (int i = 0; i < commandBufferArray.length; i++) {
@@ -594,7 +594,7 @@ public class FirstTriangle {
 							boolean prev = key == Keycode.KEY_UP;
 							if (next || prev) {
 								MODEL_ID.set(() -> {
-									int current = MODEL_ID.get();
+									int current = MODEL_ID.assertGet();
 									if (next) {
 										return current + 1 < MODELS.length ? current + 1 : 0;
 									} else { //prev
@@ -615,7 +615,7 @@ public class FirstTriangle {
 					nvkAcquireNextImageKHR(device, swapChain.address(), Long.MAX_VALUE, semaphoreImageAvailable[i].address(), 0, imageIndexPtr.address());
 					int imageIndex = imageIndexPtr.getInt();
 					
-					VkCommandBuffer[] vkCommandBuffers = commandBuffers.get();
+					VkCommandBuffer[] vkCommandBuffers = commandBuffers.getFuture().awaitGet();
 					vkQueueSubmit(queueGraphics, mallocStruct(frame, VkSubmitInfo::create, VkSubmitInfo.SIZEOF).set(
 							VK_STRUCTURE_TYPE_SUBMIT_INFO,
 							0,
