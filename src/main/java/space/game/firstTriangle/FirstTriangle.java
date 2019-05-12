@@ -53,6 +53,7 @@ import space.engine.key.attribute.AttributeListModify;
 import space.engine.logger.BaseLogger;
 import space.engine.logger.LogLevel;
 import space.engine.logger.Logger;
+import space.engine.observable.ObservableReference;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
 import space.engine.vulkan.VkFence;
@@ -77,6 +78,8 @@ import space.engine.vulkan.surface.VkSwapchain;
 import space.engine.vulkan.surface.glfw.VkSurfaceGLFW;
 import space.engine.vulkan.vma.VkBuffer;
 import space.engine.vulkan.vma.VmaAllocator;
+import space.engine.window.InputDevice.Keyboard;
+import space.engine.window.Keycode;
 import space.engine.window.Window;
 import space.engine.window.WindowContext;
 import space.engine.window.extensions.VideoModeDesktopExtension;
@@ -112,6 +115,21 @@ public class FirstTriangle {
 	public static final int MAX_FRAMES_IN_FLIGHT = 2;
 	public static BaseLogger baseLogger = BaseLogger.defaultPrinter(BaseLogger.defaultHandler(new BaseLogger()));
 	private static Logger logger = baseLogger.subLogger("firstTriangle");
+	
+	public static final ObservableReference<Integer> MODEL_ID = new ObservableReference<>(0);
+	public static final float[][] MODELS = new float[][] {{
+			0.0f, -0.5f, 1.0f, 1.0f, 1.0f,
+			0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
+			-0.5f, 0.5f, 0.0f, 0.0f, 1.0f
+	}, {
+			0.0f, 0.5f, 1.0f, 1.0f, 1.0f,
+			-0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+			0.5f, -0.5f, 0.0f, 0.0f, 1.0f
+	}, {
+			0.0f, 0.5f, 1.0f, 0.0f, 0.0f,
+			-0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
+			0.5f, -0.5f, 1.0f, 0.0f, 0.0f
+	}};
 	
 	public static void main(String[] args) throws InterruptedException, IOException, UnsupportedConfigurationException {
 		FreeableStorageCleaner.setCleanupLogger(baseLogger);
@@ -465,32 +483,31 @@ public class FirstTriangle {
 					})
 					.toArray(VkFramebuffer[]::new);
 			
-			float[] vertexData = {
-					0.0f, -0.5f, 1.0f, 1.0f, 1.0f,
-					0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
-					-0.5f, 0.5f, 0.0f, 0.0f, 1.0f
-			};
+			ObservableReference<float[]> vertexData = ObservableReference.generatingReference(() -> MODELS[MODEL_ID.get()], MODEL_ID);
 			
-			VkBuffer vertexBuffer;
-			try (AllocatorFrame frame = Allocator.frame()) {
-				vertexBuffer = VkBuffer.alloc(mallocStruct(frame, VkBufferCreateInfo::create, VkBufferCreateInfo.SIZEOF).set(
-						VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-						0,
-						0,
-						FP32.multiply(vertexData.length),
-						VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-						VK_SHARING_MODE_EXCLUSIVE,
-						null
-				), mallocStruct(frame, VmaAllocationCreateInfo::create, VmaAllocationCreateInfo.SIZEOF).set(
-						0,
-						VMA_MEMORY_USAGE_CPU_TO_GPU,
-						0,
-						0,
-						0,
-						0,
-						0
-				), vmaAllocator, ArrayBufferFloat.alloc(frame, vertexData), new Object[] {side});
-			}
+			ObservableReference<VkBuffer> vertexBuffer = ObservableReference.generatingReference(() -> {
+				float[] data = vertexData.get();
+				
+				try (AllocatorFrame frame = Allocator.frame()) {
+					return VkBuffer.alloc(mallocStruct(frame, VkBufferCreateInfo::create, VkBufferCreateInfo.SIZEOF).set(
+							VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+							0,
+							0,
+							FP32.multiply(data.length),
+							VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+							VK_SHARING_MODE_EXCLUSIVE,
+							null
+					), mallocStruct(frame, VmaAllocationCreateInfo::create, VmaAllocationCreateInfo.SIZEOF).set(
+							0,
+							VMA_MEMORY_USAGE_CPU_TO_GPU,
+							0,
+							0,
+							0,
+							0,
+							0
+					), vmaAllocator, ArrayBufferFloat.alloc(frame, data), new Object[] {side});
+				}
+			}, vertexData);
 			
 			//commandPool
 			VkCommandPool commandPool;
@@ -504,42 +521,47 @@ public class FirstTriangle {
 			}
 			
 			//commandBuffer
-			VkCommandBuffer[] commandBuffers = commandPool.allocCmdBuffers(VK_COMMAND_BUFFER_LEVEL_PRIMARY, framebuffers.length, new Object[] {side});
-			for (int i = 0; i < commandBuffers.length; i++) {
-				try (AllocatorFrame frame = Allocator.frame()) {
-					VkCommandBuffer commandBuffer = commandBuffers[i];
-					commandBuffer.beginCommandBuffer(mallocStruct(frame, VkCommandBufferBeginInfo::create, VkCommandBufferBeginInfo.SIZEOF).set(
-							VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-							0,
-							VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
-							null
-					));
-					
-					vkCmdBeginRenderPass(commandBuffer, mallocStruct(frame, VkRenderPassBeginInfo::create, VkRenderPassBeginInfo.SIZEOF).set(
-							VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-							0,
-							renderPass.address(),
-							framebuffers[i].address(),
-							swapExtend,
-							allocBuffer(frame, VkClearValue::create, VkClearValue.SIZEOF, vkClearValue ->
-									vkClearValue.color()
-												.float32(0, 0.5f)
-												.float32(1, 0.0f)
-												.float32(2, 0.0f)
-												.float32(3, 1.0f)
-							)
-					), VK_SUBPASS_CONTENTS_INLINE);
-					
-					vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.address());
-					
-					vkCmdBindVertexBuffers(commandBuffer, 0, new long[] {vertexBuffer.address()}, new long[] {0});
-					vkCmdDraw(commandBuffer, 3, 1, 0, 0);
-					
-					vkCmdEndRenderPass(commandBuffer);
-					
-					commandBuffer.endCommandBuffer();
+			ObservableReference<VkCommandBuffer[]> commandBuffers = ObservableReference.generatingReference(() -> {
+				VkBuffer vkBuffer = vertexBuffer.get();
+				
+				VkCommandBuffer[] commandBufferArray = commandPool.allocCmdBuffers(VK_COMMAND_BUFFER_LEVEL_PRIMARY, framebuffers.length, new Object[] {side});
+				for (int i = 0; i < commandBufferArray.length; i++) {
+					try (AllocatorFrame frame = Allocator.frame()) {
+						VkCommandBuffer commandBuffer = commandBufferArray[i];
+						commandBuffer.beginCommandBuffer(mallocStruct(frame, VkCommandBufferBeginInfo::create, VkCommandBufferBeginInfo.SIZEOF).set(
+								VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+								0,
+								VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT,
+								null
+						));
+						
+						vkCmdBeginRenderPass(commandBuffer, mallocStruct(frame, VkRenderPassBeginInfo::create, VkRenderPassBeginInfo.SIZEOF).set(
+								VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+								0,
+								renderPass.address(),
+								framebuffers[i].address(),
+								swapExtend,
+								allocBuffer(frame, VkClearValue::create, VkClearValue.SIZEOF, vkClearValue ->
+										vkClearValue.color()
+													.float32(0, 0.5f)
+													.float32(1, 0.0f)
+													.float32(2, 0.0f)
+													.float32(3, 1.0f)
+								)
+						), VK_SUBPASS_CONTENTS_INLINE);
+						
+						vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.address());
+						
+						vkCmdBindVertexBuffers(commandBuffer, 0, new long[] {vkBuffer.address()}, new long[] {0});
+						vkCmdDraw(commandBuffer, (int) (vkBuffer.sizeOf() / FP32.multiply(5)), 1, 0, 0);
+						
+						vkCmdEndRenderPass(commandBuffer);
+						
+						commandBuffer.endCommandBuffer();
+					}
 				}
-			}
+				return commandBufferArray;
+			}, vertexBuffer);
 			
 			//synchronization
 			VkSemaphore[] semaphoreImageAvailable, semaphoreRenderFinished;
@@ -565,6 +587,24 @@ public class FirstTriangle {
 			//main loop
 			boolean[] isRunning = {true};
 			window.getWindowCloseEvent().addHook(window1 -> isRunning[0] = false);
+			windowContext.getInputDevices().stream().filter(dev -> dev instanceof Keyboard).forEach(
+					keyboard -> ((Keyboard) keyboard).getKeyInputEvent().addHook((key, pressed) -> {
+						if (pressed) {
+							boolean next = key == Keycode.KEY_DOWN;
+							boolean prev = key == Keycode.KEY_UP;
+							if (next || prev) {
+								MODEL_ID.set(() -> {
+									int current = MODEL_ID.get();
+									if (next) {
+										return current + 1 < MODELS.length ? current + 1 : 0;
+									} else { //prev
+										return current > 0 ? current - 1 : MODELS.length - 1;
+									}
+								});
+							}
+						}
+					})
+			);
 			
 			for (int i = 0; isRunning[0]; i = (i + 1) % MAX_FRAMES_IN_FLIGHT) {
 				vkWaitForFences(device, fenceFrameDone[i].address(), true, Long.MAX_VALUE);
@@ -575,13 +615,14 @@ public class FirstTriangle {
 					nvkAcquireNextImageKHR(device, swapChain.address(), Long.MAX_VALUE, semaphoreImageAvailable[i].address(), 0, imageIndexPtr.address());
 					int imageIndex = imageIndexPtr.getInt();
 					
+					VkCommandBuffer[] vkCommandBuffers = commandBuffers.get();
 					vkQueueSubmit(queueGraphics, mallocStruct(frame, VkSubmitInfo::create, VkSubmitInfo.SIZEOF).set(
 							VK_STRUCTURE_TYPE_SUBMIT_INFO,
 							0,
 							1,
 							ArrayBufferLong.alloc(frame, new long[] {semaphoreImageAvailable[i].address()}).nioBuffer(),
 							ArrayBufferInt.alloc(frame, new int[] {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT}).nioBuffer(),
-							wrapPointer(ArrayBufferPointer.alloc(frame, new long[] {commandBuffers[imageIndex].address()})),
+							wrapPointer(ArrayBufferPointer.alloc(frame, vkCommandBuffers == null ? new long[] {} : new long[] {vkCommandBuffers[imageIndex].address()})),
 							ArrayBufferLong.alloc(frame, new long[] {semaphoreRenderFinished[i].address()}).nioBuffer()
 					), fenceFrameDone[i].address());
 					
