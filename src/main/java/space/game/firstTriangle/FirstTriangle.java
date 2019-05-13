@@ -33,10 +33,10 @@ import org.lwjgl.vulkan.VkSemaphoreCreateInfo;
 import org.lwjgl.vulkan.VkSubmitInfo;
 import org.lwjgl.vulkan.VkSubpassDependency;
 import org.lwjgl.vulkan.VkSubpassDescription;
-import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR;
 import org.lwjgl.vulkan.VkVertexInputAttributeDescription;
 import org.lwjgl.vulkan.VkVertexInputBindingDescription;
 import org.lwjgl.vulkan.VkViewport;
+import space.engine.Side;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.StringConverter;
@@ -60,7 +60,6 @@ import space.engine.vulkan.VkCommandPool;
 import space.engine.vulkan.VkFence;
 import space.engine.vulkan.VkFramebuffer;
 import space.engine.vulkan.VkGraphicsPipeline;
-import space.engine.vulkan.VkImageView;
 import space.engine.vulkan.VkInstance;
 import space.engine.vulkan.VkInstanceExtensions;
 import space.engine.vulkan.VkInstanceValidationLayers;
@@ -70,12 +69,11 @@ import space.engine.vulkan.VkQueue;
 import space.engine.vulkan.VkRenderPass;
 import space.engine.vulkan.VkSemaphore;
 import space.engine.vulkan.VkShaderModule;
-import space.engine.vulkan.exception.UnsupportedConfigurationException;
 import space.engine.vulkan.managed.device.ManagedDevice;
-import space.engine.vulkan.managed.device.ManagedDeviceQuadQueues;
+import space.engine.vulkan.managed.device.ManagedDeviceSingleQueue;
 import space.engine.vulkan.managed.instance.ManagedInstance;
+import space.engine.vulkan.managed.surface.ManagedSwapchain;
 import space.engine.vulkan.surface.VkSurface;
-import space.engine.vulkan.surface.VkSwapchain;
 import space.engine.vulkan.surface.glfw.VkSurfaceGLFW;
 import space.engine.vulkan.vma.VkBuffer;
 import space.engine.vulkan.vma.VmaAllocator;
@@ -97,7 +95,6 @@ import java.util.function.IntFunction;
 import java.util.stream.IntStream;
 
 import static org.lwjgl.util.vma.Vma.VMA_MEMORY_USAGE_CPU_TO_GPU;
-import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
@@ -132,7 +129,7 @@ public class FirstTriangle {
 			0.5f, -0.5f, 1.0f, 0.0f, 0.0f
 	}};
 	
-	public static void main(String[] args) throws InterruptedException, IOException, UnsupportedConfigurationException {
+	public static void main(String[] args) throws InterruptedException, IOException {
 		FreeableStorageCleaner.setCleanupLogger(baseLogger);
 		try (Frame side = Freeable.frame()) {
 			
@@ -177,11 +174,10 @@ public class FirstTriangle {
 			logger.log(LogLevel.INFO, "Selecting: " + physicalDevice.identification());
 			
 			//device
-			ManagedDevice device = ManagedDeviceQuadQueues.alloc(physicalDevice,
-																 physicalDevice.makeExtensionList(deviceExtensionsRequired, deviceExtensionsOptional),
-																 null,
-																 false,
-																 new Object[] {side});
+			ManagedDevice device = ManagedDeviceSingleQueue.alloc(physicalDevice,
+																  physicalDevice.makeExtensionList(deviceExtensionsRequired, deviceExtensionsOptional),
+																  null,
+																  new Object[] {side});
 			VkQueue queueGraphics = device.getQueue(QUEUE_TYPE_GRAPHICS, 0);
 			
 			//vmaAllocator
@@ -240,35 +236,20 @@ public class FirstTriangle {
 			}
 			
 			//swapchain
-			int[] bestSurfaceFormat = surface.getBestSurfaceFormat(new int[][] {{VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}});
-			VkSwapchain swapChain;
-			try (AllocatorFrame frame = Allocator.frame()) {
-				swapChain = VkSwapchain.alloc(
-						mallocStruct(frame, VkSwapchainCreateInfoKHR::create, VkSwapchainCreateInfoKHR.SIZEOF).set(
-								VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-								0,
-								0,
-								surface.address(),
-								surface.capabilities().minImageCount() + 1,
-								bestSurfaceFormat[0],
-								bestSurfaceFormat[1],
-								swapExtend.extent(),
-								1,
-								VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-								VK_SHARING_MODE_EXCLUSIVE,
-								null,
-								surface.capabilities().currentTransform(),
-								VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-								surface.getBestPresentMode(new int[] {VK_PRESENT_MODE_MAILBOX_KHR, VK_PRESENT_MODE_IMMEDIATE_KHR, VK_PRESENT_MODE_FIFO_KHR}),
-								true,
-								0
-						),
-						device,
-						surface,
-						new Object[] {side}
-				);
-			}
-			VkImageView[] swapChainImageViews = swapChain.imageViews();
+			ManagedSwapchain<?> swapchain = ManagedSwapchain.alloc(
+					device,
+					surface,
+					null,
+					null,
+					swapExtend.extent(),
+					null, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+					null,
+					null,
+					null,
+					null,
+					null,
+					new Object[] {side}
+			);
 			
 			//renderPass
 			VkRenderPass renderPass;
@@ -279,7 +260,7 @@ public class FirstTriangle {
 						0,
 						allocBuffer(frame, VkAttachmentDescription::create, VkAttachmentDescription.SIZEOF, vkAttachmentDescription -> vkAttachmentDescription.set(
 								0,
-								bestSurfaceFormat[0],
+								swapchain.imageFormat()[0],
 								VK_SAMPLE_COUNT_1_BIT,
 								VK_ATTACHMENT_LOAD_OP_CLEAR,
 								VK_ATTACHMENT_STORE_OP_STORE,
@@ -467,7 +448,7 @@ public class FirstTriangle {
 			
 			//framebuffer
 			VkFramebuffer[] framebuffers = Arrays
-					.stream(swapChainImageViews)
+					.stream(swapchain.imageViews())
 					.map(swapChainImageView -> {
 						try (AllocatorFrame frame = Allocator.frame()) {
 							return VkFramebuffer.alloc(mallocStruct(frame, VkFramebufferCreateInfo::create, VkFramebufferCreateInfo.SIZEOF).set(
@@ -614,7 +595,7 @@ public class FirstTriangle {
 				
 				try (AllocatorFrame frame = Allocator.frame()) {
 					PointerBufferInt imageIndexPtr = PointerBufferInt.malloc(frame);
-					nvkAcquireNextImageKHR(device, swapChain.address(), Long.MAX_VALUE, semaphoreImageAvailable[i].address(), 0, imageIndexPtr.address());
+					nvkAcquireNextImageKHR(device, swapchain.address(), Long.MAX_VALUE, semaphoreImageAvailable[i].address(), 0, imageIndexPtr.address());
 					int imageIndex = imageIndexPtr.getInt();
 					
 					VkCommandBuffer[] vkCommandBuffers = commandBuffers.getFuture().awaitGet();
@@ -628,15 +609,15 @@ public class FirstTriangle {
 							ArrayBufferLong.alloc(frame, new long[] {semaphoreRenderFinished[i].address()}).nioBuffer()
 					), fenceFrameDone[i].address());
 					
-					swapChain.present(mallocStruct(frame, VkPresentInfoKHR::create, VkPresentInfoKHR.SIZEOF).set(
+					swapchain.present(mallocStruct(frame, VkPresentInfoKHR::create, VkPresentInfoKHR.SIZEOF).set(
 							VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 							0,
 							ArrayBufferLong.alloc(frame, new long[] {semaphoreRenderFinished[i].address()}).nioBuffer(),
 							1,
-							ArrayBufferLong.alloc(frame, new long[] {swapChain.address()}).nioBuffer(),
+							ArrayBufferLong.alloc(frame, new long[] {swapchain.address()}).nioBuffer(),
 							ArrayBufferInt.alloc(frame, new int[] {imageIndex}).nioBuffer(),
 							null
-					), queueGraphics);
+					), swapchain.queue());
 				}
 				
 				window.pollEventsTask().awaitUninterrupted();
@@ -646,5 +627,6 @@ public class FirstTriangle {
 			
 			logger.log(LogLevel.INFO, "Exit!");
 		}
+		Side.exit();
 	}
 }
