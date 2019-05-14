@@ -55,6 +55,9 @@ import space.engine.logger.LogLevel;
 import space.engine.logger.Logger;
 import space.engine.observable.NoUpdate;
 import space.engine.observable.ObservableReference;
+import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
+import space.engine.simpleQueue.pool.SimpleThreadPool;
+import space.engine.sync.barrier.Barrier;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
 import space.engine.vulkan.VkFence;
@@ -99,18 +102,22 @@ import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.engine.lwjgl.PointerBufferWrapper.wrapPointer;
 import static space.engine.primitive.Primitives.FP32;
+import static space.engine.sync.Tasks.runnable;
 import static space.engine.vulkan.VkInstance.DEFAULT_BEST_PHYSICAL_DEVICE_TYPES;
 import static space.engine.vulkan.managed.device.ManagedDevice.*;
 import static space.engine.window.Window.*;
 import static space.engine.window.WindowContext.API_TYPE;
 import static space.engine.window.extensions.VideoModeExtension.*;
 
-public class FirstTriangle {
+@SuppressWarnings("FieldCanBeLocal")
+public class FirstTriangle implements Runnable {
 	
-	public static boolean VK_LAYER_LUNARG_standard_validation = true;
-	public static boolean VK_LAYER_RENDERDOC_Capture = true;
+	public static void main(String[] args) {
+		FreeableStorageCleaner.setCleanupLogger(baseLogger);
+		new FirstTriangle().run();
+	}
+	
 	public static BaseLogger baseLogger = BaseLogger.defaultPrinter(BaseLogger.defaultHandler(new BaseLogger()));
-	private static Logger logger = baseLogger.subLogger("firstTriangle");
 	
 	public static final ObservableReference<Integer> MODEL_ID = new ObservableReference<>(0);
 	public static final float[][] MODELS = new float[][] {{
@@ -126,9 +133,34 @@ public class FirstTriangle {
 			-0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
 			0.5f, -0.5f, 1.0f, 0.0f, 0.0f
 	}};
+	ObservableReference<float[]> vertexData = ObservableReference.generatingReference(() -> MODELS[MODEL_ID.assertGet()], MODEL_ID);
 	
-	public static void main(String[] args) throws InterruptedException, IOException {
-		FreeableStorageCleaner.setCleanupLogger(baseLogger);
+	public boolean VK_LAYER_LUNARG_standard_validation = true;
+	public boolean VK_LAYER_RENDERDOC_Capture = true;
+	public SimpleThreadPool vulkanPool;
+	private Logger logger = baseLogger.subLogger("firstTriangle");
+	
+	private GLFWWindowFramework windowFramework;
+	private VkInstance instance;
+	private ManagedDevice device;
+	private VmaAllocator vmaAllocator;
+	private GLFWContext windowContext;
+	private GLFWWindow window;
+	private VkSurface<GLFWWindow> surface;
+	private ManagedSwapchain<?> swapchain;
+	private int framesInFlight;
+	private VkRenderPass renderPass;
+	private VkPipelineLayout pipelineLayout;
+	private VkGraphicsPipeline pipeline;
+	private VkFramebuffer[] framebuffers;
+	private VkCommandPool commandPool;
+	private ObservableReference<VkCommandBuffer[]> commandBuffers;
+	
+	private VkSemaphore[] semaphoreImageAvailable, semaphoreRenderFinished;
+	private VkFence[] fenceFrameDone;
+	
+	public void run() {
+		vulkanPool = new SimpleThreadPool(1, new ConcurrentLinkedSimpleQueue<>(), r -> new Thread(r, "Vulkan-Thread"));
 		try (Frame side = Freeable.frame()) {
 			
 			//log extensions / layers
@@ -136,7 +168,7 @@ public class FirstTriangle {
 			logger.log(LogLevel.INFO, "Layers: " + VkInstanceValidationLayers.generateInfoString());
 			
 			//windowFramework
-			GLFWWindowFramework windowFramework = new GLFWWindowFramework();
+			windowFramework = new GLFWWindowFramework();
 			VkSurfaceGLFW.assertSupported(windowFramework);
 			
 			//extension / layer selection
@@ -152,7 +184,7 @@ public class FirstTriangle {
 			instanceExtensions.addAll(VkSurfaceGLFW.getRequiredInstanceExtensions(windowFramework));
 			
 			//instance
-			VkInstance instance = ManagedInstance.alloc(
+			instance = ManagedInstance.alloc(
 					"firstTriangle",
 					1,
 					baseLogger.subLogger("Vulkan"),
@@ -172,13 +204,12 @@ public class FirstTriangle {
 			logger.log(LogLevel.INFO, "Selecting: " + physicalDevice.identification());
 			
 			//device
-			ManagedDevice device = ManagedDeviceSingleQueue.alloc(physicalDevice,
-																  physicalDevice.makeExtensionList(deviceExtensionsRequired, deviceExtensionsOptional),
-																  null,
-																  new Object[] {side});
+			device = ManagedDeviceSingleQueue.alloc(physicalDevice,
+													physicalDevice.makeExtensionList(deviceExtensionsRequired, deviceExtensionsOptional),
+													null,
+													new Object[] {side});
 			
 			//vmaAllocator
-			VmaAllocator vmaAllocator;
 			try (AllocatorFrame frame = Allocator.frame()) {
 				vmaAllocator = VmaAllocator.alloc(mallocStruct(frame, VmaAllocatorCreateInfo::create, VmaAllocatorCreateInfo.SIZEOF).set(
 						0,
@@ -204,7 +235,7 @@ public class FirstTriangle {
 				windowContextModify.put(API_TYPE, null);
 				windowContextAtt = windowContextModify.createNewAttributeList();
 			}
-			GLFWContext windowContext = windowFramework.createContext(windowContextAtt, new Object[] {side}).awaitGet();
+			windowContext = windowFramework.createContext(windowContextAtt, new Object[] {side}).awaitGetUninterrupted();
 			
 			//window
 			AttributeList<Window> windowAtt;
@@ -214,10 +245,10 @@ public class FirstTriangle {
 				windowModify.put(TITLE, "Vulkan Window");
 				windowAtt = windowModify.createNewAttributeList();
 			}
-			GLFWWindow window = windowContext.createWindow(windowAtt, new Object[] {side}).awaitGet();
+			window = windowContext.createWindow(windowAtt, new Object[] {side}).awaitGetUninterrupted();
 			
 			//surface
-			VkSurface<GLFWWindow> surface = VkSurfaceGLFW.createSurfaceFromGlfwWindow(physicalDevice, window, new Object[] {side});
+			surface = VkSurfaceGLFW.createSurfaceFromGlfwWindow(physicalDevice, window, new Object[] {side});
 			
 			//swapExtend
 			VkRect2D swapExtend;
@@ -233,7 +264,7 @@ public class FirstTriangle {
 			}
 			
 			//swapchain
-			ManagedSwapchain<?> swapchain = ManagedSwapchain.alloc(
+			swapchain = ManagedSwapchain.alloc(
 					device,
 					surface,
 					null,
@@ -247,10 +278,9 @@ public class FirstTriangle {
 					null,
 					new Object[] {side}
 			);
-			int framesInFlight = swapchain.imageViews().length;
+			framesInFlight = swapchain.imageViews().length;
 			
 			//renderPass
-			VkRenderPass renderPass;
 			try (AllocatorFrame frame = Allocator.frame()) {
 				renderPass = VkRenderPass.alloc(mallocStruct(frame, VkRenderPassCreateInfo::create, VkRenderPassCreateInfo.SIZEOF).set(
 						VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
@@ -293,7 +323,6 @@ public class FirstTriangle {
 			}
 			
 			//pipeline layout
-			VkPipelineLayout pipelineLayout;
 			try (AllocatorFrame frame = Allocator.frame()) {
 				pipelineLayout = VkPipelineLayout.alloc(mallocStruct(frame, VkPipelineLayoutCreateInfo::create, VkPipelineLayoutCreateInfo.SIZEOF).set(
 						VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -304,148 +333,150 @@ public class FirstTriangle {
 				), device, new Object[] {side});
 			}
 			
-			//shader module
-			VkShaderModule shaderModuleVert = VkShaderModule.alloc(device,
-																   Objects.requireNonNull(FirstTriangle.class.getResourceAsStream("firstTriangle.vert.spv")).readAllBytes(),
-																   new Object[] {side});
-			VkShaderModule shaderModuleFrag = VkShaderModule.alloc(device,
-																   Objects.requireNonNull(FirstTriangle.class.getResourceAsStream("firstTriangle.frag.spv")).readAllBytes(),
-																   new Object[] {side});
-			
 			//pipeline
-			VkGraphicsPipeline pipeline;
 			try (AllocatorFrame frame = Allocator.frame()) {
-				pipeline = VkGraphicsPipeline.alloc(mallocStruct(frame, VkGraphicsPipelineCreateInfo::create, VkGraphicsPipelineCreateInfo.SIZEOF).set(
-						VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-						0,
-						0,
-						allocBuffer(frame, VkPipelineShaderStageCreateInfo::create, VkPipelineShaderStageCreateInfo.SIZEOF,
-									vkPipelineShaderStageCreateInfo -> vkPipelineShaderStageCreateInfo.set(
-											VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-											0,
-											0,
-											VK_SHADER_STAGE_VERTEX_BIT,
-											shaderModuleVert.address(),
-											StringConverter.stringToUTF8(frame, "main", true).nioBuffer(),
-											null
+				try {
+					VkShaderModule shaderModuleVert = VkShaderModule.alloc(device,
+																		   Objects.requireNonNull(FirstTriangle.class.getResourceAsStream("firstTriangle.vert.spv")).readAllBytes(),
+																		   new Object[] {frame});
+					VkShaderModule shaderModuleFrag = VkShaderModule.alloc(device,
+																		   Objects.requireNonNull(FirstTriangle.class.getResourceAsStream("firstTriangle.frag.spv")).readAllBytes(),
+																		   new Object[] {frame});
+					
+					pipeline = VkGraphicsPipeline.alloc(mallocStruct(frame, VkGraphicsPipelineCreateInfo::create, VkGraphicsPipelineCreateInfo.SIZEOF).set(
+							VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+							0,
+							0,
+							allocBuffer(frame, VkPipelineShaderStageCreateInfo::create, VkPipelineShaderStageCreateInfo.SIZEOF,
+										vkPipelineShaderStageCreateInfo -> vkPipelineShaderStageCreateInfo.set(
+												VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+												0,
+												0,
+												VK_SHADER_STAGE_VERTEX_BIT,
+												shaderModuleVert.address(),
+												StringConverter.stringToUTF8(frame, "main", true).nioBuffer(),
+												null
+										),
+										vkPipelineShaderStageCreateInfo -> vkPipelineShaderStageCreateInfo.set(
+												VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+												0,
+												0,
+												VK_SHADER_STAGE_FRAGMENT_BIT,
+												shaderModuleFrag.address(),
+												StringConverter.stringToUTF8(frame, "main", true).nioBuffer(),
+												null
+										)
+							),
+							mallocStruct(frame, VkPipelineVertexInputStateCreateInfo::create, VkPipelineVertexInputStateCreateInfo.SIZEOF).set(
+									VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+									0,
+									0,
+									allocBuffer(frame, VkVertexInputBindingDescription::create, VkVertexInputBindingDescription.SIZEOF, vkVertexInputBindingDescription -> vkVertexInputBindingDescription
+											.binding(0)
+											.stride(FP32.bytes * 5)
+											.inputRate(VK_VERTEX_INPUT_RATE_VERTEX)
 									),
-									vkPipelineShaderStageCreateInfo -> vkPipelineShaderStageCreateInfo.set(
-											VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-											0,
-											0,
-											VK_SHADER_STAGE_FRAGMENT_BIT,
-											shaderModuleFrag.address(),
-											StringConverter.stringToUTF8(frame, "main", true).nioBuffer(),
-											null
+									allocBuffer(frame, VkVertexInputAttributeDescription::create, VkVertexInputAttributeDescription.SIZEOF,
+												inPosition -> inPosition.set(
+														0,
+														0,
+														VK_FORMAT_R32G32_SFLOAT,
+														0
+												),
+												inColor -> inColor.set(
+														1,
+														0,
+														VK_FORMAT_R32G32B32_SFLOAT,
+														FP32.multiply(2)
+												)
 									)
-						),
-						mallocStruct(frame, VkPipelineVertexInputStateCreateInfo::create, VkPipelineVertexInputStateCreateInfo.SIZEOF).set(
-								VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-								0,
-								0,
-								allocBuffer(frame, VkVertexInputBindingDescription::create, VkVertexInputBindingDescription.SIZEOF, vkVertexInputBindingDescription -> vkVertexInputBindingDescription
-										.binding(0)
-										.stride(FP32.bytes * 5)
-										.inputRate(VK_VERTEX_INPUT_RATE_VERTEX)
-								),
-								allocBuffer(frame, VkVertexInputAttributeDescription::create, VkVertexInputAttributeDescription.SIZEOF,
-											inPosition -> inPosition.set(
-													0,
-													0,
-													VK_FORMAT_R32G32_SFLOAT,
-													0
-											),
-											inColor -> inColor.set(
-													1,
-													0,
-													VK_FORMAT_R32G32B32_SFLOAT,
-													FP32.multiply(2)
-											)
-								)
-						),
-						mallocStruct(frame, VkPipelineInputAssemblyStateCreateInfo::create, VkPipelineInputAssemblyStateCreateInfo.SIZEOF).set(
-								VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-								0,
-								0,
-								VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-								false
-						
-						),
-						null,
-						mallocStruct(frame, VkPipelineViewportStateCreateInfo::create, VkPipelineViewportStateCreateInfo.SIZEOF).set(
-								VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-								0,
-								0,
-								1,
-								allocBuffer(frame, VkViewport::create, VkViewport.SIZEOF, vkViewPort -> vkViewPort.set(
-										swapExtend.offset().x(),
-										swapExtend.offset().y(),
-										swapExtend.extent().width(),
-										swapExtend.extent().height(),
-										0,
-										1
-								)),
-								1,
-								wrapBuffer(VkRect2D::create, swapExtend)
-						),
-						mallocStruct(frame, VkPipelineRasterizationStateCreateInfo::create, VkPipelineRasterizationStateCreateInfo.SIZEOF).set(
-								VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-								0,
-								0,
-								false,
-								false,
-								VK_POLYGON_MODE_FILL,
-								VK_CULL_MODE_BACK_BIT,
-								VK_FRONT_FACE_CLOCKWISE,
-								false,
-								0,
-								0,
-								0,
-								1
-						),
-						mallocStruct(frame, VkPipelineMultisampleStateCreateInfo::create, VkPipelineMultisampleStateCreateInfo.SIZEOF).set(
-								VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-								0,
-								0,
-								1,
-								false,
-								1.0f,
-								null,
-								false,
-								false
-						),
-						null,
-						mallocStruct(frame, VkPipelineColorBlendStateCreateInfo::create, VkPipelineColorBlendStateCreateInfo.SIZEOF).set(
-								VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-								0,
-								0,
-								false,
-								VK_LOGIC_OP_COPY,
-								allocBuffer(frame, VkPipelineColorBlendAttachmentState::create, VkPipelineColorBlendAttachmentState.SIZEOF,
-											vkPipelineColorBlendAttachmentState -> vkPipelineColorBlendAttachmentState.set(
-													false,
-													VK_BLEND_FACTOR_ONE,
-													VK_BLEND_FACTOR_ZERO,
-													VK_BLEND_OP_ADD,
-													VK_BLEND_FACTOR_ONE,
-													VK_BLEND_FACTOR_ZERO,
-													VK_BLEND_OP_ADD,
-													VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
-											)
-								),
-								ArrayBufferFloat.alloc(frame, new float[] {0, 0, 0, 0}).nioBuffer()
-						),
-						null,
-						pipelineLayout.address(),
-						renderPass.address(),
-						0,
-						0,
-						-1
-				), device, new Object[] {side});
+							),
+							mallocStruct(frame, VkPipelineInputAssemblyStateCreateInfo::create, VkPipelineInputAssemblyStateCreateInfo.SIZEOF).set(
+									VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+									0,
+									0,
+									VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+									false
+							
+							),
+							null,
+							mallocStruct(frame, VkPipelineViewportStateCreateInfo::create, VkPipelineViewportStateCreateInfo.SIZEOF).set(
+									VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+									0,
+									0,
+									1,
+									allocBuffer(frame, VkViewport::create, VkViewport.SIZEOF, vkViewPort -> vkViewPort.set(
+											swapExtend.offset().x(),
+											swapExtend.offset().y(),
+											swapExtend.extent().width(),
+											swapExtend.extent().height(),
+											0,
+											1
+									)),
+									1,
+									wrapBuffer(VkRect2D::create, swapExtend)
+							),
+							mallocStruct(frame, VkPipelineRasterizationStateCreateInfo::create, VkPipelineRasterizationStateCreateInfo.SIZEOF).set(
+									VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+									0,
+									0,
+									false,
+									false,
+									VK_POLYGON_MODE_FILL,
+									VK_CULL_MODE_BACK_BIT,
+									VK_FRONT_FACE_CLOCKWISE,
+									false,
+									0,
+									0,
+									0,
+									1
+							),
+							mallocStruct(frame, VkPipelineMultisampleStateCreateInfo::create, VkPipelineMultisampleStateCreateInfo.SIZEOF).set(
+									VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+									0,
+									0,
+									1,
+									false,
+									1.0f,
+									null,
+									false,
+									false
+							),
+							null,
+							mallocStruct(frame, VkPipelineColorBlendStateCreateInfo::create, VkPipelineColorBlendStateCreateInfo.SIZEOF).set(
+									VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+									0,
+									0,
+									false,
+									VK_LOGIC_OP_COPY,
+									allocBuffer(frame, VkPipelineColorBlendAttachmentState::create, VkPipelineColorBlendAttachmentState.SIZEOF,
+												vkPipelineColorBlendAttachmentState -> vkPipelineColorBlendAttachmentState.set(
+														false,
+														VK_BLEND_FACTOR_ONE,
+														VK_BLEND_FACTOR_ZERO,
+														VK_BLEND_OP_ADD,
+														VK_BLEND_FACTOR_ONE,
+														VK_BLEND_FACTOR_ZERO,
+														VK_BLEND_OP_ADD,
+														VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT
+												)
+									),
+									ArrayBufferFloat.alloc(frame, new float[] {0, 0, 0, 0}).nioBuffer()
+							),
+							null,
+							pipelineLayout.address(),
+							renderPass.address(),
+							0,
+							0,
+							-1
+					), device, new Object[] {side});
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
 			}
 			
 			//framebuffer
-			VkFramebuffer[] framebuffers = Arrays
+			framebuffers = Arrays
 					.stream(swapchain.imageViews())
 					.map(swapChainImageView -> {
 						try (AllocatorFrame frame = Allocator.frame()) {
@@ -462,8 +493,6 @@ public class FirstTriangle {
 						}
 					})
 					.toArray(VkFramebuffer[]::new);
-			
-			ObservableReference<float[]> vertexData = ObservableReference.generatingReference(() -> MODELS[MODEL_ID.assertGet()], MODEL_ID);
 			
 			ObservableReference<VkBuffer> vertexBuffer = ObservableReference.generatingReference(() -> {
 				float[] data = vertexData.assertGet();
@@ -490,7 +519,6 @@ public class FirstTriangle {
 			}, vertexData);
 			
 			//commandPool
-			VkCommandPool commandPool;
 			try (AllocatorFrame frame = Allocator.frame()) {
 				commandPool = VkCommandPool.alloc(mallocStruct(frame, VkCommandPoolCreateInfo::create, VkCommandPoolCreateInfo.SIZEOF).set(
 						VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -501,7 +529,7 @@ public class FirstTriangle {
 			}
 			
 			//commandBuffer
-			ObservableReference<VkCommandBuffer[]> commandBuffers = ObservableReference.generatingReference(() -> {
+			commandBuffers = ObservableReference.generatingReference(() -> {
 				VkBuffer vkBuffer = vertexBuffer.assertGet();
 				
 				VkCommandBuffer[] commandBufferArray = commandPool.allocCmdBuffers(VK_COMMAND_BUFFER_LEVEL_PRIMARY, framebuffers.length, new Object[] {side});
@@ -544,8 +572,6 @@ public class FirstTriangle {
 			}, vertexBuffer);
 			
 			//synchronization
-			VkSemaphore[] semaphoreImageAvailable, semaphoreRenderFinished;
-			VkFence[] fenceFrameDone;
 			try (AllocatorFrame frame = Allocator.frame()) {
 				VkSemaphoreCreateInfo semaphoreInfo = mallocStruct(frame, VkSemaphoreCreateInfo::create, VkSemaphoreCreateInfo.SIZEOF).set(
 						VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
@@ -567,8 +593,8 @@ public class FirstTriangle {
 			//main loop
 			boolean[] isRunning = {true};
 			window.getWindowCloseEvent().addHook(window1 -> isRunning[0] = false);
-			windowContext.getInputDevices().stream().filter(dev -> dev instanceof Keyboard).forEach(
-					keyboard -> ((Keyboard) keyboard).getKeyInputEvent().addHook((key, pressed) -> {
+			windowContext.getInputDevices().stream().filter(dev -> dev instanceof Keyboard).map(Keyboard.class::cast).forEach(
+					keyboard -> keyboard.getKeyInputEvent().addHook((key, pressed) -> {
 						if (pressed) {
 							boolean next = key == Keycode.KEY_DOWN;
 							boolean prev = key == Keycode.KEY_UP;
@@ -588,43 +614,53 @@ public class FirstTriangle {
 			);
 			
 			for (int i = 0; isRunning[0]; i = (i + 1) % framesInFlight) {
-				vkWaitForFences(device, fenceFrameDone[i].address(), true, Long.MAX_VALUE);
-				vkResetFences(device, fenceFrameDone[i].address());
+				final int frameId = i;
+				vkWaitForFences(device, fenceFrameDone[frameId].address(), true, Long.MAX_VALUE);
+				vkResetFences(device, fenceFrameDone[frameId].address());
+				Barrier frameSubmitBarrier = runnable(vulkanPool, () -> {
+					try (AllocatorFrame frame = Allocator.frame()) {
+						PointerBufferInt imageIndexPtr = PointerBufferInt.malloc(frame);
+						nvkAcquireNextImageKHR(device, swapchain.address(), Long.MAX_VALUE, semaphoreImageAvailable[frameId].address(), 0, imageIndexPtr.address());
+						int imageIndex = imageIndexPtr.getInt();
+						
+						VkCommandBuffer[] vkCommandBuffers = commandBuffers.getFuture().awaitGetUninterrupted();
+						device.getQueue(QUEUE_TYPE_GRAPHICS, QUEUE_FLAG_REALTIME_BIT).submit(mallocStruct(frame, VkSubmitInfo::create, VkSubmitInfo.SIZEOF).set(
+								VK_STRUCTURE_TYPE_SUBMIT_INFO,
+								0,
+								1,
+								ArrayBufferLong.alloc(frame, new long[] {semaphoreImageAvailable[frameId].address()}).nioBuffer(),
+								ArrayBufferInt.alloc(frame, new int[] {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT}).nioBuffer(),
+								wrapPointer(ArrayBufferPointer.alloc(frame, vkCommandBuffers == null ? new long[] {} : new long[] {vkCommandBuffers[imageIndex].address()})),
+								ArrayBufferLong.alloc(frame, new long[] {semaphoreRenderFinished[frameId].address()}).nioBuffer()
+						), fenceFrameDone[frameId]);
+						
+						swapchain.present(mallocStruct(frame, VkPresentInfoKHR::create, VkPresentInfoKHR.SIZEOF).set(
+								VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+								0,
+								ArrayBufferLong.alloc(frame, new long[] {semaphoreRenderFinished[frameId].address()}).nioBuffer(),
+								1,
+								ArrayBufferLong.alloc(frame, new long[] {swapchain.address()}).nioBuffer(),
+								ArrayBufferInt.alloc(frame, new int[] {imageIndex}).nioBuffer(),
+								null
+						));
+					}
+				}).submit();
+				Barrier pollEventsBarrier = window.pollEventsTask();
 				
-				try (AllocatorFrame frame = Allocator.frame()) {
-					PointerBufferInt imageIndexPtr = PointerBufferInt.malloc(frame);
-					nvkAcquireNextImageKHR(device, swapchain.address(), Long.MAX_VALUE, semaphoreImageAvailable[i].address(), 0, imageIndexPtr.address());
-					int imageIndex = imageIndexPtr.getInt();
-					
-					VkCommandBuffer[] vkCommandBuffers = commandBuffers.getFuture().awaitGet();
-					device.getQueue(QUEUE_TYPE_GRAPHICS, QUEUE_FLAG_REALTIME_BIT).submit(mallocStruct(frame, VkSubmitInfo::create, VkSubmitInfo.SIZEOF).set(
-							VK_STRUCTURE_TYPE_SUBMIT_INFO,
-							0,
-							1,
-							ArrayBufferLong.alloc(frame, new long[] {semaphoreImageAvailable[i].address()}).nioBuffer(),
-							ArrayBufferInt.alloc(frame, new int[] {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT}).nioBuffer(),
-							wrapPointer(ArrayBufferPointer.alloc(frame, vkCommandBuffers == null ? new long[] {} : new long[] {vkCommandBuffers[imageIndex].address()})),
-							ArrayBufferLong.alloc(frame, new long[] {semaphoreRenderFinished[i].address()}).nioBuffer()
-					), fenceFrameDone[i]);
-					
-					swapchain.present(mallocStruct(frame, VkPresentInfoKHR::create, VkPresentInfoKHR.SIZEOF).set(
-							VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-							0,
-							ArrayBufferLong.alloc(frame, new long[] {semaphoreRenderFinished[i].address()}).nioBuffer(),
-							1,
-							ArrayBufferLong.alloc(frame, new long[] {swapchain.address()}).nioBuffer(),
-							ArrayBufferInt.alloc(frame, new int[] {imageIndex}).nioBuffer(),
-							null
-					));
+				try {
+					Thread.sleep(1000L / 60);
+				} catch (InterruptedException ignored) {
+				
 				}
-				
-				window.pollEventsTask().awaitUninterrupted();
-//				Thread.sleep(1000L / 100);
+				frameSubmitBarrier.awaitUninterrupted();
+				pollEventsBarrier.awaitUninterrupted();
 			}
 			vkWaitForFences(device, Arrays.stream(fenceFrameDone).mapToLong(VkFence::address).toArray(), true, Long.MAX_VALUE);
 			
 			logger.log(LogLevel.INFO, "Exit!");
+		} finally {
+			vulkanPool.stop().awaitUninterrupted();
+			Side.exit();
 		}
-		Side.exit();
 	}
 }
