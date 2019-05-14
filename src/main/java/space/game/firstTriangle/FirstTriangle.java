@@ -11,6 +11,12 @@ import org.lwjgl.vulkan.VkBufferCreateInfo;
 import org.lwjgl.vulkan.VkClearValue;
 import org.lwjgl.vulkan.VkCommandBufferBeginInfo;
 import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
+import org.lwjgl.vulkan.VkDescriptorBufferInfo;
+import org.lwjgl.vulkan.VkDescriptorPoolCreateInfo;
+import org.lwjgl.vulkan.VkDescriptorPoolSize;
+import org.lwjgl.vulkan.VkDescriptorSetAllocateInfo;
+import org.lwjgl.vulkan.VkDescriptorSetLayoutBinding;
+import org.lwjgl.vulkan.VkDescriptorSetLayoutCreateInfo;
 import org.lwjgl.vulkan.VkExtent2D;
 import org.lwjgl.vulkan.VkFramebufferCreateInfo;
 import org.lwjgl.vulkan.VkGraphicsPipelineCreateInfo;
@@ -35,9 +41,11 @@ import org.lwjgl.vulkan.VkSubpassDescription;
 import org.lwjgl.vulkan.VkVertexInputAttributeDescription;
 import org.lwjgl.vulkan.VkVertexInputBindingDescription;
 import org.lwjgl.vulkan.VkViewport;
+import org.lwjgl.vulkan.VkWriteDescriptorSet;
 import space.engine.Side;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
+import space.engine.buffer.Buffer;
 import space.engine.buffer.StringConverter;
 import space.engine.buffer.array.ArrayBufferFloat;
 import space.engine.buffer.array.ArrayBufferInt;
@@ -58,6 +66,9 @@ import space.engine.sync.barrier.Barrier;
 import space.engine.sync.future.Future;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
+import space.engine.vulkan.VkDescriptorPool;
+import space.engine.vulkan.VkDescriptorSet;
+import space.engine.vulkan.VkDescriptorSetLayout;
 import space.engine.vulkan.VkFramebuffer;
 import space.engine.vulkan.VkGraphicsPipeline;
 import space.engine.vulkan.VkInstance;
@@ -90,7 +101,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Consumer;
 import java.util.function.IntFunction;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.lwjgl.util.vma.Vma.VMA_MEMORY_USAGE_CPU_TO_GPU;
@@ -146,9 +159,15 @@ public class FirstTriangle implements Runnable {
 	private ManagedSwapchain<?> swapchain;
 	private int framesInFlight;
 	private VkRenderPass renderPass;
+	private VkDescriptorSetLayout descriptorSetLayout;
 	private VkPipelineLayout pipelineLayout;
 	private VkGraphicsPipeline pipeline;
 	private VkFramebuffer[] framebuffers;
+	private ObservableReference<VkBuffer> vertexBuffer;
+	private VkBuffer[] uniformBuffer;
+	private Buffer[] uniformBufferMapped;
+	private VkDescriptorPool descriptorPool;
+	private VkDescriptorSet[] descriptorSets;
 	private VkCommandPool commandPool;
 	private ObservableReference<VkCommandBuffer[]> commandBuffers;
 	
@@ -317,13 +336,32 @@ public class FirstTriangle implements Runnable {
 				), device, new Object[] {side});
 			}
 			
+			//descriptor set
+			try (AllocatorFrame frame = Allocator.frame()) {
+				descriptorSetLayout = VkDescriptorSetLayout.alloc(mallocStruct(frame, VkDescriptorSetLayoutCreateInfo::create, VkDescriptorSetLayoutCreateInfo.SIZEOF).set(
+						VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+						0,
+						0,
+						allocBuffer(frame, VkDescriptorSetLayoutBinding::create, VkDescriptorSetLayoutBinding.SIZEOF,
+									vkDescriptorSetLayoutBinding -> vkDescriptorSetLayoutBinding.set(
+											0,
+											VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+											1,
+											VK_SHADER_STAGE_VERTEX_BIT,
+											null
+									)
+						)
+				
+				), device, new Object[] {side});
+			}
+			
 			//pipeline layout
 			try (AllocatorFrame frame = Allocator.frame()) {
 				pipelineLayout = VkPipelineLayout.alloc(mallocStruct(frame, VkPipelineLayoutCreateInfo::create, VkPipelineLayoutCreateInfo.SIZEOF).set(
 						VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 						0,
 						0,
-						null,
+						ArrayBufferLong.alloc(frame, new long[] {descriptorSetLayout.address()}).nioBuffer(),
 						null
 				), device, new Object[] {side});
 			}
@@ -489,7 +527,8 @@ public class FirstTriangle implements Runnable {
 					})
 					.toArray(VkFramebuffer[]::new);
 			
-			ObservableReference<VkBuffer> vertexBuffer = ObservableReference.generatingReference(() -> {
+			//vertex buffer
+			vertexBuffer = ObservableReference.generatingReference(() -> {
 				float[] data = vertexData.assertGet();
 				
 				try (AllocatorFrame frame = Allocator.frame()) {
@@ -512,6 +551,79 @@ public class FirstTriangle implements Runnable {
 					), vmaAllocator, ArrayBufferFloat.alloc(frame, data), new Object[] {side});
 				}
 			}, vertexData);
+			
+			//uniform buffer
+			try (AllocatorFrame frame = Allocator.frame()) {
+				uniformBuffer = IntStream
+						.range(0, framesInFlight)
+						.mapToObj(i -> VkBuffer.alloc(mallocStruct(frame, VkBufferCreateInfo::create, VkBufferCreateInfo.SIZEOF).set(
+								VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+								0,
+								0,
+								FP32.multiply(16),
+								VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+								VK_SHARING_MODE_EXCLUSIVE,
+								null
+						), mallocStruct(frame, VmaAllocationCreateInfo::create, VmaAllocationCreateInfo.SIZEOF).set(
+								0,
+								VMA_MEMORY_USAGE_CPU_TO_GPU,
+								0,
+								0,
+								0,
+								0,
+								0
+						), vmaAllocator, new Object[] {side}))
+						.toArray(VkBuffer[]::new);
+				uniformBufferMapped = Arrays.stream(uniformBuffer)
+											.map(ubo -> ubo.mapMemory(new Object[] {side}))
+											.toArray(Buffer[]::new);
+			}
+			
+			//descriptor pool
+			try (AllocatorFrame frame = Allocator.frame()) {
+				descriptorPool = VkDescriptorPool.alloc(mallocStruct(frame, VkDescriptorPoolCreateInfo::create, VkDescriptorPoolCreateInfo.SIZEOF).set(
+						VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+						0,
+						0,
+						framesInFlight,
+						allocBuffer(frame, VkDescriptorPoolSize::create, VkDescriptorPoolSize.SIZEOF,
+									vkDescriptorPoolSize -> vkDescriptorPoolSize.set(
+											VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+											framesInFlight
+									)
+						)
+				), device, new Object[] {side});
+			}
+			
+			//descriptor set
+			try (AllocatorFrame frame = Allocator.frame()) {
+				descriptorSets = descriptorPool.allocateDescriptorSetsWrap(mallocStruct(frame, VkDescriptorSetAllocateInfo::create, VkDescriptorSetAllocateInfo.SIZEOF).set(
+						VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+						0,
+						descriptorPool.address(),
+						ArrayBufferLong.alloc(frame, IntStream.range(0, framesInFlight).mapToLong(i -> descriptorSetLayout.address()).toArray()).nioBuffer()
+				), new Object[] {side});
+				
+				vkUpdateDescriptorSets(device, allocBuffer(frame, VkWriteDescriptorSet::create, VkWriteDescriptorSet.SIZEOF, IntStream
+											   .range(0, framesInFlight)
+											   .mapToObj(i -> (Consumer<VkWriteDescriptorSet>) writeDescriptorSet -> writeDescriptorSet.set(
+													   VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+													   0,
+													   descriptorSets[i].address(),
+													   0,
+													   0,
+													   VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+													   null,
+													   allocBuffer(frame, VkDescriptorBufferInfo::create, VkDescriptorBufferInfo.SIZEOF, vkDescriptorBufferInfo -> vkDescriptorBufferInfo.set(
+															   uniformBuffer[i].address(),
+															   0,
+															   uniformBuffer[i].sizeOf()
+													   )),
+													   null
+											   ))
+											   .collect(Collectors.toList())),
+									   null);
+			}
 			
 			//commandPool
 			try (AllocatorFrame frame = Allocator.frame()) {
@@ -555,6 +667,7 @@ public class FirstTriangle implements Runnable {
 						
 						vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.address());
 						
+						vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout.address(), 0, new long[] {descriptorSets[i].address()}, null);
 						vkCmdBindVertexBuffers(commandBuffer, 0, new long[] {vkBuffer.address()}, new long[] {0});
 						vkCmdDraw(commandBuffer, (int) (vkBuffer.sizeOf() / FP32.multiply(5)), 1, 0, 0);
 						
@@ -610,6 +723,14 @@ public class FirstTriangle implements Runnable {
 					PointerBufferInt imageIndexPtr = PointerBufferInt.malloc(frame);
 					nvkAcquireNextImageKHR(device, swapchain.address(), Long.MAX_VALUE, semaphoreImageAvailable[frameId].address(), 0, imageIndexPtr.address());
 					int imageIndex = imageIndexPtr.getInt();
+					
+					ArrayBufferFloat translationMatrix = ArrayBufferFloat.alloc(frame, new float[] {
+							0, -1, 0, 0,
+							1, 0, 0, 0,
+							0, 0, 1, 0,
+							0, 0, 0, 1
+					});
+					Buffer.copyMemory(translationMatrix, 0, uniformBufferMapped[frameId], 0, translationMatrix.sizeOf());
 					
 					VkCommandBuffer[] vkCommandBuffers = commandBuffers.getFuture().awaitGetUninterrupted();
 					Future<Barrier> frameDone = device.getQueue(QUEUE_TYPE_GRAPHICS, QUEUE_FLAG_REALTIME_BIT).submit(
