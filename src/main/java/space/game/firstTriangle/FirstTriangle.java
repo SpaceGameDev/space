@@ -12,7 +12,6 @@ import org.lwjgl.vulkan.VkClearValue;
 import org.lwjgl.vulkan.VkCommandBufferBeginInfo;
 import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
 import org.lwjgl.vulkan.VkExtent2D;
-import org.lwjgl.vulkan.VkFenceCreateInfo;
 import org.lwjgl.vulkan.VkFramebufferCreateInfo;
 import org.lwjgl.vulkan.VkGraphicsPipelineCreateInfo;
 import org.lwjgl.vulkan.VkOffset2D;
@@ -55,12 +54,10 @@ import space.engine.logger.LogLevel;
 import space.engine.logger.Logger;
 import space.engine.observable.NoUpdate;
 import space.engine.observable.ObservableReference;
-import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
-import space.engine.simpleQueue.pool.SimpleThreadPool;
 import space.engine.sync.barrier.Barrier;
+import space.engine.sync.future.Future;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
-import space.engine.vulkan.VkFence;
 import space.engine.vulkan.VkFramebuffer;
 import space.engine.vulkan.VkGraphicsPipeline;
 import space.engine.vulkan.VkInstance;
@@ -102,7 +99,7 @@ import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.engine.lwjgl.PointerBufferWrapper.wrapPointer;
 import static space.engine.primitive.Primitives.FP32;
-import static space.engine.sync.Tasks.runnable;
+import static space.engine.sync.barrier.Barrier.ALWAYS_TRIGGERED_BARRIER;
 import static space.engine.vulkan.VkInstance.DEFAULT_BEST_PHYSICAL_DEVICE_TYPES;
 import static space.engine.vulkan.managed.device.ManagedDevice.*;
 import static space.engine.window.Window.*;
@@ -137,7 +134,6 @@ public class FirstTriangle implements Runnable {
 	
 	public boolean VK_LAYER_LUNARG_standard_validation = true;
 	public boolean VK_LAYER_RENDERDOC_Capture = true;
-	public SimpleThreadPool vulkanPool;
 	private Logger logger = baseLogger.subLogger("firstTriangle");
 	
 	private GLFWWindowFramework windowFramework;
@@ -157,10 +153,9 @@ public class FirstTriangle implements Runnable {
 	private ObservableReference<VkCommandBuffer[]> commandBuffers;
 	
 	private VkSemaphore[] semaphoreImageAvailable, semaphoreRenderFinished;
-	private VkFence[] fenceFrameDone;
+	private Barrier[] barrierFrameDone;
 	
 	public void run() {
-		vulkanPool = new SimpleThreadPool(1, new ConcurrentLinkedSimpleQueue<>(), r -> new Thread(r, "Vulkan-Thread"));
 		try (Frame side = Freeable.frame()) {
 			
 			//log extensions / layers
@@ -582,12 +577,7 @@ public class FirstTriangle implements Runnable {
 				semaphoreImageAvailable = IntStream.range(0, framesInFlight).mapToObj(semaphoreMap).toArray(VkSemaphore[]::new);
 				semaphoreRenderFinished = IntStream.range(0, framesInFlight).mapToObj(semaphoreMap).toArray(VkSemaphore[]::new);
 				
-				VkFenceCreateInfo fenceInfo = mallocStruct(frame, VkFenceCreateInfo::create, VkFenceCreateInfo.SIZEOF).set(
-						VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-						0,
-						VK_FENCE_CREATE_SIGNALED_BIT
-				);
-				fenceFrameDone = IntStream.range(0, framesInFlight).mapToObj(i -> VkFence.alloc(fenceInfo, device, new Object[] {side})).toArray(VkFence[]::new);
+				barrierFrameDone = IntStream.range(0, framesInFlight).mapToObj(i -> ALWAYS_TRIGGERED_BARRIER).toArray(Barrier[]::new);
 			}
 			
 			//main loop
@@ -613,38 +603,39 @@ public class FirstTriangle implements Runnable {
 					})
 			);
 			
-			for (int i = 0; isRunning[0]; i = (i + 1) % framesInFlight) {
-				final int frameId = i;
-				vkWaitForFences(device, fenceFrameDone[frameId].address(), true, Long.MAX_VALUE);
-				vkResetFences(device, fenceFrameDone[frameId].address());
-				Barrier frameSubmitBarrier = runnable(vulkanPool, () -> {
-					try (AllocatorFrame frame = Allocator.frame()) {
-						PointerBufferInt imageIndexPtr = PointerBufferInt.malloc(frame);
-						nvkAcquireNextImageKHR(device, swapchain.address(), Long.MAX_VALUE, semaphoreImageAvailable[frameId].address(), 0, imageIndexPtr.address());
-						int imageIndex = imageIndexPtr.getInt();
-						
-						VkCommandBuffer[] vkCommandBuffers = commandBuffers.getFuture().awaitGetUninterrupted();
-						device.getQueue(QUEUE_TYPE_GRAPHICS, QUEUE_FLAG_REALTIME_BIT).submit(mallocStruct(frame, VkSubmitInfo::create, VkSubmitInfo.SIZEOF).set(
-								VK_STRUCTURE_TYPE_SUBMIT_INFO,
-								0,
-								1,
-								ArrayBufferLong.alloc(frame, new long[] {semaphoreImageAvailable[frameId].address()}).nioBuffer(),
-								ArrayBufferInt.alloc(frame, new int[] {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT}).nioBuffer(),
-								wrapPointer(ArrayBufferPointer.alloc(frame, vkCommandBuffers == null ? new long[] {} : new long[] {vkCommandBuffers[imageIndex].address()})),
-								ArrayBufferLong.alloc(frame, new long[] {semaphoreRenderFinished[frameId].address()}).nioBuffer()
-						), fenceFrameDone[frameId]);
-						
-						swapchain.present(mallocStruct(frame, VkPresentInfoKHR::create, VkPresentInfoKHR.SIZEOF).set(
-								VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-								0,
-								ArrayBufferLong.alloc(frame, new long[] {semaphoreRenderFinished[frameId].address()}).nioBuffer(),
-								1,
-								ArrayBufferLong.alloc(frame, new long[] {swapchain.address()}).nioBuffer(),
-								ArrayBufferInt.alloc(frame, new int[] {imageIndex}).nioBuffer(),
-								null
-						));
-					}
-				}).submit();
+			for (int frameId = 0; isRunning[0]; frameId = (frameId + 1) % framesInFlight) {
+				barrierFrameDone[frameId].awaitUninterrupted();
+				
+				try (AllocatorFrame frame = Allocator.frame()) {
+					PointerBufferInt imageIndexPtr = PointerBufferInt.malloc(frame);
+					nvkAcquireNextImageKHR(device, swapchain.address(), Long.MAX_VALUE, semaphoreImageAvailable[frameId].address(), 0, imageIndexPtr.address());
+					int imageIndex = imageIndexPtr.getInt();
+					
+					VkCommandBuffer[] vkCommandBuffers = commandBuffers.getFuture().awaitGetUninterrupted();
+					Future<Barrier> frameDone = device.getQueue(QUEUE_TYPE_GRAPHICS, QUEUE_FLAG_REALTIME_BIT).submit(
+							mallocStruct(frame, VkSubmitInfo::create, VkSubmitInfo.SIZEOF).set(
+									VK_STRUCTURE_TYPE_SUBMIT_INFO,
+									0,
+									1,
+									ArrayBufferLong.alloc(frame, new long[] {semaphoreImageAvailable[frameId].address()}).nioBuffer(),
+									ArrayBufferInt.alloc(frame, new int[] {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT}).nioBuffer(),
+									wrapPointer(ArrayBufferPointer.alloc(frame, vkCommandBuffers == null ? new long[] {} : new long[] {vkCommandBuffers[imageIndex].address()})),
+									ArrayBufferLong.alloc(frame, new long[] {semaphoreRenderFinished[frameId].address()}).nioBuffer()
+							)
+					).submit();
+					
+					swapchain.present(mallocStruct(frame, VkPresentInfoKHR::create, VkPresentInfoKHR.SIZEOF).set(
+							VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+							0,
+							ArrayBufferLong.alloc(frame, new long[] {semaphoreRenderFinished[frameId].address()}).nioBuffer(),
+							1,
+							ArrayBufferLong.alloc(frame, new long[] {swapchain.address()}).nioBuffer(),
+							ArrayBufferInt.alloc(frame, new int[] {imageIndex}).nioBuffer(),
+							null
+					)).submit(frameDone);
+					
+					barrierFrameDone[frameId] = frameDone.awaitGetUninterrupted();
+				}
 				Barrier pollEventsBarrier = window.pollEventsTask();
 				
 				try {
@@ -652,14 +643,12 @@ public class FirstTriangle implements Runnable {
 				} catch (InterruptedException ignored) {
 				
 				}
-				frameSubmitBarrier.awaitUninterrupted();
 				pollEventsBarrier.awaitUninterrupted();
 			}
-			vkWaitForFences(device, Arrays.stream(fenceFrameDone).mapToLong(VkFence::address).toArray(), true, Long.MAX_VALUE);
+			Barrier.awaitAll(barrierFrameDone).awaitUninterrupted();
 			
 			logger.log(LogLevel.INFO, "Exit!");
 		} finally {
-			vulkanPool.stop().awaitUninterrupted();
 			Side.exit();
 		}
 	}
