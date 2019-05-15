@@ -106,6 +106,7 @@ import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static java.lang.Math.*;
 import static org.lwjgl.util.vma.Vma.VMA_MEMORY_USAGE_CPU_TO_GPU;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK10.*;
@@ -135,9 +136,12 @@ public class FirstTriangle implements Runnable {
 			0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
 			-0.5f, 0.5f, 0.0f, 0.0f, 1.0f
 	}, {
-			0.0f, 0.5f, 1.0f, 1.0f, 1.0f,
-			-0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-			0.5f, -0.5f, 0.0f, 0.0f, 1.0f
+			-0.5f, 0.5f, 1.0f, 1.0f, 1.0f,
+			-0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
+			0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+			-0.5f, 0.5f, 1.0f, 1.0f, 1.0f,
+			0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
+			0.5f, 0.5f, 0.0f, 0.0f, 1.0f
 	}, {
 			0.0f, 0.5f, 1.0f, 0.0f, 0.0f,
 			-0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
@@ -257,6 +261,8 @@ public class FirstTriangle implements Runnable {
 				AttributeListModify<Window> windowModify = Window.CREATOR.createModify();
 				windowModify.put(VIDEO_MODE, VideoModeDesktopExtension.class);
 				windowModify.put(TITLE, "Vulkan Window");
+				windowModify.put(WIDTH, 1080);
+				windowModify.put(HEIGHT, 1080);
 				windowAtt = windowModify.createNewAttributeList();
 			}
 			window = windowContext.createWindow(windowAtt, new Object[] {side}).awaitGetUninterrupted();
@@ -724,9 +730,10 @@ public class FirstTriangle implements Runnable {
 					nvkAcquireNextImageKHR(device, swapchain.address(), Long.MAX_VALUE, semaphoreImageAvailable[frameId].address(), 0, imageIndexPtr.address());
 					int imageIndex = imageIndexPtr.getInt();
 					
+					double angle = (System.nanoTime() / 1000_000_000d) * 2 * Math.PI / 10;
 					ArrayBufferFloat translationMatrix = ArrayBufferFloat.alloc(frame, new float[] {
-							0, -1, 0, 0,
-							1, 0, 0, 0,
+							(float) cos(angle), (float) -sin(angle), 0, 0,
+							(float) sin(angle), (float) cos(angle), 0, 0,
 							0, 0, 1, 0,
 							0, 0, 0, 1
 					});
