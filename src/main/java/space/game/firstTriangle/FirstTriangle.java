@@ -64,6 +64,11 @@ import space.engine.observable.NoUpdate;
 import space.engine.observable.ObservableReference;
 import space.engine.sync.barrier.Barrier;
 import space.engine.sync.future.Future;
+import space.engine.vector.AxisAndAnglef;
+import space.engine.vector.Matrix4f;
+import space.engine.vector.ProjectionMatrix;
+import space.engine.vector.Quaternionf;
+import space.engine.vector.Vector3f;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
 import space.engine.vulkan.VkDescriptorPool;
@@ -95,6 +100,7 @@ import space.engine.window.extensions.VideoModeDesktopExtension;
 import space.engine.window.glfw.GLFWContext;
 import space.engine.window.glfw.GLFWWindow;
 import space.engine.window.glfw.GLFWWindowFramework;
+import space.game.firstTriangle.model.ModelCube;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -106,7 +112,7 @@ import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static java.lang.Math.*;
+import static java.lang.Math.PI;
 import static org.lwjgl.util.vma.Vma.VMA_MEMORY_USAGE_CPU_TO_GPU;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK10.*;
@@ -114,6 +120,7 @@ import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.engine.lwjgl.PointerBufferWrapper.wrapPointer;
 import static space.engine.primitive.Primitives.FP32;
 import static space.engine.sync.barrier.Barrier.ALWAYS_TRIGGERED_BARRIER;
+import static space.engine.vector.AxisAndAnglef.toRadians;
 import static space.engine.vulkan.VkInstance.DEFAULT_BEST_PHYSICAL_DEVICE_TYPES;
 import static space.engine.vulkan.managed.device.ManagedDevice.*;
 import static space.engine.window.Window.*;
@@ -131,25 +138,20 @@ public class FirstTriangle implements Runnable {
 	public static BaseLogger baseLogger = BaseLogger.defaultPrinter(BaseLogger.defaultHandler(new BaseLogger()));
 	
 	public static final ObservableReference<Integer> MODEL_ID = new ObservableReference<>(0);
-	public static final float[][] MODELS = new float[][] {{
-			0.0f, -0.5f, 1.0f, 1.0f, 1.0f,
-			0.5f, 0.5f, 0.0f, 1.0f, 0.0f,
-			-0.5f, 0.5f, 0.0f, 0.0f, 1.0f
-	}, {
-			-0.5f, 0.5f, 1.0f, 1.0f, 1.0f,
-			-0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
-			0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-			-0.5f, 0.5f, 1.0f, 1.0f, 1.0f,
-			0.5f, -0.5f, 0.0f, 1.0f, 0.0f,
-			0.5f, 0.5f, 0.0f, 0.0f, 1.0f
-	}, {
-			0.0f, 0.5f, 1.0f, 0.0f, 0.0f,
-			-0.5f, -0.5f, 1.0f, 0.0f, 0.0f,
-			0.5f, -0.5f, 1.0f, 0.0f, 0.0f
-	}};
+	public static final float[][] MODELS = new float[][] {
+			ModelCube.CUBE,
+			{
+					0, -1, 0, 1.0f, 1.0f, 1.0f,
+					1, 1, 0, 0.0f, 1.0f, 0.0f,
+					-1, 1, 0, 0.0f, 0.0f, 1.0f,
+					0, -1, 0, 1.0f, 1.0f, 1.0f,
+					-1, 1, 0, 0.0f, 0.0f, 1.0f,
+					1, 1, 0, 0.0f, 1.0f, 0.0f,
+			}
+	};
 	ObservableReference<float[]> vertexData = ObservableReference.generatingReference(() -> MODELS[MODEL_ID.assertGet()], MODEL_ID);
 	
-	public boolean VK_LAYER_LUNARG_standard_validation = true;
+	public boolean VK_LAYER_LUNARG_standard_validation = false;
 	public boolean VK_LAYER_RENDERDOC_Capture = true;
 	private Logger logger = baseLogger.subLogger("firstTriangle");
 	
@@ -413,21 +415,21 @@ public class FirstTriangle implements Runnable {
 									0,
 									allocBuffer(frame, VkVertexInputBindingDescription::create, VkVertexInputBindingDescription.SIZEOF, vkVertexInputBindingDescription -> vkVertexInputBindingDescription
 											.binding(0)
-											.stride(FP32.bytes * 5)
+											.stride(FP32.bytes * 6)
 											.inputRate(VK_VERTEX_INPUT_RATE_VERTEX)
 									),
 									allocBuffer(frame, VkVertexInputAttributeDescription::create, VkVertexInputAttributeDescription.SIZEOF,
 												inPosition -> inPosition.set(
 														0,
 														0,
-														VK_FORMAT_R32G32_SFLOAT,
+														VK_FORMAT_R32G32B32_SFLOAT,
 														0
 												),
 												inColor -> inColor.set(
 														1,
 														0,
 														VK_FORMAT_R32G32B32_SFLOAT,
-														FP32.multiply(2)
+														FP32.multiply(3)
 												)
 									)
 							),
@@ -676,7 +678,7 @@ public class FirstTriangle implements Runnable {
 						
 						vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout.address(), 0, new long[] {descriptorSets[i].address()}, null);
 						vkCmdBindVertexBuffers(commandBuffer, 0, new long[] {vkBuffer.address()}, new long[] {0});
-						vkCmdDraw(commandBuffer, (int) (vkBuffer.sizeOf() / FP32.multiply(5)), 1, 0, 0);
+						vkCmdDraw(commandBuffer, (int) (vkBuffer.sizeOf() / FP32.multiply(6)), 1, 0, 0);
 						
 						vkCmdEndRenderPass(commandBuffer);
 						
@@ -723,6 +725,8 @@ public class FirstTriangle implements Runnable {
 					})
 			);
 			
+			Matrix4f matrixPerspective = ProjectionMatrix.projection(new Matrix4f(), 90, 1, 0.1f, 10f);
+			
 			for (int frameId = 0; isRunning[0]; frameId = (frameId + 1) % framesInFlight) {
 				barrierFrameDone[frameId].awaitUninterrupted();
 				
@@ -731,13 +735,15 @@ public class FirstTriangle implements Runnable {
 					nvkAcquireNextImageKHR(device, swapchain.address(), Long.MAX_VALUE, semaphoreImageAvailable[frameId].address(), 0, imageIndexPtr.address());
 					int imageIndex = imageIndexPtr.getInt();
 					
-					double angle = (System.nanoTime() / 1000_000_000d) * 2 * Math.PI / 10;
-					ArrayBufferFloat translationMatrix = ArrayBufferFloat.alloc(frame, new float[] {
-							(float) cos(angle), (float) -sin(angle), 0, 0,
-							(float) sin(angle), (float) cos(angle), 0, 0,
-							0, 0, 1, 0,
-							0, 0, 0, 1
-					});
+					Quaternionf rotation = new Quaternionf();
+					rotation.multiply(new AxisAndAnglef(1, 0, 0, toRadians(-45)));
+					rotation.multiply(new AxisAndAnglef(0, 1, 0, (float) ((System.nanoTime() / 1000_000_000d) * 2 * PI / 10 + PI)));
+					Matrix4f matrixModel = rotation.toMatrix4(new Matrix4f());
+					matrixModel.modelOffset(new Vector3f(0, 0, -5));
+					
+					Matrix4f currMat = new Matrix4f(matrixPerspective);
+					currMat.multiply(matrixModel);
+					ArrayBufferFloat translationMatrix = ArrayBufferFloat.alloc(frame, currMat.write(new float[16], 0));
 					Buffer.copyMemory(translationMatrix, 0, uniformBufferMapped[frameId], 0, translationMatrix.sizeOf());
 					
 					VkCommandBuffer[] vkCommandBuffers = commandBuffers.getFuture().awaitGetUninterrupted();
