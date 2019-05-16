@@ -290,7 +290,8 @@ public class FirstTriangle implements Runnable {
 					null,
 					null,
 					swapExtend.extent(),
-					null, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+					null,
+					VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
 					null,
 					null,
 					null,
@@ -664,7 +665,7 @@ public class FirstTriangle implements Runnable {
 								swapExtend,
 								allocBuffer(frame, VkClearValue::create, VkClearValue.SIZEOF, vkClearValue ->
 										vkClearValue.color()
-													.float32(0, 0.5f)
+													.float32(0, 0.0f)
 													.float32(1, 0.0f)
 													.float32(2, 0.0f)
 													.float32(3, 1.0f)
