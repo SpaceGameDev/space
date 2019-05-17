@@ -102,7 +102,7 @@ import space.engine.window.extensions.VideoModeDesktopExtension;
 import space.engine.window.glfw.GLFWContext;
 import space.engine.window.glfw.GLFWWindow;
 import space.engine.window.glfw.GLFWWindowFramework;
-import space.game.firstTriangle.model.ModelBunny;
+import space.game.firstTriangle.model.ModelAsteroids;
 import space.game.firstTriangle.model.ModelCube;
 import space.game.firstTriangle.model.ModelDragon;
 import space.game.firstTriangle.model.ModelHappyBuddha;
@@ -147,16 +147,14 @@ public class FirstTriangle implements Runnable {
 	public static final float[][] MODELS;
 	
 	static {
-		try {
-			MODELS = new float[][] {
-					ModelCube.CUBE,
-					ModelBunny.bunny(new Matrix4f().modelScale(new Vector3f(20, -20, 20)).modelOffset(new Vector3f(0, -1 / 20f, 0))),
-					ModelDragon.dragon(new Matrix4f().modelScale(new Vector3f(20, -20, 20)).modelOffset(new Vector3f(0, -1 / 20f, 0))),
-					ModelHappyBuddha.happyBuddha(new Matrix4f().modelScale(new Vector3f(20, -20, 20)).modelOffset(new Vector3f(0, -1 / 20f, 0)))
-			};
-		} catch (IOException e) {
-			throw new ExceptionInInitializerError(e);
-		}
+		MODELS = new float[][] {
+				ModelAsteroids.generateAsteroid(1, new float[] {0.4f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {0.4f, 0.2f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {0.4f, 0.2f, 0.1f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {0.4f, 0.2f, 0.1f, 0.05f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {0.4f, 0.2f, 0.1f, 0.05f, 0.025f}, 1).unpackIndexBuffer(),
+				ModelCube.CUBE
+		};
 	}
 	
 	public boolean VK_LAYER_LUNARG_standard_validation = false;
@@ -481,6 +479,7 @@ public class FirstTriangle implements Runnable {
 									false,
 									false,
 									VK_POLYGON_MODE_FILL,
+									/* --------------------------------------------- CULL MODE to VK_CULL_MODE_NONE */
 									VK_CULL_MODE_BACK_BIT,
 									VK_FRONT_FACE_CLOCKWISE,
 									false,
