@@ -585,7 +585,7 @@ public class FirstTriangle implements Runnable {
 								VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
 								0,
 								0,
-								FP32.multiply(16),
+								FP32.multiply(32),
 								VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 								VK_SHARING_MODE_EXCLUSIVE,
 								null
@@ -757,9 +757,10 @@ public class FirstTriangle implements Runnable {
 					Matrix4f matrixModel = rotation.toMatrix4(new Matrix4f());
 					matrixModel.modelOffset(new Vector3f(0, 0, -5));
 					
-					Matrix4f currMat = new Matrix4f(matrixPerspective);
-					currMat.multiply(matrixModel);
-					ArrayBufferFloat translationMatrix = ArrayBufferFloat.alloc(frame, currMat.write(new float[16], 0));
+					float[] translation = new float[32];
+					matrixPerspective.write(translation, 0);
+					matrixModel.write(translation, 16);
+					ArrayBufferFloat translationMatrix = ArrayBufferFloat.alloc(frame, translation);
 					Buffer.copyMemory(translationMatrix, 0, uniformBufferMapped[frameId], 0, translationMatrix.sizeOf());
 					
 					VkCommandBuffer[] vkCommandBuffers = commandBuffers.getFuture().awaitGetUninterrupted();
