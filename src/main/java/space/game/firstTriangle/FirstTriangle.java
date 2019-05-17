@@ -100,6 +100,7 @@ import space.engine.window.extensions.VideoModeDesktopExtension;
 import space.engine.window.glfw.GLFWContext;
 import space.engine.window.glfw.GLFWWindow;
 import space.engine.window.glfw.GLFWWindowFramework;
+import space.game.firstTriangle.model.ModelBunny;
 import space.game.firstTriangle.model.ModelCube;
 
 import java.io.IOException;
@@ -138,22 +139,31 @@ public class FirstTriangle implements Runnable {
 	public static BaseLogger baseLogger = BaseLogger.defaultPrinter(BaseLogger.defaultHandler(new BaseLogger()));
 	
 	public static final ObservableReference<Integer> MODEL_ID = new ObservableReference<>(0);
-	public static final float[][] MODELS = new float[][] {
-			ModelCube.CUBE,
-			{
-					0, -1, 0, 1.0f, 1.0f, 1.0f,
-					1, 1, 0, 0.0f, 1.0f, 0.0f,
-					-1, 1, 0, 0.0f, 0.0f, 1.0f,
-					0, -1, 0, 1.0f, 1.0f, 1.0f,
-					-1, 1, 0, 0.0f, 0.0f, 1.0f,
-					1, 1, 0, 0.0f, 1.0f, 0.0f,
-			}
-	};
-	ObservableReference<float[]> vertexData = ObservableReference.generatingReference(() -> MODELS[MODEL_ID.assertGet()], MODEL_ID);
+	public static final float[][] MODELS;
+	
+	static {
+		try {
+			MODELS = new float[][] {
+					ModelCube.CUBE,
+					{
+							0, -1, 0, 1.0f, 1.0f, 1.0f,
+							1, 1, 0, 0.0f, 1.0f, 0.0f,
+							-1, 1, 0, 0.0f, 0.0f, 1.0f,
+							0, -1, 0, 1.0f, 1.0f, 1.0f,
+							-1, 1, 0, 0.0f, 0.0f, 1.0f,
+							1, 1, 0, 0.0f, 1.0f, 0.0f,
+					},
+					ModelBunny.bunny(0, new Matrix4f().modelScale(new Vector3f(20, -20, 20)).modelOffset(new Vector3f(0, 1, 0)))
+			};
+		} catch (IOException e) {
+			throw new ExceptionInInitializerError(e);
+		}
+	}
 	
 	public boolean VK_LAYER_LUNARG_standard_validation = false;
 	public boolean VK_LAYER_RENDERDOC_Capture = true;
 	private Logger logger = baseLogger.subLogger("firstTriangle");
+	private ObservableReference<float[]> vertexData = ObservableReference.generatingReference(() -> MODELS[MODEL_ID.assertGet()], MODEL_ID);
 	
 	private GLFWWindowFramework windowFramework;
 	private VkInstance instance;
@@ -557,7 +567,7 @@ public class FirstTriangle implements Runnable {
 							0,
 							0,
 							0
-					), vmaAllocator, ArrayBufferFloat.alloc(frame, data), new Object[] {side});
+					), vmaAllocator, ArrayBufferFloat.alloc(Allocator.heap(), data, new Object[] {frame}), new Object[] {side});
 				}
 			}, vertexData);
 			
