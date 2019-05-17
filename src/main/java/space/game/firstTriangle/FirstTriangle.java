@@ -146,12 +146,12 @@ public class FirstTriangle implements Runnable {
 			MODELS = new float[][] {
 					ModelCube.CUBE,
 					{
-							0, -1, 0, 1.0f, 1.0f, 1.0f,
-							1, 1, 0, 0.0f, 1.0f, 0.0f,
-							-1, 1, 0, 0.0f, 0.0f, 1.0f,
-							0, -1, 0, 1.0f, 1.0f, 1.0f,
-							-1, 1, 0, 0.0f, 0.0f, 1.0f,
-							1, 1, 0, 0.0f, 1.0f, 0.0f,
+							0, -1, 0, 0, 0, 1, 1.0f, 1.0f, 1.0f,
+							1, 1, 0, 0, 0, 1, 0.0f, 1.0f, 0.0f,
+							-1, 1, 0, 0, 0, 1, 0.0f, 0.0f, 1.0f,
+							0, -1, 0, 0, 0, -1, 1.0f, 1.0f, 1.0f,
+							-1, 1, 0, 0, 0, -1, 0.0f, 0.0f, 1.0f,
+							1, 1, 0, 0, 0, -1, 0.0f, 1.0f, 0.0f,
 					},
 					ModelBunny.bunny(0, new Matrix4f().modelScale(new Vector3f(20, -20, 20)).modelOffset(new Vector3f(0, 1, 0)))
 			};
@@ -425,7 +425,7 @@ public class FirstTriangle implements Runnable {
 									0,
 									allocBuffer(frame, VkVertexInputBindingDescription::create, VkVertexInputBindingDescription.SIZEOF, vkVertexInputBindingDescription -> vkVertexInputBindingDescription
 											.binding(0)
-											.stride(FP32.bytes * 6)
+											.stride(FP32.bytes * 9)
 											.inputRate(VK_VERTEX_INPUT_RATE_VERTEX)
 									),
 									allocBuffer(frame, VkVertexInputAttributeDescription::create, VkVertexInputAttributeDescription.SIZEOF,
@@ -435,11 +435,17 @@ public class FirstTriangle implements Runnable {
 														VK_FORMAT_R32G32B32_SFLOAT,
 														0
 												),
-												inColor -> inColor.set(
+												inNormal -> inNormal.set(
 														1,
 														0,
 														VK_FORMAT_R32G32B32_SFLOAT,
 														FP32.multiply(3)
+												),
+												inColor -> inColor.set(
+														2,
+														0,
+														VK_FORMAT_R32G32B32_SFLOAT,
+														FP32.multiply(6)
 												)
 									)
 							),
@@ -688,7 +694,7 @@ public class FirstTriangle implements Runnable {
 						
 						vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout.address(), 0, new long[] {descriptorSets[i].address()}, null);
 						vkCmdBindVertexBuffers(commandBuffer, 0, new long[] {vkBuffer.address()}, new long[] {0});
-						vkCmdDraw(commandBuffer, (int) (vkBuffer.sizeOf() / FP32.multiply(6)), 1, 0, 0);
+						vkCmdDraw(commandBuffer, (int) (vkBuffer.sizeOf() / FP32.multiply(9)), 1, 0, 0);
 						
 						vkCmdEndRenderPass(commandBuffer);
 						

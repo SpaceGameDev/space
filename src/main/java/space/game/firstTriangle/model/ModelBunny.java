@@ -35,20 +35,25 @@ public class ModelBunny {
 					.mapToObj(AIMesh::create)
 					.collect(Collectors.toUnmodifiableList());
 			
-			float[] ret = new float[meshes.stream().mapToInt(AIMesh::mNumFaces).sum() * 3 * 6];
+			float[] ret = new float[meshes.stream().mapToInt(AIMesh::mNumFaces).sum() * 3 * 9];
 			int index = 0;
 			
 			for (AIMesh mesh : meshes) {
 				AIVector3D.Buffer vertices = mesh.mVertices();
+				AIVector3D.Buffer normals = mesh.mVertices();
 				AIFace.Buffer faces = mesh.mFaces();
 				for (AIFace face : faces) {
 					IntBuffer indices = face.mIndices();
 					for (int i : new int[] {0, 2, 1}) {
 						AIVector3D vertexAssimp = vertices.get(indices.get(i));
+						AIVector3D normalAssimp = normals.get(indices.get(i));
 						Vector3f vertex = new Vector3f(vertexAssimp.x(), vertexAssimp.y(), vertexAssimp.z()).multiply(scale);
 						ret[index++] = vertex.x;
 						ret[index++] = vertex.y;
 						ret[index++] = vertex.z;
+						ret[index++] = normalAssimp.x();
+						ret[index++] = normalAssimp.y();
+						ret[index++] = normalAssimp.z();
 						ret[index++] = 1.0f;
 						ret[index++] = 1.0f;
 						ret[index++] = 1.0f;
