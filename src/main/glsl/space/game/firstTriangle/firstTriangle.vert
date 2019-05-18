@@ -5,6 +5,7 @@ layout(binding = 0) uniform Translation {
 	mat4 projection;
 	mat4 model;
 	mat4 modelInverse;
+	vec3 cameraPosition;
 } translation;
 
 layout(location = 0) in vec3 inPos;
@@ -14,6 +15,7 @@ layout(location = 2) in vec3 inColor;
 layout(location = 0) out vec3 fragPos;
 layout(location = 1) out vec3 fragNormal;
 layout(location = 2) out vec3 fragColor;
+layout(location = 3) out vec3 fragCameraPosition;
 
 void main() {
 	vec4 worldPosition = vec4(inPos, 1.0) * translation.model;
@@ -21,4 +23,5 @@ void main() {
 	fragPos = vec3(worldPosition);
 	fragNormal = mat3(translation.modelInverse) * inNormal;
 	fragColor = inColor;
+	fragCameraPosition = translation.cameraPosition;
 }
