@@ -47,7 +47,7 @@ public class ModelBunny {
 					for (int i : new int[] {0, 2, 1}) {
 						AIVector3D vertexAssimp = vertices.get(indices.get(i));
 						AIVector3D normalAssimp = normals.get(indices.get(i));
-						Vector3f vertex = new Vector3f(vertexAssimp.x(), vertexAssimp.y(), vertexAssimp.z()).multiply(scale);
+						Vector3f vertex = new Vector3f(vertexAssimp.x(), vertexAssimp.y(), vertexAssimp.z()).rotate(scale);
 						ret[index++] = vertex.x;
 						ret[index++] = vertex.y;
 						ret[index++] = vertex.z;

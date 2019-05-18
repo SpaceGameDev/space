@@ -93,9 +93,11 @@ import space.engine.vulkan.surface.glfw.VkSurfaceGLFW;
 import space.engine.vulkan.vma.VkBuffer;
 import space.engine.vulkan.vma.VmaAllocator;
 import space.engine.window.InputDevice.Keyboard;
+import space.engine.window.InputDevice.Mouse;
 import space.engine.window.Keycode;
 import space.engine.window.Window;
 import space.engine.window.WindowContext;
+import space.engine.window.extensions.MouseInputMode.Modes;
 import space.engine.window.extensions.VideoModeDesktopExtension;
 import space.engine.window.glfw.GLFWContext;
 import space.engine.window.glfw.GLFWWindow;
@@ -113,7 +115,6 @@ import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static java.lang.Math.PI;
 import static org.lwjgl.util.vma.Vma.VMA_MEMORY_USAGE_CPU_TO_GPU;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK10.*;
@@ -124,8 +125,10 @@ import static space.engine.sync.barrier.Barrier.ALWAYS_TRIGGERED_BARRIER;
 import static space.engine.vector.AxisAndAnglef.toRadians;
 import static space.engine.vulkan.VkInstance.DEFAULT_BEST_PHYSICAL_DEVICE_TYPES;
 import static space.engine.vulkan.managed.device.ManagedDevice.*;
+import static space.engine.window.Keycode.*;
 import static space.engine.window.Window.*;
 import static space.engine.window.WindowContext.API_TYPE;
+import static space.engine.window.extensions.MouseInputMode.MOUSE_MODE;
 import static space.engine.window.extensions.VideoModeExtension.*;
 
 @SuppressWarnings("FieldCanBeLocal")
@@ -153,7 +156,7 @@ public class FirstTriangle implements Runnable {
 							-1, 1, 0, 0, 0, -1, 0.0f, 0.0f, 1.0f,
 							1, 1, 0, 0, 0, -1, 0.0f, 1.0f, 0.0f,
 					},
-					ModelBunny.bunny(0, new Matrix4f().modelScale(new Vector3f(20, -20, 20)).modelOffset(new Vector3f(0, 1, 0)))
+					ModelBunny.bunny(0, new Matrix4f().modelScale(new Vector3f(20, -20, 20)).modelOffset(new Vector3f(0, -1 / 20f, 0)))
 			};
 		} catch (IOException e) {
 			throw new ExceptionInInitializerError(e);
@@ -275,6 +278,7 @@ public class FirstTriangle implements Runnable {
 				windowModify.put(TITLE, "Vulkan Window");
 				windowModify.put(WIDTH, 1080);
 				windowModify.put(HEIGHT, 1080);
+				windowModify.put(MOUSE_MODE, Modes.CURSOR_DISABLED);
 				windowAtt = windowModify.createNewAttributeList();
 			}
 			window = windowContext.createWindow(windowAtt, new Object[] {side}).awaitGetUninterrupted();
@@ -721,7 +725,9 @@ public class FirstTriangle implements Runnable {
 			//main loop
 			boolean[] isRunning = {true};
 			window.getWindowCloseEvent().addHook(window1 -> isRunning[0] = false);
-			windowContext.getInputDevices().stream().filter(dev -> dev instanceof Keyboard).map(Keyboard.class::cast).forEach(
+			List<Keyboard> keyboards = windowContext.getInputDevices().stream().filter(dev -> dev instanceof Keyboard).map(Keyboard.class::cast).collect(Collectors.toUnmodifiableList());
+			List<Mouse> mouses = windowContext.getInputDevices().stream().filter(dev -> dev instanceof Mouse).map(Mouse.class::cast).collect(Collectors.toUnmodifiableList());
+			keyboards.forEach(
 					keyboard -> keyboard.getKeyInputEvent().addHook((key, pressed) -> {
 						if (pressed) {
 							boolean next = key == Keycode.KEY_DOWN;
@@ -742,8 +748,47 @@ public class FirstTriangle implements Runnable {
 			);
 			
 			Matrix4f matrixPerspective = ProjectionMatrix.projection(new Matrix4f(), 90, 1, 0.1f, 10f);
+			Entity camera = new Entity();
+			camera.translateAbsolute(new Vector3f(0, 0, 5));
+			
+			float speedMouse = 0.008f;
+			float speedMovement = 0.05f;
+			mouses.forEach(mouse -> {
+				mouse.getMouseMovementEvent().addHook((absolute, relative) -> {
+					Objects.requireNonNull(relative);
+					Quaternionf rotation = new Quaternionf();
+					if (relative[0] != 0)
+						rotation.multiply(new AxisAndAnglef(0, -1, 0, (float) relative[0] * speedMouse));
+					if (relative[1] != 0)
+						rotation.multiply(new AxisAndAnglef(1, 0, 0, (float) relative[1] * speedMouse));
+					camera.rotateRelative(rotation);
+				});
+			});
 			
 			for (int frameId = 0; isRunning[0]; frameId = (frameId + 1) % framesInFlight) {
+				keyboards.forEach(keyboard -> {
+					Vector3f translation = new Vector3f();
+					Quaternionf rotation = new Quaternionf();
+					if (keyboard.isKeyDown(KEY_A))
+						translation.add(new Vector3f(-speedMovement, 0, 0));
+					else if (keyboard.isKeyDown(KEY_D))
+						translation.add(new Vector3f(speedMovement, 0, 0));
+					else if (keyboard.isKeyDown(KEY_R) || keyboard.isKeyDown(KEY_SPACE))
+						translation.add(new Vector3f(0, -speedMovement, 0));
+					else if (keyboard.isKeyDown(KEY_F) || keyboard.isKeyDown(KEY_LEFT_SHIFT))
+						translation.add(new Vector3f(0, speedMovement, 0));
+					else if (keyboard.isKeyDown(KEY_W))
+						translation.add(new Vector3f(0, 0, -speedMovement));
+					else if (keyboard.isKeyDown(KEY_S))
+						translation.add(new Vector3f(0, 0, speedMovement));
+					else if (keyboard.isKeyDown(KEY_Q))
+						rotation.multiply(new AxisAndAnglef(0, 0, 1, toRadians(-2)));
+					else if (keyboard.isKeyDown(KEY_E))
+						rotation.multiply(new AxisAndAnglef(0, 0, 1, toRadians(2)));
+					camera.rotateRelative(rotation);
+					camera.translateRelative(translation);
+				});
+				
 				barrierFrameDone[frameId].awaitUninterrupted();
 				
 				try (AllocatorFrame frame = Allocator.frame()) {
@@ -751,12 +796,7 @@ public class FirstTriangle implements Runnable {
 					nvkAcquireNextImageKHR(device, swapchain.address(), Long.MAX_VALUE, semaphoreImageAvailable[frameId].address(), 0, imageIndexPtr.address());
 					int imageIndex = imageIndexPtr.getInt();
 					
-					Quaternionf rotation = new Quaternionf();
-					rotation.multiply(new AxisAndAnglef(1, 0, 0, toRadians(-45)));
-					rotation.multiply(new AxisAndAnglef(0, 1, 0, (float) ((System.nanoTime() / 1000_000_000d) * 2 * PI / 10 + PI)));
-					Matrix4f matrixModel = rotation.toMatrix4(new Matrix4f());
-					matrixModel.modelOffset(new Vector3f(0, 0, -5));
-					
+					Matrix4f matrixModel = camera.toMatrix4Inverse(new Matrix4f());
 					float[] translation = new float[48];
 					matrixPerspective.write(translation, 0);
 					matrixModel.write(translation, 16);
