@@ -160,7 +160,7 @@ public class FirstTriangle implements Runnable {
 	}
 	
 	public boolean VK_LAYER_LUNARG_standard_validation = false;
-	public boolean VK_LAYER_RENDERDOC_Capture = true;
+	public boolean VK_LAYER_RENDERDOC_Capture = false;
 	private Logger logger = baseLogger.subLogger("firstTriangle");
 	private ObservableReference<float[]> vertexData = ObservableReference.generatingReference(() -> MODELS[MODEL_ID.assertGet()], MODEL_ID);
 	
@@ -743,7 +743,7 @@ public class FirstTriangle implements Runnable {
 					})
 			);
 			
-			Matrix4f matrixPerspective = ProjectionMatrix.projection(new Matrix4f(), 90, 1, 0.1f, 10f);
+			Matrix4f matrixPerspective = ProjectionMatrix.projection(new Matrix4f(), 90, 1, 0.1f, 1000f);
 			Entity camera = new Entity();
 			camera.translateAbsolute(new Vector3f(0, 0, 5));
 			
