@@ -104,6 +104,8 @@ import space.engine.window.glfw.GLFWWindow;
 import space.engine.window.glfw.GLFWWindowFramework;
 import space.game.firstTriangle.model.ModelBunny;
 import space.game.firstTriangle.model.ModelCube;
+import space.game.firstTriangle.model.ModelDragon;
+import space.game.firstTriangle.model.ModelHappyBuddha;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -148,15 +150,9 @@ public class FirstTriangle implements Runnable {
 		try {
 			MODELS = new float[][] {
 					ModelCube.CUBE,
-					{
-							0, -1, 0, 0, 0, 1, 1.0f, 1.0f, 1.0f,
-							1, 1, 0, 0, 0, 1, 0.0f, 1.0f, 0.0f,
-							-1, 1, 0, 0, 0, 1, 0.0f, 0.0f, 1.0f,
-							0, -1, 0, 0, 0, -1, 1.0f, 1.0f, 1.0f,
-							-1, 1, 0, 0, 0, -1, 0.0f, 0.0f, 1.0f,
-							1, 1, 0, 0, 0, -1, 0.0f, 1.0f, 0.0f,
-					},
-					ModelBunny.bunny(0, new Matrix4f().modelScale(new Vector3f(20, -20, 20)).modelOffset(new Vector3f(0, -1 / 20f, 0)))
+					ModelBunny.bunny(new Matrix4f().modelScale(new Vector3f(20, -20, 20)).modelOffset(new Vector3f(0, -1 / 20f, 0))),
+					ModelDragon.dragon(new Matrix4f().modelScale(new Vector3f(20, -20, 20)).modelOffset(new Vector3f(0, -1 / 20f, 0))),
+					ModelHappyBuddha.happyBuddha(new Matrix4f().modelScale(new Vector3f(20, -20, 20)).modelOffset(new Vector3f(0, -1 / 20f, 0)))
 			};
 		} catch (IOException e) {
 			throw new ExceptionInInitializerError(e);
