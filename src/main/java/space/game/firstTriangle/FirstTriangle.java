@@ -382,7 +382,7 @@ public class FirstTriangle implements Runnable {
 						0,
 						ArrayBufferLong.alloc(frame, new long[] {descriptorSetLayout.address()}).nioBuffer(),
 						null
-				), device, new Object[] {side});
+				), new VkDescriptorSetLayout[] {descriptorSetLayout}, device, new Object[] {side});
 			}
 			
 			//pipeline
@@ -527,7 +527,7 @@ public class FirstTriangle implements Runnable {
 							0,
 							0,
 							-1
-					), device, new Object[] {side});
+					), renderPass, new Object[] {side});
 				} catch (IOException e) {
 					throw new RuntimeException(e);
 				}
