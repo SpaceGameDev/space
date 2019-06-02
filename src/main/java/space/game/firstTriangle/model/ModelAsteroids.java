@@ -13,28 +13,10 @@ import java.util.Random;
 public class ModelAsteroids {
 	
 	public static Result generateAsteroid(float r, float[] config) {
-		return generateAsteroid2(r, config, System.currentTimeMillis());
+		return generateAsteroid(r, config, System.currentTimeMillis());
 	}
 	
 	public static Result generateAsteroid(float r, float[] config, long seed) {
-		Random rand = new Random(seed);
-//		float randomValue = rand.nextFloat() * config[0]
-		return new Result(
-				new float[] {
-						0, -1, 0, 0, 0, 1, 1.0f, 1.0f, 1.0f,
-						1, 1, 0, 0, 0, 1, 0.0f, 1.0f, 0.0f,
-						-1, 1, 0, 0, 0, 1, 0.0f, 0.0f, 1.0f,
-						0, -1, 0, 0, 0, -1, 1.0f, 1.0f, 1.0f,
-						-1, 1, 0, 0, 0, -1, 0.0f, 0.0f, 1.0f,
-						1, 1, 0, 0, 0, -1, 0.0f, 1.0f, 0.0f,
-				},
-				new int[] {
-						0, 1, 2, 3, 4, 5
-				}
-		);
-	}
-	
-	public static Result generateAsteroid2(float r, float[] config, long seed) {
 		Random rand = new Random(seed);
 		Model m = generateIcosphere(r);
 		
@@ -106,20 +88,6 @@ public class ModelAsteroids {
 		points.add(11, new Point3D(-longerSide, 0, shorterSide));
 		
 		Model m = new Model();
-		
-		/*m.add(new Triangle(
-				new Point3D(0, -1, 0),
-				new Point3D(1, 1, 0),
-				new Point3D(-1, 1, 0),
-				new Point3D(0, 0, 1f),
-				new Point3D(1,1,1)
-		));*/
-		
-		/*m.add(new Triangle(
-				new Point3D(0, -1, 0),
-				new Point3D(1, 1, 0),
-				new Point3D(-1, 1, 0)
-		));*/
 	
 		m.add(new Triangle(points.get(0), points.get(11), points.get(5)));
 		m.add(new Triangle(points.get(0), points.get(5), points.get(1)));

@@ -104,9 +104,7 @@ import space.engine.window.glfw.GLFWWindow;
 import space.engine.window.glfw.GLFWWindowFramework;
 import space.game.firstTriangle.model.ModelAsteroids;
 import space.game.firstTriangle.model.ModelCube;
-import space.game.firstTriangle.model.ModelDragon;
 import space.game.firstTriangle.model.ModelGasplanet;
-import space.game.firstTriangle.model.ModelHappyBuddha;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -157,12 +155,12 @@ public class FirstTriangle implements Runnable {
 				ModelGasplanet.generateGasplanet(2, 3, true),
 				ModelGasplanet.generateGasplanet(2, 4, false),
 				ModelGasplanet.generateGasplanet(2, 4, true),
-				ModelAsteroids.generateAsteroid2(1, new float[] {}, 1).unpackIndexBuffer(),
-				ModelAsteroids.generateAsteroid2(1, new float[] {1f}, 1).unpackIndexBuffer(),
-				ModelAsteroids.generateAsteroid2(1, new float[] {1f, 0.2f}, 1).unpackIndexBuffer(),
-				ModelAsteroids.generateAsteroid2(1, new float[] {1f, 0.2f, 0.1f}, 1).unpackIndexBuffer(),
-				ModelAsteroids.generateAsteroid2(1, new float[] {1f, 0.2f, 0.1f, 0.05f}, 1).unpackIndexBuffer(),
-				ModelAsteroids.generateAsteroid2(1, new float[] {1f, 0.2f, 0.1f, 0.05f, 0.025f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {1f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {1f, 0.2f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {1f, 0.2f, 0.1f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {1f, 0.2f, 0.1f, 0.05f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {1f, 0.2f, 0.1f, 0.05f, 0.025f}, 1).unpackIndexBuffer(),
 				ModelCube.CUBE
 		};
 	}
