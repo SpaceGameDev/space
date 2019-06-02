@@ -148,11 +148,12 @@ public class FirstTriangle implements Runnable {
 	
 	static {
 		MODELS = new float[][] {
-				ModelAsteroids.generateAsteroid(1, new float[] {0.4f}, 1).unpackIndexBuffer(),
-				ModelAsteroids.generateAsteroid(1, new float[] {0.4f, 0.2f}, 1).unpackIndexBuffer(),
-				ModelAsteroids.generateAsteroid(1, new float[] {0.4f, 0.2f, 0.1f}, 1).unpackIndexBuffer(),
-				ModelAsteroids.generateAsteroid(1, new float[] {0.4f, 0.2f, 0.1f, 0.05f}, 1).unpackIndexBuffer(),
-				ModelAsteroids.generateAsteroid(1, new float[] {0.4f, 0.2f, 0.1f, 0.05f, 0.025f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid2(1, new float[] {}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid2(1, new float[] {0.5f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid2(1, new float[] {0.5f, 0.2f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid2(1, new float[] {0.5f, 0.2f, 0.1f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid2(1, new float[] {0.5f, 0.2f, 0.1f, 0.05f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid2(1, new float[] {0.5f, 0.2f, 0.1f, 0.05f, 0.025f}, 1).unpackIndexBuffer(),
 				ModelCube.CUBE
 		};
 	}
