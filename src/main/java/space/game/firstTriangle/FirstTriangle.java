@@ -11,7 +11,6 @@ import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
 import org.lwjgl.vulkan.VkDescriptorBufferInfo;
 import org.lwjgl.vulkan.VkDescriptorPoolCreateInfo;
 import org.lwjgl.vulkan.VkDescriptorPoolSize;
-import org.lwjgl.vulkan.VkDescriptorSetAllocateInfo;
 import org.lwjgl.vulkan.VkExtent2D;
 import org.lwjgl.vulkan.VkOffset2D;
 import org.lwjgl.vulkan.VkRect2D;
@@ -22,7 +21,6 @@ import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.Buffer;
 import space.engine.buffer.array.ArrayBufferFloat;
-import space.engine.buffer.array.ArrayBufferLong;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.FreeableStorageCleaner;
 import space.engine.freeableStorage.stack.FreeableStack.Frame;
@@ -42,13 +40,12 @@ import space.engine.vector.Quaternionf;
 import space.engine.vector.Vector3f;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
-import space.engine.vulkan.VkDescriptorPool;
-import space.engine.vulkan.VkDescriptorSet;
-import space.engine.vulkan.VkInstance;
 import space.engine.vulkan.VkInstanceExtensions;
 import space.engine.vulkan.VkInstanceValidationLayers;
 import space.engine.vulkan.VkPhysicalDevice;
 import space.engine.vulkan.VkSemaphore;
+import space.engine.vulkan.descriptors.VkDescriptorPool;
+import space.engine.vulkan.managed.descriptorSet.ManagedDescriptorSetPool;
 import space.engine.vulkan.managed.device.ManagedDevice;
 import space.engine.vulkan.managed.device.ManagedDeviceSingleQueue;
 import space.engine.vulkan.managed.instance.ManagedInstance;
@@ -80,11 +77,9 @@ import space.game.firstTriangle.renderPass.FirstTriangleRenderPass;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
-import java.util.function.IntFunction;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -113,7 +108,6 @@ public class FirstTriangle implements Runnable {
 	
 	public static BaseLogger baseLogger = BaseLogger.defaultPrinter(BaseLogger.defaultHandler(new BaseLogger()));
 	
-	public static final ObservableReference<Integer> MODEL_ID = new ObservableReference<>(0);
 	public static final float[][] MODELS;
 	
 	static {
@@ -132,25 +126,6 @@ public class FirstTriangle implements Runnable {
 	public boolean VK_LAYER_LUNARG_standard_validation = true;
 	public boolean VK_LAYER_RENDERDOC_Capture = true;
 	private Logger logger = baseLogger.subLogger("firstTriangle");
-	private ObservableReference<float[]> vertexData = ObservableReference.generatingReference(() -> MODELS[MODEL_ID.assertGet()], MODEL_ID);
-	
-	private GLFWWindowFramework windowFramework;
-	private VkInstance instance;
-	private ManagedDevice device;
-	private VmaAllocator vmaAllocator;
-	private GLFWContext windowContext;
-	private GLFWWindow window;
-	private VkSurface<GLFWWindow> surface;
-	private ManagedSwapchain<?> swapchain;
-	private ObservableReference<VkBuffer> vertexBuffer;
-	private VkBuffer[] uniformBuffer;
-	private Buffer[] uniformBufferMapped;
-	private VkDescriptorPool descriptorPool;
-	private VkDescriptorSet[] descriptorSets;
-	private VkCommandPool commandPool;
-	
-	private VkSemaphore[] semaphoreImageAvailable, semaphoreRenderFinished;
-	private Barrier[] barrierFrameDone;
 	
 	public void run() {
 		try (Frame side = Freeable.frame()) {
@@ -160,7 +135,7 @@ public class FirstTriangle implements Runnable {
 			logger.log(LogLevel.INFO, "Layers: " + VkInstanceValidationLayers.generateInfoString());
 			
 			//windowFramework
-			windowFramework = new GLFWWindowFramework();
+			GLFWWindowFramework windowFramework = new GLFWWindowFramework();
 			VkSurfaceGLFW.assertSupported(windowFramework);
 			
 			//extension / layer selection
@@ -176,7 +151,7 @@ public class FirstTriangle implements Runnable {
 			instanceExtensions.addAll(VkSurfaceGLFW.getRequiredInstanceExtensions(windowFramework));
 			
 			//instance
-			instance = ManagedInstance.alloc(
+			ManagedInstance instance = ManagedInstance.alloc(
 					"firstTriangle",
 					1,
 					baseLogger.subLogger("Vulkan"),
@@ -202,12 +177,15 @@ public class FirstTriangle implements Runnable {
 			logger.log(LogLevel.INFO, "Selecting: " + physicalDevice.identification());
 			
 			//device
-			device = ManagedDeviceSingleQueue.alloc(physicalDevice,
-													physicalDevice.makeExtensionList(deviceExtensionsRequired, deviceExtensionsOptional),
-													null,
-													new Object[] {side});
+			ManagedDevice device = ManagedDeviceSingleQueue.alloc(
+					physicalDevice,
+					physicalDevice.makeExtensionList(deviceExtensionsRequired, deviceExtensionsOptional),
+					null,
+					new Object[] {side}
+			);
 			
 			//vmaAllocator
+			VmaAllocator vmaAllocator;
 			try (AllocatorFrame frame = Allocator.frame()) {
 				vmaAllocator = VmaAllocator.alloc(mallocStruct(frame, VmaAllocatorCreateInfo::create, VmaAllocatorCreateInfo.SIZEOF).set(
 						0,
@@ -233,7 +211,7 @@ public class FirstTriangle implements Runnable {
 				windowContextModify.put(API_TYPE, null);
 				windowContextAtt = windowContextModify.createNewAttributeList();
 			}
-			windowContext = windowFramework.createContext(windowContextAtt, new Object[] {side}).awaitGetUninterrupted();
+			GLFWContext windowContext = windowFramework.createContext(windowContextAtt, new Object[] {side}).awaitGetUninterrupted();
 			
 			//window
 			AttributeList<Window> windowAtt;
@@ -246,10 +224,10 @@ public class FirstTriangle implements Runnable {
 				windowModify.put(MOUSE_MODE, Modes.CURSOR_DISABLED);
 				windowAtt = windowModify.createNewAttributeList();
 			}
-			window = windowContext.createWindow(windowAtt, new Object[] {side}).awaitGetUninterrupted();
+			GLFWWindow window = windowContext.createWindow(windowAtt, new Object[] {side}).awaitGetUninterrupted();
 			
 			//surface
-			surface = VkSurfaceGLFW.createSurfaceFromGlfwWindow(physicalDevice, window, new Object[] {side});
+			VkSurface<GLFWWindow> surface = VkSurfaceGLFW.createSurfaceFromGlfwWindow(physicalDevice, window, new Object[] {side});
 			
 			//swapExtend
 			VkRect2D swapExtend;
@@ -265,7 +243,7 @@ public class FirstTriangle implements Runnable {
 			}
 			
 			//swapchain
-			swapchain = ManagedSwapchain.alloc(
+			ManagedSwapchain<GLFWWindow> swapchain = ManagedSwapchain.alloc(
 					device,
 					surface,
 					null,
@@ -297,7 +275,9 @@ public class FirstTriangle implements Runnable {
 			);
 			
 			//vertex buffer
-			vertexBuffer = ObservableReference.generatingReference(() -> {
+			ObservableReference<Integer> modelId = new ObservableReference<>(0);
+			ObservableReference<float[]> vertexData = ObservableReference.generatingReference(() -> MODELS[modelId.assertGet()], modelId);
+			ObservableReference<VkBuffer> vertexBuffer = ObservableReference.generatingReference(() -> {
 				float[] data = vertexData.assertGet();
 				
 				try (AllocatorFrame frame = Allocator.frame()) {
@@ -322,33 +302,31 @@ public class FirstTriangle implements Runnable {
 			}, vertexData);
 			
 			//uniform buffer
+			VkBuffer uniformBuffer;
+			Buffer uniformBufferMapped;
 			try (AllocatorFrame frame = Allocator.frame()) {
-				uniformBuffer = IntStream
-						.range(0, framesInFlight)
-						.mapToObj(i -> VkBuffer.alloc(mallocStruct(frame, VkBufferCreateInfo::create, VkBufferCreateInfo.SIZEOF).set(
-								VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-								0,
-								0,
-								FP32.multiply(3 * 16 + 3),
-								VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-								VK_SHARING_MODE_EXCLUSIVE,
-								null
-						), mallocStruct(frame, VmaAllocationCreateInfo::create, VmaAllocationCreateInfo.SIZEOF).set(
-								0,
-								VMA_MEMORY_USAGE_CPU_TO_GPU,
-								0,
-								0,
-								0,
-								0,
-								0
-						), vmaAllocator, new Object[] {side}))
-						.toArray(VkBuffer[]::new);
-				uniformBufferMapped = Arrays.stream(uniformBuffer)
-											.map(ubo -> ubo.mapMemory(new Object[] {side}))
-											.toArray(Buffer[]::new);
+				uniformBuffer = VkBuffer.alloc(mallocStruct(frame, VkBufferCreateInfo::create, VkBufferCreateInfo.SIZEOF).set(
+						VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+						0,
+						0,
+						FP32.multiply(3 * 16 + 3),
+						VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+						VK_SHARING_MODE_EXCLUSIVE,
+						null
+				), mallocStruct(frame, VmaAllocationCreateInfo::create, VmaAllocationCreateInfo.SIZEOF).set(
+						0,
+						VMA_MEMORY_USAGE_CPU_TO_GPU,
+						0,
+						0,
+						0,
+						0,
+						0
+				), vmaAllocator, new Object[] {side});
+				uniformBufferMapped = uniformBuffer.mapMemory(new Object[] {side});
 			}
 			
 			//descriptor pool
+			VkDescriptorPool descriptorPool;
 			try (AllocatorFrame frame = Allocator.frame()) {
 				descriptorPool = VkDescriptorPool.alloc(mallocStruct(frame, VkDescriptorPoolCreateInfo::create, VkDescriptorPoolCreateInfo.SIZEOF).set(
 						VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
@@ -365,28 +343,24 @@ public class FirstTriangle implements Runnable {
 			}
 			
 			//descriptor set
+			ManagedDescriptorSetPool firstTrianglePipelineRenderDescriptorSet;
 			try (AllocatorFrame frame = Allocator.frame()) {
-				descriptorSets = descriptorPool.allocateDescriptorSetsWrap(mallocStruct(frame, VkDescriptorSetAllocateInfo::create, VkDescriptorSetAllocateInfo.SIZEOF).set(
-						VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-						0,
-						descriptorPool.address(),
-						ArrayBufferLong.alloc(frame, IntStream.range(0, framesInFlight).mapToLong(i -> firstTrianglePipelineRender.descriptorSetLayout().address()).toArray()).nioBuffer()
-				), new Object[] {side});
+				firstTrianglePipelineRenderDescriptorSet = new ManagedDescriptorSetPool(device, firstTrianglePipelineRender.descriptorSetLayout(), 1, new Object[] {side});
 				
 				vkUpdateDescriptorSets(device, allocBuffer(frame, VkWriteDescriptorSet::create, VkWriteDescriptorSet.SIZEOF, IntStream
 											   .range(0, framesInFlight)
 											   .mapToObj(i -> (Consumer<VkWriteDescriptorSet>) writeDescriptorSet -> writeDescriptorSet.set(
 													   VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
 													   0,
-													   descriptorSets[i].address(),
+													   firstTrianglePipelineRenderDescriptorSet.sets()[0].address(),
 													   0,
 													   0,
 													   VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 													   null,
 													   allocBuffer(frame, VkDescriptorBufferInfo::create, VkDescriptorBufferInfo.SIZEOF, vkDescriptorBufferInfo -> vkDescriptorBufferInfo.set(
-															   uniformBuffer[i].address(),
+															   uniformBuffer.address(),
 															   0,
-															   uniformBuffer[i].sizeOf()
+															   uniformBuffer.sizeOf()
 													   )),
 													   null
 											   ))
@@ -395,6 +369,7 @@ public class FirstTriangle implements Runnable {
 			}
 			
 			//commandPool
+			VkCommandPool commandPool;
 			try (AllocatorFrame frame = Allocator.frame()) {
 				commandPool = VkCommandPool.alloc(mallocStruct(frame, VkCommandPoolCreateInfo::create, VkCommandPoolCreateInfo.SIZEOF).set(
 						VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -411,7 +386,7 @@ public class FirstTriangle implements Runnable {
 				VkCommandBuffer commandBuffer = commandPool.allocCmdBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY, new Object[] {side});
 				commandBuffer.beginCommandBuffer(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT, firstTriangleRenderPass.renderPass().subpasses()[0].inheritanceInfo());
 				
-				firstTrianglePipelineRender.bindPipeline(commandBuffer, descriptorSets[0]);
+				firstTrianglePipelineRender.bindPipeline(commandBuffer, firstTrianglePipelineRenderDescriptorSet.sets()[0]);
 				vkCmdBindVertexBuffers(commandBuffer, 0, new long[] {vkBuffer.address()}, new long[] {0});
 				vkCmdDraw(commandBuffer, (int) (vkBuffer.sizeOf() / FP32.multiply(9)), 1, 0, 0);
 				
@@ -444,20 +419,18 @@ public class FirstTriangle implements Runnable {
 			});
 			
 			//synchronization
+			VkSemaphore semaphoreImageAvailable, semaphoreRenderFinished;
 			try (AllocatorFrame frame = Allocator.frame()) {
 				VkSemaphoreCreateInfo semaphoreInfo = mallocStruct(frame, VkSemaphoreCreateInfo::create, VkSemaphoreCreateInfo.SIZEOF).set(
 						VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
 						0,
 						0
 				);
-				IntFunction<@NotNull VkSemaphore> semaphoreMap = i -> VkSemaphore.alloc(semaphoreInfo, device, new Object[] {side});
-				semaphoreImageAvailable = IntStream.range(0, framesInFlight).mapToObj(semaphoreMap).toArray(VkSemaphore[]::new);
-				semaphoreRenderFinished = IntStream.range(0, framesInFlight).mapToObj(semaphoreMap).toArray(VkSemaphore[]::new);
-				
-				barrierFrameDone = IntStream.range(0, framesInFlight).mapToObj(i -> ALWAYS_TRIGGERED_BARRIER).toArray(Barrier[]::new);
+				semaphoreImageAvailable = VkSemaphore.alloc(semaphoreInfo, device, new Object[] {side});
+				semaphoreRenderFinished = VkSemaphore.alloc(semaphoreInfo, device, new Object[] {side});
 			}
 			
-			//main loop
+			//inputs
 			boolean[] isRunning = {true};
 			window.getWindowCloseEvent().addHook(window1 -> isRunning[0] = false);
 			List<Keyboard> keyboards = windowContext.getInputDevices().stream().filter(dev -> dev instanceof Keyboard).map(Keyboard.class::cast).collect(Collectors.toUnmodifiableList());
@@ -468,8 +441,8 @@ public class FirstTriangle implements Runnable {
 							boolean next = key == Keycode.KEY_DOWN;
 							boolean prev = key == Keycode.KEY_UP;
 							if (next || prev) {
-								MODEL_ID.set(() -> {
-									int current = MODEL_ID.assertGet();
+								modelId.set(() -> {
+									int current = modelId.assertGet();
 									if (next && current + 1 < MODELS.length) {
 										return current + 1;
 									} else if (prev && current > 0) {
@@ -500,7 +473,9 @@ public class FirstTriangle implements Runnable {
 				});
 			});
 			
-			for (int frameId = 0; isRunning[0]; frameId = (frameId + 1) % framesInFlight) {
+			//main loop
+			Barrier barrierFrameDone = ALWAYS_TRIGGERED_BARRIER;
+			while (isRunning[0]) {
 				keyboards.forEach(keyboard -> {
 					Vector3f translation = new Vector3f();
 					Quaternionf rotation = new Quaternionf();
@@ -524,10 +499,10 @@ public class FirstTriangle implements Runnable {
 					camera.translateRelative(translation);
 				});
 				
-				barrierFrameDone[frameId].awaitUninterrupted();
+				barrierFrameDone.awaitUninterrupted();
 				
 				try (AllocatorFrame frame = Allocator.frame()) {
-					int imageIndex = swapchain.acquire(Long.MAX_VALUE, semaphoreImageAvailable[frameId], null);
+					int imageIndex = swapchain.acquire(Long.MAX_VALUE, semaphoreImageAvailable, null);
 					
 					Matrix4f matrixModel = camera.toMatrix4Inverse(new Matrix4f());
 					float[] translation = new float[3 * 16 + 3];
@@ -536,18 +511,18 @@ public class FirstTriangle implements Runnable {
 					new Matrix4f(matrixModel).inversePure().write(translation, 32);
 					camera.position.write(translation, 48);
 					ArrayBufferFloat translationMatrix = ArrayBufferFloat.alloc(frame, translation);
-					Buffer.copyMemory(translationMatrix, 0, uniformBufferMapped[frameId], 0, translationMatrix.sizeOf());
+					Buffer.copyMemory(translationMatrix, 0, uniformBufferMapped, 0, translationMatrix.sizeOf());
 					
 					Future<Barrier> frameDone = frameBuffer.render(
 							new FirstTriangleInfos(imageIndex),
-							new VkSemaphore[] {semaphoreImageAvailable[frameId]},
+							new VkSemaphore[] {semaphoreImageAvailable},
 							new int[] {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT},
-							new VkSemaphore[] {semaphoreRenderFinished[frameId]}
+							new VkSemaphore[] {semaphoreRenderFinished}
 					);
-					Barrier presentDone = swapchain.present(new VkSemaphore[] {semaphoreRenderFinished[frameId]}, imageIndex).submit(frameDone);
+					Barrier presentDone = swapchain.present(new VkSemaphore[] {semaphoreRenderFinished}, imageIndex).submit(frameDone);
 					
 					Barrier pollEventsBarrier = window.pollEventsTask();
-					barrierFrameDone[frameId] = awaitAll(innerBarrier(frameDone), presentDone, pollEventsBarrier);
+					barrierFrameDone = awaitAll(innerBarrier(frameDone), presentDone, pollEventsBarrier);
 				}
 				
 				try {

@@ -1,8 +1,6 @@
 package space.game.firstTriangle.renderPass;
 
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.vulkan.VkDescriptorSetLayoutBinding;
-import org.lwjgl.vulkan.VkDescriptorSetLayoutCreateInfo;
 import org.lwjgl.vulkan.VkGraphicsPipelineCreateInfo;
 import org.lwjgl.vulkan.VkPipelineColorBlendAttachmentState;
 import org.lwjgl.vulkan.VkPipelineColorBlendStateCreateInfo;
@@ -26,11 +24,12 @@ import space.engine.buffer.pointer.PointerBufferLong;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.vulkan.VkCommandBuffer;
-import space.engine.vulkan.VkDescriptorSet;
-import space.engine.vulkan.VkDescriptorSetLayout;
 import space.engine.vulkan.VkGraphicsPipeline;
 import space.engine.vulkan.VkPipelineLayout;
 import space.engine.vulkan.VkShaderModule;
+import space.engine.vulkan.descriptors.VkDescriptorSet;
+import space.engine.vulkan.descriptors.VkDescriptorSetBinding;
+import space.engine.vulkan.descriptors.VkDescriptorSetLayout;
 import space.engine.vulkan.managed.device.ManagedDevice;
 
 import java.io.IOException;
@@ -50,21 +49,9 @@ public class FirstTrianglePipelineRender implements FreeableWrapper {
 		VkRect2D swapExtend = renderPass.swapExtend();
 		
 		try (AllocatorFrame frame = Allocator.frame()) {
-			descriptorSetLayout = VkDescriptorSetLayout.alloc(mallocStruct(frame, VkDescriptorSetLayoutCreateInfo::create, VkDescriptorSetLayoutCreateInfo.SIZEOF).set(
-					VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-					0,
-					0,
-					allocBuffer(frame, VkDescriptorSetLayoutBinding::create, VkDescriptorSetLayoutBinding.SIZEOF,
-								vkDescriptorSetLayoutBinding -> vkDescriptorSetLayoutBinding.set(
-										0,
-										VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-										1,
-										VK_SHADER_STAGE_VERTEX_BIT,
-										null
-								)
-					)
-			
-			), device, new Object[] {this});
+			descriptorSetLayout = VkDescriptorSetLayout.alloc(device, 0, new VkDescriptorSetBinding[] {
+					new VkDescriptorSetBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT)
+			}, new Object[] {this});
 		}
 		
 		try (AllocatorFrame frame = Allocator.frame()) {
