@@ -44,5 +44,8 @@ public class Triangle {
 		this.color = new Point3D((float) Math.round(Math.random() * 100) / 100, (float) Math.round(Math.random() * 100) / 100, (float) Math.round(Math.random() * 100) / 100);
 		//System.out.println(color.toString());
 	}
-
+	
+	public boolean contains(Point3D p) {
+		return this.p0 == p || this.p1 == p || this.p2 == p;
+	}
 }

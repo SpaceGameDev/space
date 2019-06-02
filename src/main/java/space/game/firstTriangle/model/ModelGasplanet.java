@@ -1,74 +1,30 @@
 package space.game.firstTriangle.model;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-
 import space.game.firstTriangle.entity.Model;
 import space.game.firstTriangle.entity.Point3D;
 import space.game.firstTriangle.entity.Triangle;
 
-public class ModelAsteroids {
+import java.util.ArrayList;
+import java.util.List;
+
+public class ModelGasplanet {
 	
-	public static Result generateAsteroid(float r, float[] config) {
-		return generateAsteroid2(r, config, System.currentTimeMillis());
-	}
-	
-	public static Result generateAsteroid(float r, float[] config, long seed) {
-		Random rand = new Random(seed);
-//		float randomValue = rand.nextFloat() * config[0]
-		return new Result(
-				new float[] {
-						0, -1, 0, 0, 0, 1, 1.0f, 1.0f, 1.0f,
-						1, 1, 0, 0, 0, 1, 0.0f, 1.0f, 0.0f,
-						-1, 1, 0, 0, 0, 1, 0.0f, 0.0f, 1.0f,
-						0, -1, 0, 0, 0, -1, 1.0f, 1.0f, 1.0f,
-						-1, 1, 0, 0, 0, -1, 0.0f, 0.0f, 1.0f,
-						1, 1, 0, 0, 0, -1, 0.0f, 1.0f, 0.0f,
-				},
-				new int[] {
-						0, 1, 2, 3, 4, 5
-				}
-		);
-	}
-	
-	public static Result generateAsteroid2(float r, float[] config, long seed) {
-		Random rand = new Random(seed);
+	public static float[] generateGasplanet (float r, int iterations, boolean normalFaceFloats){
 		Model m = generateIcosphere(r);
-		
-		for(int i = 0; i < config.length; i++) {
-			Map<String, Point3D> dictionary = new HashMap<>();
+		for(int i = 0; i < iterations; i++) {
 			List<Triangle> triangles = m.get();
 			List<Triangle> newTriangles = new ArrayList<>();
 			for(Triangle triangle : triangles) {
 				Point3D a = Point3D.getMiddlePoint(triangle.p0, triangle.p1);
 				Point3D b = Point3D.getMiddlePoint(triangle.p1, triangle.p2);
 				Point3D c = Point3D.getMiddlePoint(triangle.p2, triangle.p0);
+				a.multiply(r / (float)a.length());
+				b.multiply(r / (float)b.length());
+				c.multiply(r / (float)c.length());
 				
-				if(dictionary.containsKey(a.toString())){
-					a = dictionary.get(a.toString());
-				}else{
-					String key = a.toString();
-					a.multiply(1f + rand.nextFloat() * config[i]);
-					dictionary.put(key, a);
-				}
-				if(dictionary.containsKey(b.toString())){
-					b = dictionary.get(b.toString());
-				}else{
-					String key = b.toString();
-					b.multiply(1f + rand.nextFloat() * config[i]);
-					dictionary.put(key, b);
-				}
-				
-				if(dictionary.containsKey(c.toString())){
-					c = dictionary.get(c.toString());
-				}else{
-					String key = c.toString();
-					c.multiply(1f + rand.nextFloat() * config[i]);
-					dictionary.put(key, c);
-				}
+				//a.divide((float)a.length());
+				//b.divide((float)b.length());
+				//c.divide((float)c.length());
 				newTriangles.add(new Triangle(triangle.p0, c, a));
 				newTriangles.add(new Triangle(triangle.p1, a, b));
 				newTriangles.add(new Triangle(triangle.p2, b, c));
@@ -77,18 +33,19 @@ public class ModelAsteroids {
 			m.set(newTriangles);
 		}
 		
-		return new Result (
-				m.getFloats(),
-				m.getIndices()
-		);
+		if(normalFaceFloats) {
+			return m.getNormalFaceFloats();
+		}else{
+			return m.getFloats();
+			
+		}
 	}
 	
-	
-	
 	public static Model generateIcosphere(float radius) {
-		List<Point3D> points = new ArrayList<>();
+		
 		float longerSide = (float) (2.0f * radius / Math.sqrt(5.0f));
 		float shorterSide = longerSide / 2.0f;
+		List<Point3D> points = new ArrayList<>();
 		//var t = (float) (radius + Math.sqrt(5.0)) / 2.0f; //radius; //(float) Math.sqrt(Math.pow(radius, 2) - (Math.pow(radius/2, 2))); //(1.0f + Math.sqrt(radius)) / 2.0f;
 		points.add(0, new Point3D(-shorterSide, longerSide, 0));
 		points.add(1, new Point3D(shorterSide, longerSide, 0));
@@ -106,21 +63,8 @@ public class ModelAsteroids {
 		points.add(11, new Point3D(-longerSide, 0, shorterSide));
 		
 		Model m = new Model();
-		
-		/*m.add(new Triangle(
-				new Point3D(0, -1, 0),
-				new Point3D(1, 1, 0),
-				new Point3D(-1, 1, 0),
-				new Point3D(0, 0, 1f),
-				new Point3D(1,1,1)
-		));*/
-		
-		/*m.add(new Triangle(
-				new Point3D(0, -1, 0),
-				new Point3D(1, 1, 0),
-				new Point3D(-1, 1, 0)
-		));*/
 	
+		
 		m.add(new Triangle(points.get(0), points.get(5), points.get(11)));
 		m.add(new Triangle(points.get(0), points.get(1), points.get(5)));
 		m.add(new Triangle(points.get(0), points.get(7), points.get(1)));
@@ -146,23 +90,5 @@ public class ModelAsteroids {
 		m.add(new Triangle(points.get(8), points.get(7), points.get(6)));
 		m.add(new Triangle(points.get(9), points.get(1), points.get(8)));
 		return m;
-	}
-	
-	
-	
-	public static class Result {
-		
-		//layout: 3f vertex, 3f normal, 3f color
-		public final float[] vertices;
-		public final int[] indices;
-		
-		public Result(float[] vertices, int[] indices) {
-			this.vertices = vertices;
-			this.indices = indices;
-		}
-		
-		public float[] unpackIndexBuffer() {
-			return UnpackIndexBuffer.unpackIndexBuffer(vertices, 0, 9, indices);
-		}
 	}
 }
