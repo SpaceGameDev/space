@@ -1,14 +1,14 @@
 package space.game.firstTriangle.model;
 
+import space.game.firstTriangle.entity.Model;
+import space.game.firstTriangle.entity.Point3D;
+import space.game.firstTriangle.entity.Triangle;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
-
-import space.game.firstTriangle.entity.Model;
-import space.game.firstTriangle.entity.Point3D;
-import space.game.firstTriangle.entity.Triangle;
 
 public class ModelAsteroids {
 	
@@ -69,10 +69,10 @@ public class ModelAsteroids {
 					c.multiply(1f + rand.nextFloat() * config[i]);
 					dictionary.put(key, c);
 				}
-				newTriangles.add(new Triangle(triangle.p0, c, a));
-				newTriangles.add(new Triangle(triangle.p1, a, b));
-				newTriangles.add(new Triangle(triangle.p2, b, c));
-				newTriangles.add(new Triangle(a, c, b));
+				newTriangles.add(new Triangle(triangle.p0, a, c));
+				newTriangles.add(new Triangle(triangle.p1, b, a));
+				newTriangles.add(new Triangle(triangle.p2, c, b));
+				newTriangles.add(new Triangle(a, b, c));
 			}
 			m.set(newTriangles);
 		}
@@ -121,30 +121,30 @@ public class ModelAsteroids {
 				new Point3D(-1, 1, 0)
 		));*/
 	
-		m.add(new Triangle(points.get(0), points.get(5), points.get(11)));
-		m.add(new Triangle(points.get(0), points.get(1), points.get(5)));
-		m.add(new Triangle(points.get(0), points.get(7), points.get(1)));
-		m.add(new Triangle(points.get(0), points.get(10), points.get(7)));
-		m.add(new Triangle(points.get(0), points.get(11), points.get(10)));
+		m.add(new Triangle(points.get(0), points.get(11), points.get(5)));
+		m.add(new Triangle(points.get(0), points.get(5), points.get(1)));
+		m.add(new Triangle(points.get(0), points.get(1), points.get(7)));
+		m.add(new Triangle(points.get(0), points.get(7), points.get(10)));
+		m.add(new Triangle(points.get(0), points.get(10), points.get(11)));
 		
-		m.add(new Triangle(points.get(1), points.get(9), points.get(5)));
-		m.add(new Triangle(points.get(5), points.get(4), points.get(11)));
-		m.add(new Triangle(points.get(11), points.get(2), points.get(10)));
-		m.add(new Triangle(points.get(10), points.get(6), points.get(7)));
-		m.add(new Triangle(points.get(7), points.get(8), points.get(1)));
+		m.add(new Triangle(points.get(1), points.get(5), points.get(9)));
+		m.add(new Triangle(points.get(5), points.get(11), points.get(4)));
+		m.add(new Triangle(points.get(11), points.get(10), points.get(2)));
+		m.add(new Triangle(points.get(10), points.get(7), points.get(6)));
+		m.add(new Triangle(points.get(7), points.get(1), points.get(8)));
 		
-		m.add(new Triangle(points.get(3), points.get(4), points.get(9)));
-		m.add(new Triangle(points.get(3), points.get(2), points.get(4)));
-		m.add(new Triangle(points.get(3), points.get(6), points.get(2)));
-		m.add(new Triangle(points.get(3), points.get(8), points.get(6)));
-		m.add(new Triangle(points.get(3), points.get(9), points.get(8)));
+		m.add(new Triangle(points.get(3), points.get(9), points.get(4)));
+		m.add(new Triangle(points.get(3), points.get(4), points.get(2)));
+		m.add(new Triangle(points.get(3), points.get(2), points.get(6)));
+		m.add(new Triangle(points.get(3), points.get(6), points.get(8)));
+		m.add(new Triangle(points.get(3), points.get(8), points.get(9)));
 		
 		
-		m.add(new Triangle(points.get(4), points.get(5), points.get(9)));
-		m.add(new Triangle(points.get(2), points.get(11), points.get(4)));
-		m.add(new Triangle(points.get(6), points.get(10), points.get(2)));
-		m.add(new Triangle(points.get(8), points.get(7), points.get(6)));
-		m.add(new Triangle(points.get(9), points.get(1), points.get(8)));
+		m.add(new Triangle(points.get(4), points.get(9), points.get(5)));
+		m.add(new Triangle(points.get(2), points.get(4), points.get(11)));
+		m.add(new Triangle(points.get(6), points.get(2), points.get(10)));
+		m.add(new Triangle(points.get(8), points.get(6), points.get(7)));
+		m.add(new Triangle(points.get(9), points.get(8), points.get(1)));
 		return m;
 	}
 	
