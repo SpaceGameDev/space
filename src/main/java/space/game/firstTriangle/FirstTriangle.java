@@ -2,19 +2,12 @@ package space.game.firstTriangle;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.lwjgl.util.vma.VmaAllocationCreateInfo;
-import org.lwjgl.util.vma.VmaAllocatorCreateInfo;
-import org.lwjgl.util.vma.VmaVulkanFunctions;
 import org.lwjgl.vulkan.EXTDebugUtils;
-import org.lwjgl.vulkan.VkBufferCreateInfo;
 import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
 import org.lwjgl.vulkan.VkDescriptorBufferInfo;
-import org.lwjgl.vulkan.VkDescriptorPoolCreateInfo;
-import org.lwjgl.vulkan.VkDescriptorPoolSize;
 import org.lwjgl.vulkan.VkExtent2D;
 import org.lwjgl.vulkan.VkOffset2D;
 import org.lwjgl.vulkan.VkRect2D;
-import org.lwjgl.vulkan.VkSemaphoreCreateInfo;
 import org.lwjgl.vulkan.VkWriteDescriptorSet;
 import space.engine.Side;
 import space.engine.buffer.Allocator;
@@ -31,6 +24,7 @@ import space.engine.logger.LogLevel;
 import space.engine.logger.Logger;
 import space.engine.observable.NoUpdate;
 import space.engine.observable.ObservableReference;
+import space.engine.sync.DelayTask;
 import space.engine.sync.barrier.Barrier;
 import space.engine.sync.barrier.BarrierImpl;
 import space.engine.sync.future.Future;
@@ -39,13 +33,13 @@ import space.engine.vector.Matrix4f;
 import space.engine.vector.ProjectionMatrix;
 import space.engine.vector.Quaternionf;
 import space.engine.vector.Vector3f;
+import space.engine.vulkan.VkBuffer;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
 import space.engine.vulkan.VkInstanceExtensions;
 import space.engine.vulkan.VkInstanceValidationLayers;
+import space.engine.vulkan.VkMappedBuffer;
 import space.engine.vulkan.VkPhysicalDevice;
-import space.engine.vulkan.VkSemaphore;
-import space.engine.vulkan.descriptors.VkDescriptorPool;
 import space.engine.vulkan.managed.descriptorSet.ManagedDescriptorSetPool;
 import space.engine.vulkan.managed.device.ManagedDevice;
 import space.engine.vulkan.managed.device.ManagedDeviceSingleQueue;
@@ -57,8 +51,8 @@ import space.engine.vulkan.managed.surface.ManagedSwapchain;
 import space.engine.vulkan.surface.VkSurface;
 import space.engine.vulkan.surface.glfw.VkSurfaceGLFW;
 import space.engine.vulkan.util.FpsRenderer;
-import space.engine.vulkan.vma.VkBuffer;
-import space.engine.vulkan.vma.VmaAllocator;
+import space.engine.vulkan.vma.VmaBuffer;
+import space.engine.vulkan.vma.VmaMappedBuffer;
 import space.engine.window.InputDevice.Keyboard;
 import space.engine.window.InputDevice.Mouse;
 import space.engine.window.Keycode;
@@ -89,6 +83,7 @@ import static org.lwjgl.util.vma.Vma.VMA_MEMORY_USAGE_CPU_TO_GPU;
 import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
+import static space.engine.buffer.Allocator.heap;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.engine.primitive.Primitives.FP32;
 import static space.engine.sync.Tasks.future;
@@ -186,26 +181,6 @@ public class FirstTriangle implements Runnable {
 					new Object[] {side}
 			);
 			
-			//vmaAllocator
-			VmaAllocator vmaAllocator;
-			try (AllocatorFrame frame = Allocator.frame()) {
-				vmaAllocator = VmaAllocator.alloc(mallocStruct(frame, VmaAllocatorCreateInfo::create, VmaAllocatorCreateInfo.SIZEOF).set(
-						0,
-						device.physicalDevice(),
-						device,
-						0,
-						null,
-						null,
-						0,
-						null,
-						mallocStruct(frame, VmaVulkanFunctions::create, VmaVulkanFunctions.SIZEOF).set(
-								instance,
-								device
-						),
-						null
-				), device, new Object[] {side});
-			}
-			
 			//windowContext
 			AttributeList<WindowContext> windowContextAtt;
 			{
@@ -279,70 +254,34 @@ public class FirstTriangle implements Runnable {
 			//vertex buffer
 			ObservableReference<Integer> modelId = new ObservableReference<>(0);
 			ObservableReference<float[]> vertexData = ObservableReference.generatingReference(() -> MODELS[modelId.assertGet()], modelId);
-			ObservableReference<VkBuffer> vertexBuffer = ObservableReference.generatingReference(() -> {
+			ObservableReference<VmaBuffer> vertexBuffer = ObservableReference.generatingReference(() -> {
 				float[] data = vertexData.assertGet();
-				
-				try (AllocatorFrame frame = Allocator.frame()) {
-					return VkBuffer.alloc(mallocStruct(frame, VkBufferCreateInfo::create, VkBufferCreateInfo.SIZEOF).set(
-							VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-							0,
-							0,
-							FP32.multiply(data.length),
-							VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-							VK_SHARING_MODE_EXCLUSIVE,
-							null
-					), mallocStruct(frame, VmaAllocationCreateInfo::create, VmaAllocationCreateInfo.SIZEOF).set(
-							0,
-							VMA_MEMORY_USAGE_CPU_TO_GPU,
-							0,
-							0,
-							0,
-							0,
-							0
-					), vmaAllocator, ArrayBufferFloat.alloc(Allocator.heap(), data, new Object[] {frame}), new Object[] {side});
-				}
+				VmaBuffer vkBuffer = VmaBuffer.alloc(
+						0,
+						FP32.multiply(data.length),
+						VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+						0,
+						0,
+						device,
+						new Object[] {side}
+				);
+				ArrayBufferFloat dataBuffer = ArrayBufferFloat.alloc(heap(), data, EMPTY_OBJECT_ARRAY);
+				Barrier barrierDataUploaded = vkBuffer.uploadData(dataBuffer);
+				barrierDataUploaded.addHook(dataBuffer::free);
+				throw new DelayTask(barrierDataUploaded.toFuture(() -> vkBuffer));
 			}, vertexData);
 			
 			//uniform buffer
-			VkBuffer uniformBuffer;
-			Buffer uniformBufferMapped;
-			try (AllocatorFrame frame = Allocator.frame()) {
-				uniformBuffer = VkBuffer.alloc(mallocStruct(frame, VkBufferCreateInfo::create, VkBufferCreateInfo.SIZEOF).set(
-						VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-						0,
-						0,
-						FP32.multiply(3 * 16 + 3),
-						VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-						VK_SHARING_MODE_EXCLUSIVE,
-						null
-				), mallocStruct(frame, VmaAllocationCreateInfo::create, VmaAllocationCreateInfo.SIZEOF).set(
-						0,
-						VMA_MEMORY_USAGE_CPU_TO_GPU,
-						0,
-						0,
-						0,
-						0,
-						0
-				), vmaAllocator, new Object[] {side});
-				uniformBufferMapped = uniformBuffer.mapMemory(new Object[] {side});
-			}
-			
-			//descriptor pool
-			VkDescriptorPool descriptorPool;
-			try (AllocatorFrame frame = Allocator.frame()) {
-				descriptorPool = VkDescriptorPool.alloc(mallocStruct(frame, VkDescriptorPoolCreateInfo::create, VkDescriptorPoolCreateInfo.SIZEOF).set(
-						VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-						0,
-						0,
-						framesInFlight,
-						allocBuffer(frame, VkDescriptorPoolSize::create, VkDescriptorPoolSize.SIZEOF,
-									vkDescriptorPoolSize -> vkDescriptorPoolSize.set(
-											VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-											framesInFlight
-									)
-						)
-				), device, new Object[] {side});
-			}
+			VkMappedBuffer uniformBuffer = VmaMappedBuffer.alloc(
+					0,
+					FP32.multiply(3 * 16 + 3),
+					VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+					0,
+					VMA_MEMORY_USAGE_CPU_TO_GPU,
+					device,
+					new Object[] {side}
+			);
+			Buffer uniformBufferMapped = uniformBuffer.mapMemory(new Object[] {side});
 			
 			//descriptor set
 			ManagedDescriptorSetPool firstTrianglePipelineRenderDescriptorSet;
@@ -385,14 +324,14 @@ public class FirstTriangle implements Runnable {
 			ObservableReference<VkCommandBuffer> commandBuffers = ObservableReference.generatingReference(() -> {
 				VkBuffer vkBuffer = vertexBuffer.assertGet();
 				
-				VkCommandBuffer commandBuffer = commandPool.allocCmdBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY, new Object[] {side});
-				commandBuffer.beginCommandBuffer(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT, firstTriangleRenderPass.renderPass().subpasses()[0].inheritanceInfo());
+				VkCommandBuffer commandBuffer = commandPool.allocCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY, new Object[] {side});
+				commandBuffer.begin(VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT, firstTriangleRenderPass.renderPass().subpasses()[0].inheritanceInfo());
 				
 				firstTrianglePipelineRender.bindPipeline(commandBuffer, firstTrianglePipelineRenderDescriptorSet.sets()[0]);
 				vkCmdBindVertexBuffers(commandBuffer, 0, new long[] {vkBuffer.address()}, new long[] {0});
 				vkCmdDraw(commandBuffer, (int) (vkBuffer.sizeOf() / FP32.multiply(9)), 1, 0, 0);
 				
-				commandBuffer.endCommandBuffer();
+				commandBuffer.end();
 				return commandBuffer;
 			}, vertexBuffer);
 			
@@ -419,18 +358,6 @@ public class FirstTriangle implements Runnable {
 				
 				}
 			});
-			
-			//synchronization
-			VkSemaphore semaphoreImageAvailable, semaphoreRenderFinished;
-			try (AllocatorFrame frame = Allocator.frame()) {
-				VkSemaphoreCreateInfo semaphoreInfo = mallocStruct(frame, VkSemaphoreCreateInfo::create, VkSemaphoreCreateInfo.SIZEOF).set(
-						VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-						0,
-						0
-				);
-				semaphoreImageAvailable = VkSemaphore.alloc(semaphoreInfo, device, new Object[] {side});
-				semaphoreRenderFinished = VkSemaphore.alloc(semaphoreInfo, device, new Object[] {side});
-			}
 			
 			//inputs
 			BarrierImpl isRunning = new BarrierImpl();
@@ -463,17 +390,15 @@ public class FirstTriangle implements Runnable {
 			
 			float speedMouse = 0.008f;
 			float speedMovement = 0.05f;
-			mouses.forEach(mouse -> {
-				mouse.getMouseMovementEvent().addHook((absolute, relative) -> {
-					Objects.requireNonNull(relative);
-					Quaternionf rotation = new Quaternionf();
-					if (relative[0] != 0)
-						rotation.multiply(new AxisAndAnglef(0, -1, 0, (float) relative[0] * speedMouse));
-					if (relative[1] != 0)
-						rotation.multiply(new AxisAndAnglef(1, 0, 0, (float) relative[1] * speedMouse));
-					camera.rotateRelative(rotation);
-				});
-			});
+			mouses.forEach(mouse -> mouse.getMouseMovementEvent().addHook((absolute, relative) -> {
+				Objects.requireNonNull(relative);
+				Quaternionf rotation = new Quaternionf();
+				if (relative[0] != 0)
+					rotation.multiply(new AxisAndAnglef(0, -1, 0, (float) relative[0] * speedMouse));
+				if (relative[1] != 0)
+					rotation.multiply(new AxisAndAnglef(1, 0, 0, (float) relative[1] * speedMouse));
+				camera.rotateRelative(rotation);
+			}));
 			
 			FpsRenderer<FirstTriangleInfos> fpsRenderer = null;
 			try {
