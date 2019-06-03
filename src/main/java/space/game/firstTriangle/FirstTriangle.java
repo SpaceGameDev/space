@@ -237,7 +237,7 @@ public class FirstTriangle implements Runnable {
 			);
 			int framesInFlight = 1;
 			
-			FirstTriangleRenderPass firstTriangleRenderPass = new FirstTriangleRenderPass(device, swapExtend, swapchain.imageFormat()[0], new Object[] {side});
+			FirstTriangleRenderPass firstTriangleRenderPass = new FirstTriangleRenderPass(device, swapExtend, swapchain.imageFormat(), new Object[] {side});
 			FirstTrianglePipelineRender firstTrianglePipelineRender = new FirstTrianglePipelineRender(firstTriangleRenderPass, new Object[] {side});
 			ManagedFrameBuffer<FirstTriangleInfos> frameBuffer = new ManagedFrameBuffer<>(
 					firstTriangleRenderPass.renderPass(),
