@@ -32,6 +32,7 @@ import space.engine.logger.Logger;
 import space.engine.observable.NoUpdate;
 import space.engine.observable.ObservableReference;
 import space.engine.sync.barrier.Barrier;
+import space.engine.sync.barrier.BarrierImpl;
 import space.engine.sync.future.Future;
 import space.engine.vector.AxisAndAnglef;
 import space.engine.vector.Matrix4f;
@@ -55,6 +56,7 @@ import space.engine.vulkan.managed.renderPass.ManagedRenderPass.Callback;
 import space.engine.vulkan.managed.surface.ManagedSwapchain;
 import space.engine.vulkan.surface.VkSurface;
 import space.engine.vulkan.surface.glfw.VkSurfaceGLFW;
+import space.engine.vulkan.util.FpsRenderer;
 import space.engine.vulkan.vma.VkBuffer;
 import space.engine.vulkan.vma.VmaAllocator;
 import space.engine.window.InputDevice.Keyboard;
@@ -86,10 +88,10 @@ import java.util.stream.IntStream;
 import static org.lwjgl.util.vma.Vma.VMA_MEMORY_USAGE_CPU_TO_GPU;
 import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 import static org.lwjgl.vulkan.VK10.*;
+import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.engine.primitive.Primitives.FP32;
 import static space.engine.sync.Tasks.future;
-import static space.engine.sync.barrier.Barrier.*;
 import static space.engine.vector.AxisAndAnglef.toRadians;
 import static space.engine.vulkan.managed.device.ManagedDevice.*;
 import static space.engine.window.Keycode.*;
@@ -431,8 +433,8 @@ public class FirstTriangle implements Runnable {
 			}
 			
 			//inputs
-			boolean[] isRunning = {true};
-			window.getWindowCloseEvent().addHook(window1 -> isRunning[0] = false);
+			BarrierImpl isRunning = new BarrierImpl();
+			window.getWindowCloseEvent().addHook(window1 -> isRunning.triggerNow());
 			List<Keyboard> keyboards = windowContext.getInputDevices().stream().filter(dev -> dev instanceof Keyboard).map(Keyboard.class::cast).collect(Collectors.toUnmodifiableList());
 			List<Mouse> mouses = windowContext.getInputDevices().stream().filter(dev -> dev instanceof Mouse).map(Mouse.class::cast).collect(Collectors.toUnmodifiableList());
 			keyboards.forEach(
@@ -473,65 +475,52 @@ public class FirstTriangle implements Runnable {
 				});
 			});
 			
-			//main loop
-			Barrier barrierFrameDone = ALWAYS_TRIGGERED_BARRIER;
-			while (isRunning[0]) {
-				keyboards.forEach(keyboard -> {
-					Vector3f translation = new Vector3f();
-					Quaternionf rotation = new Quaternionf();
-					if (keyboard.isKeyDown(KEY_A))
-						translation.add(new Vector3f(-speedMovement, 0, 0));
-					else if (keyboard.isKeyDown(KEY_D))
-						translation.add(new Vector3f(speedMovement, 0, 0));
-					else if (keyboard.isKeyDown(KEY_R) || keyboard.isKeyDown(KEY_SPACE))
-						translation.add(new Vector3f(0, -speedMovement, 0));
-					else if (keyboard.isKeyDown(KEY_F) || keyboard.isKeyDown(KEY_LEFT_SHIFT))
-						translation.add(new Vector3f(0, speedMovement, 0));
-					else if (keyboard.isKeyDown(KEY_W))
-						translation.add(new Vector3f(0, 0, -speedMovement));
-					else if (keyboard.isKeyDown(KEY_S))
-						translation.add(new Vector3f(0, 0, speedMovement));
-					else if (keyboard.isKeyDown(KEY_Q))
-						rotation.multiply(new AxisAndAnglef(0, 0, 1, toRadians(-2)));
-					else if (keyboard.isKeyDown(KEY_E))
-						rotation.multiply(new AxisAndAnglef(0, 0, 1, toRadians(2)));
-					camera.rotateRelative(rotation);
-					camera.translateRelative(translation);
-				});
-				
-				barrierFrameDone.awaitUninterrupted();
-				
-				try (AllocatorFrame frame = Allocator.frame()) {
-					int imageIndex = swapchain.acquire(Long.MAX_VALUE, semaphoreImageAvailable, null);
+			FpsRenderer<FirstTriangleInfos> fpsRenderer = null;
+			try {
+				fpsRenderer = new FpsRenderer<>(swapchain, frameBuffer, (imageIndex, timeMillis) -> {
 					
-					Matrix4f matrixModel = camera.toMatrix4Inverse(new Matrix4f());
-					float[] translation = new float[3 * 16 + 3];
-					matrixPerspective.write(translation, 0);
-					matrixModel.write(translation, 16);
-					new Matrix4f(matrixModel).inversePure().write(translation, 32);
-					camera.position.write(translation, 48);
-					ArrayBufferFloat translationMatrix = ArrayBufferFloat.alloc(frame, translation);
-					Buffer.copyMemory(translationMatrix, 0, uniformBufferMapped, 0, translationMatrix.sizeOf());
+					keyboards.forEach(keyboard -> {
+						Vector3f translation = new Vector3f();
+						Quaternionf rotation = new Quaternionf();
+						if (keyboard.isKeyDown(KEY_A))
+							translation.add(new Vector3f(-speedMovement, 0, 0));
+						else if (keyboard.isKeyDown(KEY_D))
+							translation.add(new Vector3f(speedMovement, 0, 0));
+						else if (keyboard.isKeyDown(KEY_R) || keyboard.isKeyDown(KEY_SPACE))
+							translation.add(new Vector3f(0, -speedMovement, 0));
+						else if (keyboard.isKeyDown(KEY_F) || keyboard.isKeyDown(KEY_LEFT_SHIFT))
+							translation.add(new Vector3f(0, speedMovement, 0));
+						else if (keyboard.isKeyDown(KEY_W))
+							translation.add(new Vector3f(0, 0, -speedMovement));
+						else if (keyboard.isKeyDown(KEY_S))
+							translation.add(new Vector3f(0, 0, speedMovement));
+						else if (keyboard.isKeyDown(KEY_Q))
+							rotation.multiply(new AxisAndAnglef(0, 0, 1, toRadians(-2)));
+						else if (keyboard.isKeyDown(KEY_E))
+							rotation.multiply(new AxisAndAnglef(0, 0, 1, toRadians(2)));
+						camera.rotateRelative(rotation);
+						camera.translateRelative(translation);
+					});
 					
-					Future<Barrier> frameDone = frameBuffer.render(
-							new FirstTriangleInfos(imageIndex),
-							new VkSemaphore[] {semaphoreImageAvailable},
-							new int[] {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT},
-							new VkSemaphore[] {semaphoreRenderFinished}
-					);
-					Barrier presentDone = swapchain.present(new VkSemaphore[] {semaphoreRenderFinished}, imageIndex).submit(frameDone);
+					try (AllocatorFrame frame = Allocator.frame()) {
+						Matrix4f matrixModel = camera.toMatrix4Inverse(new Matrix4f());
+						float[] translation = new float[3 * 16 + 3];
+						matrixPerspective.write(translation, 0);
+						matrixModel.write(translation, 16);
+						new Matrix4f(matrixModel).inversePure().write(translation, 32);
+						camera.position.write(translation, 48);
+						ArrayBufferFloat translationMatrix = ArrayBufferFloat.alloc(frame, translation);
+						Buffer.copyMemory(translationMatrix, 0, uniformBufferMapped, 0, translationMatrix.sizeOf());
+					}
 					
-					Barrier pollEventsBarrier = window.pollEventsTask();
-					barrierFrameDone = awaitAll(innerBarrier(frameDone), presentDone, pollEventsBarrier);
-				}
-				
-				try {
-					Thread.sleep(1000L / 60);
-				} catch (InterruptedException ignored) {
-				
-				}
+					FirstTriangleInfos infos = new FirstTriangleInfos(imageIndex);
+					return window.pollEventsTask().toFuture(() -> infos);
+				}, 60, EMPTY_OBJECT_ARRAY);
+				isRunning.awaitUninterrupted();
+			} finally {
+				if (fpsRenderer != null)
+					fpsRenderer.free().awaitUninterrupted();
 			}
-			awaitAll(barrierFrameDone).awaitUninterrupted();
 			
 			logger.log(LogLevel.INFO, "Exit!");
 		} finally {
