@@ -6,12 +6,13 @@ import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.vulkan.managed.device.ManagedDevice;
 import space.engine.vulkan.managed.renderPass.ManagedRenderPass;
-import space.engine.vulkan.managed.renderPass.ManagedRenderPass.*;
+import space.engine.vulkan.managed.renderPass.ManagedRenderPass.Attachment;
 import space.engine.vulkan.managed.renderPass.ManagedRenderPass.Attachment.Reference;
+import space.engine.vulkan.managed.renderPass.ManagedRenderPass.Subpass;
+import space.engine.vulkan.managed.renderPass.ManagedRenderPass.SubpassDependency;
 
 import static org.lwjgl.vulkan.KHRSwapchain.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 import static org.lwjgl.vulkan.VK10.*;
-import static space.engine.vulkan.managed.renderPass.ManagedRenderPass.*;
 
 public class FirstTriangleRenderPass implements FreeableWrapper {
 	
@@ -21,7 +22,7 @@ public class FirstTriangleRenderPass implements FreeableWrapper {
 		this.storage = Freeable.createDummy(this, parents);
 		
 		//renderPass
-		Attachment attachmentOutputColor = new Attachment(
+		attachmentOutputColor = new Attachment(
 				0,
 				outputImageFormat,
 				VK_SAMPLE_COUNT_1_BIT,
@@ -32,16 +33,28 @@ public class FirstTriangleRenderPass implements FreeableWrapper {
 				VK_IMAGE_LAYOUT_UNDEFINED,
 				VK_IMAGE_LAYOUT_PRESENT_SRC_KHR
 		);
-		Subpass subpassRender = new Subpass(
+		attachmentDepth = new Attachment(
+				0,
+				VK_FORMAT_D32_SFLOAT,
+				VK_SAMPLE_COUNT_1_BIT,
+				VK_ATTACHMENT_LOAD_OP_CLEAR,
+				VK_ATTACHMENT_STORE_OP_STORE,
+				VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+				VK_ATTACHMENT_STORE_OP_DONT_CARE,
+				VK_IMAGE_LAYOUT_UNDEFINED,
+				VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+				1.0f
+		);
+		subpassRender = new Subpass(
 				0,
 				VK_PIPELINE_BIND_POINT_GRAPHICS,
-				EMPTY_REFERENCE_ARRAY,
-				new Reference[] {attachmentOutputColor.reference(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)},
-				EMPTY_REFERENCE_ARRAY,
 				null,
-				EMPTY_ATTACHMENT_ARRAY
+				new Reference[] {attachmentOutputColor.reference(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)},
+				null,
+				attachmentDepth.reference(VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL),
+				null
 		);
-		SubpassDependency subpassDependencyRenderAttachmentOutputColor = new SubpassDependency(
+		dependencySubpassRenderAttachmentOutputColorExternal = new SubpassDependency(
 				null,
 				subpassRender,
 				VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
@@ -50,15 +63,29 @@ public class FirstTriangleRenderPass implements FreeableWrapper {
 				VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
 				0
 		);
+		dependencySubpassRenderAttachmentDepthExternal = new SubpassDependency(
+				null,
+				subpassRender,
+				VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+				VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+				0,
+				VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+				0
+		);
 		
 		this.renderPass = ManagedRenderPass.alloc(device, new Attachment[] {
-				attachmentOutputColor
+				attachmentOutputColor, attachmentDepth
 		}, new Subpass[] {
 				subpassRender
 		}, new SubpassDependency[] {
-				subpassDependencyRenderAttachmentOutputColor
+				dependencySubpassRenderAttachmentOutputColorExternal, dependencySubpassRenderAttachmentDepthExternal
 		}, new Object[] {this});
 	}
+	
+	//components
+	public final Attachment attachmentOutputColor, attachmentDepth;
+	public final Subpass subpassRender;
+	public final SubpassDependency dependencySubpassRenderAttachmentOutputColorExternal, dependencySubpassRenderAttachmentDepthExternal;
 	
 	//parents
 	private final ManagedDevice device;

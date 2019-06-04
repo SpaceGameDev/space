@@ -36,6 +36,7 @@ import space.engine.vector.Vector3f;
 import space.engine.vulkan.VkBuffer;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
+import space.engine.vulkan.VkImageView;
 import space.engine.vulkan.VkInstanceExtensions;
 import space.engine.vulkan.VkInstanceValidationLayers;
 import space.engine.vulkan.VkMappedBuffer;
@@ -52,6 +53,7 @@ import space.engine.vulkan.surface.VkSurface;
 import space.engine.vulkan.surface.glfw.VkSurfaceGLFW;
 import space.engine.vulkan.util.FpsRenderer;
 import space.engine.vulkan.vma.VmaBuffer;
+import space.engine.vulkan.vma.VmaImage;
 import space.engine.vulkan.vma.VmaMappedBuffer;
 import space.engine.window.InputDevice.Keyboard;
 import space.engine.window.InputDevice.Mouse;
@@ -79,7 +81,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.lwjgl.util.vma.Vma.VMA_MEMORY_USAGE_CPU_TO_GPU;
+import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
@@ -239,11 +241,42 @@ public class FirstTriangle implements Runnable {
 			
 			FirstTriangleRenderPass firstTriangleRenderPass = new FirstTriangleRenderPass(device, swapExtend, swapchain.imageFormat(), new Object[] {side});
 			FirstTrianglePipelineRender firstTrianglePipelineRender = new FirstTrianglePipelineRender(firstTriangleRenderPass, new Object[] {side});
+			
+			VmaImage depthImage = VmaImage.alloc(
+					0,
+					VK_IMAGE_TYPE_2D,
+					VK_FORMAT_D32_SFLOAT,
+					swapchain.width(),
+					swapchain.height(),
+					1,
+					1,
+					1,
+					1,
+					VK_IMAGE_TILING_OPTIMAL,
+					VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+					VK_IMAGE_LAYOUT_UNDEFINED,
+					VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT,
+					VMA_MEMORY_USAGE_GPU_ONLY,
+					device,
+					new Object[] {side}
+			);
+			VkImageView depthImageView = VkImageView.alloc(
+					depthImage,
+					0,
+					VK_IMAGE_VIEW_TYPE_2D,
+					VK_IMAGE_ASPECT_DEPTH_BIT,
+					0,
+					1,
+					0,
+					1,
+					new Object[] {side}
+			);
 			ManagedFrameBuffer<FirstTriangleInfos> frameBuffer = new ManagedFrameBuffer<>(
 					firstTriangleRenderPass.renderPass(),
 					device.getQueue(QUEUE_TYPE_GRAPHICS, QUEUE_FLAG_REALTIME_BIT),
 					new Object[] {
-							swapchain.imageViews()
+							swapchain.imageViews(),
+							depthImageView
 					},
 					swapExtend.extent().width(),
 					swapExtend.extent().height(),

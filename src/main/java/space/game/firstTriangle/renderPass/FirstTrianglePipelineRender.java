@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.lwjgl.vulkan.VkGraphicsPipelineCreateInfo;
 import org.lwjgl.vulkan.VkPipelineColorBlendAttachmentState;
 import org.lwjgl.vulkan.VkPipelineColorBlendStateCreateInfo;
+import org.lwjgl.vulkan.VkPipelineDepthStencilStateCreateInfo;
 import org.lwjgl.vulkan.VkPipelineInputAssemblyStateCreateInfo;
 import org.lwjgl.vulkan.VkPipelineLayoutCreateInfo;
 import org.lwjgl.vulkan.VkPipelineMultisampleStateCreateInfo;
@@ -12,6 +13,7 @@ import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo;
 import org.lwjgl.vulkan.VkPipelineVertexInputStateCreateInfo;
 import org.lwjgl.vulkan.VkPipelineViewportStateCreateInfo;
 import org.lwjgl.vulkan.VkRect2D;
+import org.lwjgl.vulkan.VkStencilOpState;
 import org.lwjgl.vulkan.VkVertexInputAttributeDescription;
 import org.lwjgl.vulkan.VkVertexInputBindingDescription;
 import org.lwjgl.vulkan.VkViewport;
@@ -177,7 +179,20 @@ public class FirstTrianglePipelineRender implements FreeableWrapper {
 							false,
 							false
 					),
-					null,
+					mallocStruct(frame, VkPipelineDepthStencilStateCreateInfo::create, VkPipelineDepthStencilStateCreateInfo.SIZEOF).set(
+							VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+							0,
+							0,
+							true,
+							true,
+							VK_COMPARE_OP_LESS,
+							false,
+							false,
+							callocStruct(frame, VkStencilOpState::create, VkStencilOpState.SIZEOF),
+							callocStruct(frame, VkStencilOpState::create, VkStencilOpState.SIZEOF),
+							0f,
+							1.0f
+					),
 					mallocStruct(frame, VkPipelineColorBlendStateCreateInfo::create, VkPipelineColorBlendStateCreateInfo.SIZEOF).set(
 							VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
 							0,
