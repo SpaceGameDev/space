@@ -1,12 +1,12 @@
 package space.game.firstTriangle.renderPass;
 
 import org.jetbrains.annotations.NotNull;
+import org.lwjgl.vulkan.VkDescriptorBufferInfo;
 import org.lwjgl.vulkan.VkGraphicsPipelineCreateInfo;
 import org.lwjgl.vulkan.VkPipelineColorBlendAttachmentState;
 import org.lwjgl.vulkan.VkPipelineColorBlendStateCreateInfo;
 import org.lwjgl.vulkan.VkPipelineDepthStencilStateCreateInfo;
 import org.lwjgl.vulkan.VkPipelineInputAssemblyStateCreateInfo;
-import org.lwjgl.vulkan.VkPipelineLayoutCreateInfo;
 import org.lwjgl.vulkan.VkPipelineMultisampleStateCreateInfo;
 import org.lwjgl.vulkan.VkPipelineRasterizationStateCreateInfo;
 import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo;
@@ -17,11 +17,11 @@ import org.lwjgl.vulkan.VkStencilOpState;
 import org.lwjgl.vulkan.VkVertexInputAttributeDescription;
 import org.lwjgl.vulkan.VkVertexInputBindingDescription;
 import org.lwjgl.vulkan.VkViewport;
+import org.lwjgl.vulkan.VkWriteDescriptorSet;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.StringConverter;
 import space.engine.buffer.array.ArrayBufferFloat;
-import space.engine.buffer.array.ArrayBufferLong;
 import space.engine.buffer.pointer.PointerBufferLong;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
@@ -41,37 +41,26 @@ import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.engine.primitive.Primitives.FP32;
 
-public class FirstTrianglePipelineRender implements FreeableWrapper {
+public class AsteroidPipeline implements FreeableWrapper {
 	
-	public FirstTrianglePipelineRender(@NotNull FirstTriangleRenderPass renderPass, @NotNull Object[] parents) {
+	public AsteroidPipeline(@NotNull AsteroidDemoRenderPass renderPass, @NotNull Object[] parents) {
 		this.renderPass = renderPass;
 		this.storage = Freeable.createDummy(this, parents);
 		
 		ManagedDevice device = renderPass.device();
 		VkRect2D swapExtend = renderPass.swapExtend();
 		
-		try (AllocatorFrame frame = Allocator.frame()) {
-			descriptorSetLayout = VkDescriptorSetLayout.alloc(device, 0, new VkDescriptorSetBinding[] {
-					new VkDescriptorSetBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT)
-			}, new Object[] {this});
-		}
-		
-		try (AllocatorFrame frame = Allocator.frame()) {
-			pipelineLayout = VkPipelineLayout.alloc(mallocStruct(frame, VkPipelineLayoutCreateInfo::create, VkPipelineLayoutCreateInfo.SIZEOF).set(
-					VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-					0,
-					0,
-					ArrayBufferLong.alloc(frame, new long[] {descriptorSetLayout.address()}).nioBuffer(),
-					null
-			), device, new VkDescriptorSetLayout[0], new Object[] {this});
-		}
+		descriptorSetLayout = VkDescriptorSetLayout.alloc(device, 0, new VkDescriptorSetBinding[] {
+				new VkDescriptorSetBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+		}, new Object[] {this});
+		pipelineLayout = VkPipelineLayout.alloc(device, new VkDescriptorSetLayout[] {descriptorSetLayout}, new Object[] {this});
 		
 		try (AllocatorFrame frame = Allocator.frame()) {
 			VkShaderModule shaderModuleVert = VkShaderModule.alloc(device,
-																   Objects.requireNonNull(FirstTrianglePipelineRender.class.getResourceAsStream("render.vert.spv")).readAllBytes(),
+																   Objects.requireNonNull(AsteroidPipeline.class.getResourceAsStream("asteroid.vert.spv")).readAllBytes(),
 																   new Object[] {frame});
 			VkShaderModule shaderModuleFrag = VkShaderModule.alloc(device,
-																   Objects.requireNonNull(FirstTrianglePipelineRender.class.getResourceAsStream("render.frag.spv")).readAllBytes(),
+																   Objects.requireNonNull(AsteroidPipeline.class.getResourceAsStream("asteroid.frag.spv")).readAllBytes(),
 																   new Object[] {frame});
 			
 			this.pipeline = VkGraphicsPipeline.alloc(mallocStruct(frame, VkGraphicsPipelineCreateInfo::create, VkGraphicsPipelineCreateInfo.SIZEOF).set(
@@ -118,13 +107,7 @@ public class FirstTrianglePipelineRender implements FreeableWrapper {
 												1,
 												0,
 												VK_FORMAT_R32G32B32_SFLOAT,
-												FP32.multiply(3)
-										),
-										inColor -> inColor.set(
-												2,
-												0,
-												VK_FORMAT_R32G32B32_SFLOAT,
-												FP32.multiply(6)
+												FP32.bytes * 3
 										)
 							)
 					),
@@ -226,9 +209,9 @@ public class FirstTrianglePipelineRender implements FreeableWrapper {
 	}
 	
 	//parents
-	private final @NotNull FirstTriangleRenderPass renderPass;
+	private final @NotNull AsteroidDemoRenderPass renderPass;
 	
-	public @NotNull FirstTriangleRenderPass renderPass() {
+	public @NotNull AsteroidDemoRenderPass renderPass() {
 		return renderPass;
 	}
 	
@@ -257,10 +240,26 @@ public class FirstTrianglePipelineRender implements FreeableWrapper {
 		return pipeline;
 	}
 	
-	public void bindPipeline(VkCommandBuffer cmdBuffer, VkDescriptorSet translation) {
+	public void bindPipeline(VkCommandBuffer cmdBuffer, VkDescriptorSet descriptorSet, AsteroidDemoInfos infos) {
 		try (AllocatorFrame frame = Allocator.frame()) {
+			vkUpdateDescriptorSets(cmdBuffer.device(), allocBuffer(frame, VkWriteDescriptorSet::create, VkWriteDescriptorSet.SIZEOF, writeDescriptorSet -> writeDescriptorSet.set(
+					VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+					0,
+					descriptorSet.address(),
+					0,
+					0,
+					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+					null,
+					allocBuffer(frame, VkDescriptorBufferInfo::create, VkDescriptorBufferInfo.SIZEOF, vkDescriptorBufferInfo -> vkDescriptorBufferInfo.set(
+							infos.uniformGlobal.address(),
+							0,
+							infos.uniformGlobal.sizeOf()
+					)),
+					null
+			)), null);
+			
 			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.address());
-			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout.address(), 0, PointerBufferLong.alloc(frame, translation.address()).nioBuffer(), null);
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout.address(), 0, PointerBufferLong.alloc(frame, descriptorSet.address()).nioBuffer(), null);
 		}
 	}
 }
