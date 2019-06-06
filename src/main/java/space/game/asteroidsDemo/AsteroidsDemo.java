@@ -67,6 +67,7 @@ import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
+import static space.engine.buffer.Allocator.heap;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 import static space.engine.primitive.Primitives.FP32;
 import static space.engine.vector.AxisAndAnglef.toRadians;
@@ -212,7 +213,7 @@ public class AsteroidsDemo implements Runnable {
 						  .map(data -> {
 							  try (AllocatorFrame frame = Allocator.frame()) {
 								  VmaBuffer vmaBuffer = VmaBuffer.alloc(0, data.length * FP32.bytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, 0, VMA_MEMORY_USAGE_GPU_ONLY, device, new Object[] {side});
-								  ArrayBufferFloat dataBuffer = ArrayBufferFloat.alloc(frame, data);
+								  ArrayBufferFloat dataBuffer = ArrayBufferFloat.alloc(heap(), data, new Object[] {frame});
 								  vmaBuffer.uploadData(dataBuffer).awaitUninterrupted();
 								  return vmaBuffer;
 							  }
@@ -265,7 +266,7 @@ public class AsteroidsDemo implements Runnable {
 			
 			FpsRenderer<AsteroidDemoInfos> fpsRenderer = null;
 			try {
-				fpsRenderer = new FpsRenderer<>(swapchain, frameBuffer, (imageIndex, frameEventTime) -> {
+				fpsRenderer = new FpsRenderer<>(device, swapchain, frameBuffer, (imageIndex, frameEventTime) -> {
 					
 					keyboards.forEach(keyboard -> {
 						Vector3f translation = new Vector3f();

@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 
 import static org.lwjgl.util.vma.Vma.VMA_MEMORY_USAGE_CPU_TO_GPU;
 import static org.lwjgl.vulkan.VK10.*;
+import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
 import static space.engine.buffer.Allocator.heap;
 import static space.engine.freeableStorage.Freeable.addIfNotContained;
 import static space.engine.primitive.Primitives.FP32;
@@ -62,7 +63,7 @@ public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoI
 	@Override
 	public @NotNull List<Future<VkCommandBuffer[]>> getCmdBuffers(@NotNull ManagedFrameBuffer<AsteroidDemoInfos> render, AsteroidDemoInfos infos) {
 		List<? extends Future<VkCommandBuffer>> futures = asteroids.entrySet().stream().map(entry -> future(() -> {
-			VkCommandBuffer cmd = render.queue().commandPool().allocCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY, EMPTY_BARRIER_ARRAY);
+			VkCommandBuffer cmd = render.queue().commandPool().allocCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY, EMPTY_OBJECT_ARRAY);
 			cmd.record(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT, render.inheritanceInfo(infos, renderPass.subpassRender), () -> {
 						   int index = entry.getIndex();
 						   VkBuffer model = asteroidModels[index];
@@ -89,7 +90,7 @@ public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoI
 								   0,
 								   0
 						   });
-						   vkCmdDraw(cmd, (int) (model.sizeOf() / (FP32.bytes)), asteroids.length, 0, 0);
+				vkCmdDraw(cmd, (int) (model.sizeOf() / (FP32.bytes * 9)), asteroids.length, 0, 0);
 				
 						   return instanceBuffer;
 					   }
