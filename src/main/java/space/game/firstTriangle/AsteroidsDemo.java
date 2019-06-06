@@ -41,7 +41,6 @@ import space.engine.window.InputDevice.Keyboard;
 import space.engine.window.InputDevice.Mouse;
 import space.engine.window.Window;
 import space.engine.window.WindowContext;
-import space.engine.window.extensions.MouseInputMode.Modes;
 import space.engine.window.extensions.VideoModeDesktopExtension;
 import space.engine.window.glfw.GLFWContext;
 import space.engine.window.glfw.GLFWWindow;
@@ -71,7 +70,6 @@ import static space.engine.vulkan.managed.device.ManagedDevice.*;
 import static space.engine.window.Keycode.*;
 import static space.engine.window.Window.*;
 import static space.engine.window.WindowContext.API_TYPE;
-import static space.engine.window.extensions.MouseInputMode.MOUSE_MODE;
 import static space.engine.window.extensions.VideoModeExtension.*;
 
 @SuppressWarnings("FieldCanBeLocal")
@@ -162,7 +160,7 @@ public class AsteroidsDemo implements Runnable {
 				windowModify.put(TITLE, "Vulkan Window");
 				windowModify.put(WIDTH, 1080);
 				windowModify.put(HEIGHT, 1080);
-				windowModify.put(MOUSE_MODE, Modes.CURSOR_DISABLED);
+//				windowModify.put(MOUSE_MODE, Modes.CURSOR_DISABLED);
 				windowAtt = windowModify.createNewAttributeList();
 			}
 			GLFWWindow window = windowContext.createWindow(windowAtt, new Object[] {side}).awaitGetUninterrupted();
@@ -223,6 +221,8 @@ public class AsteroidsDemo implements Runnable {
 			);
 			asteroidDemoRenderPass.callbacks().addHook(asteroidRenderer);
 			asteroidRenderer.addAsteroid(new Asteroid(0));
+			asteroidRenderer.addAsteroid(new Asteroid(0).translateRelative(new Vector3f(3, 0, 0)));
+			asteroidRenderer.addAsteroid(new Asteroid(0).translateRelative(new Vector3f(0, 3, 0)));
 			
 			//uniform buffer
 			VmaMappedBuffer uniformBuffer = VmaMappedBuffer.alloc(

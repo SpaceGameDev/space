@@ -91,10 +91,17 @@ public class AsteroidPipeline implements FreeableWrapper {
 							VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
 							0,
 							0,
-							allocBuffer(frame, VkVertexInputBindingDescription::create, VkVertexInputBindingDescription.SIZEOF, vkVertexInputBindingDescription -> vkVertexInputBindingDescription
-									.binding(0)
-									.stride(FP32.bytes * 9)
-									.inputRate(VK_VERTEX_INPUT_RATE_VERTEX)
+							allocBuffer(frame, VkVertexInputBindingDescription::create, VkVertexInputBindingDescription.SIZEOF,
+										perVertex -> perVertex.set(
+												0,
+												FP32.bytes * 9,
+												VK_VERTEX_INPUT_RATE_VERTEX
+										),
+										perInstance -> perInstance.set(
+												1,
+												FP32.bytes * 16,
+												VK_VERTEX_INPUT_RATE_INSTANCE
+										)
 							),
 							allocBuffer(frame, VkVertexInputAttributeDescription::create, VkVertexInputAttributeDescription.SIZEOF,
 										inPosition -> inPosition.set(
@@ -108,6 +115,30 @@ public class AsteroidPipeline implements FreeableWrapper {
 												0,
 												VK_FORMAT_R32G32B32_SFLOAT,
 												FP32.bytes * 3
+										),
+										inInstanceMatrix1 -> inInstanceMatrix1.set(
+												8,
+												1,
+												VK_FORMAT_R32G32B32_SFLOAT,
+												0
+										),
+										inInstanceMatrix2 -> inInstanceMatrix2.set(
+												9,
+												1,
+												VK_FORMAT_R32G32B32_SFLOAT,
+												FP32.bytes * 4
+										),
+										inInstanceMatrix3 -> inInstanceMatrix3.set(
+												10,
+												1,
+												VK_FORMAT_R32G32B32_SFLOAT,
+												FP32.bytes * 8
+										),
+										inInstanceOffset -> inInstanceOffset.set(
+												11,
+												1,
+												VK_FORMAT_R32G32B32_SFLOAT,
+												FP32.bytes * 12
 										)
 							)
 					),

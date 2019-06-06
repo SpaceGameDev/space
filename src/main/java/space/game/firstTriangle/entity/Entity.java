@@ -13,12 +13,14 @@ public class Entity {
 	public Entity() {
 	}
 	
-	public void rotateRelative(Quaternionf relative) {
+	public Entity rotateRelative(Quaternionf relative) {
 		rotation.multiply(relative);
+		return this;
 	}
 	
-	public void translateRelative(Vector3f relative) {
+	public Entity translateRelative(Vector3f relative) {
 		position.add(new Vector3f(relative).rotate(rotation));
+		return this;
 	}
 	
 	public Translation toTranslation(Translation translation) {
