@@ -43,7 +43,6 @@ import space.engine.window.InputDevice.Keyboard;
 import space.engine.window.InputDevice.Mouse;
 import space.engine.window.Window;
 import space.engine.window.WindowContext;
-import space.engine.window.extensions.MouseInputMode.Modes;
 import space.engine.window.extensions.VideoModeDesktopExtension;
 import space.engine.window.glfw.GLFWContext;
 import space.engine.window.glfw.GLFWWindow;
@@ -73,7 +72,6 @@ import static space.engine.vulkan.managed.device.ManagedDevice.*;
 import static space.engine.window.Keycode.*;
 import static space.engine.window.Window.*;
 import static space.engine.window.WindowContext.API_TYPE;
-import static space.engine.window.extensions.MouseInputMode.MOUSE_MODE;
 import static space.engine.window.extensions.VideoModeExtension.*;
 
 @SuppressWarnings("FieldCanBeLocal")
@@ -86,7 +84,7 @@ public class AsteroidsDemo implements Runnable {
 	
 	public static BaseLogger baseLogger = BaseLogger.defaultPrinter(BaseLogger.defaultHandler(new BaseLogger()));
 	
-	public boolean VK_LAYER_LUNARG_standard_validation = true;
+	public boolean VK_LAYER_LUNARG_standard_validation = false;
 	public boolean VK_LAYER_RENDERDOC_Capture = true;
 	private Logger logger = baseLogger.subLogger("asteroidsDemo");
 	
@@ -243,7 +241,7 @@ public class AsteroidsDemo implements Runnable {
 			List<Keyboard> keyboards = windowContext.getInputDevices().stream().filter(dev -> dev instanceof Keyboard).map(Keyboard.class::cast).collect(Collectors.toUnmodifiableList());
 			List<Mouse> mouses = windowContext.getInputDevices().stream().filter(dev -> dev instanceof Mouse).map(Mouse.class::cast).collect(Collectors.toUnmodifiableList());
 			
-			Matrix4f matrixPerspective = ProjectionMatrix.projection(new Matrix4f(), 90, 1, 0.1f, 1000f);
+			Matrix4f matrixPerspective = ProjectionMatrix.projection(new Matrix4f(), 90, 1, 0.1f, 100000f);
 			Camera camera = new Camera();
 			
 			float speedMouse = 0.008f;
