@@ -15,7 +15,7 @@ layout(location = 0) out vec4 outColor;
 const float ambientStrength = 0.2;
 const float specularStrength = 0.5;
 const vec3 lightDir = normalize(vec3(1, 1, 0));
-const vec3 lightColor = vec3(1, 0.8, 0.8);
+const vec3 lightColor = vec3(1, 0.6, 0.6);
 
 void main() {
 	vec3 light = vec3(ambientStrength);

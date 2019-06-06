@@ -292,7 +292,7 @@ public class AsteroidsDemo implements Runnable {
 						camera.translateRelative(translation.multiply(multi * multi));
 					});
 					
-					AsteroidDemoInfos infos = new AsteroidDemoInfos(imageIndex, matrixPerspective, camera, camera.toTranslation(new Translation()).inverse(), System.nanoTime(), uniformBuffer);
+					AsteroidDemoInfos infos = new AsteroidDemoInfos(imageIndex, matrixPerspective, camera, camera.toTranslation(new Translation()).inverse(), frameEventTime / 60f, uniformBuffer);
 					return window.pollEventsTask().toFuture(() -> infos);
 				}, 60, EMPTY_OBJECT_ARRAY);
 				isRunning.awaitUninterrupted();

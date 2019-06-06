@@ -49,13 +49,19 @@ public class AsteroidPlacer {
 						continue;
 					
 					Asteroid ast = new Asteroid(r.nextInt(asteroidVariations));
-					ast.position
+					Matrix3f mat = new AxisAndAnglef(0, 1, 0, (float) j / i).toMatrix3(new Matrix3f());
+					ast.position[0]
 							.set(MIDDLE_POINT)
 							.add(new Vector3f(
 									0,
 									(r.nextFloat() * 2 - 1) * interpolerate(lower[2], upper[2], factor),
 									-interpolerate(lower[0], upper[0], factor)
-							).rotate(new AxisAndAnglef(0, 1, 0, (float) j / i).toMatrix3(new Matrix3f())));
+							).rotate(mat));
+					ast.position[1].set(
+							new Vector3f(1, 0, 0)
+									.multiply(1f)
+									.rotate(mat)
+					);
 					randomOrientation(r, ast.rotation[0]);
 					randomRotation(r, MAX_ROTATION_SPEED, ast.rotation[1]);
 					asteroidRenderer.addAsteroid(ast);
