@@ -13,23 +13,24 @@ public class AsteroidPlacer {
 	public static final float[][] CONFIG = new float[][] {
 			{0, 0, 10},
 			{300, 0, 10},
-			{350, 0.5f, 50},
-			{450, 0.25f, 40},
-			{550, 0.15f, 30},
-			{650, 0.15f, 10},
-			{750, 0.5f, 70},
-			{800, 0.4f, 30},
+			{350, 0.25f, 50},
+			{450, 0.125f, 40},
+			{550, 0.075f, 30},
+			{650, 0.075f, 10},
+			{750, 0.25f, 70},
+			{800, 0.2f, 30},
 			{900, 0, 10}
 	};
 	private static final float PI = (float) Math.PI;
 	public static final float MAX_ROTATION_SPEED = PI / 16;
 	
-	public static void placeAsteroids(AsteroidRenderer asteroidRenderer, int asteroidModelCount) {
-		placeAsteroids(asteroidRenderer, asteroidModelCount, System.nanoTime());
+	public static void placeAsteroids(AsteroidRenderer asteroidRenderer) {
+		placeAsteroids(asteroidRenderer, System.nanoTime());
 	}
 	
-	public static void placeAsteroids(AsteroidRenderer asteroidRenderer, int asteroidModelCount, long seed) {
+	public static void placeAsteroids(AsteroidRenderer asteroidRenderer, long seed) {
 		Random r = new Random(seed);
+		int asteroidVariations = asteroidRenderer.asteroidModels().length;
 		
 		for (int c = 1; c < CONFIG.length; c++) {
 			float[] lower = CONFIG[c - 1];
@@ -47,7 +48,7 @@ public class AsteroidPlacer {
 					if (r.nextFloat() > propability)
 						continue;
 					
-					Asteroid ast = new Asteroid(r.nextInt(asteroidModelCount));
+					Asteroid ast = new Asteroid(r.nextInt(asteroidVariations));
 					ast.position
 							.set(MIDDLE_POINT)
 							.add(new Vector3f(

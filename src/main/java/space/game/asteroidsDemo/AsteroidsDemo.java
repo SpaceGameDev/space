@@ -87,7 +87,7 @@ public class AsteroidsDemo implements Runnable {
 	
 	public static BaseLogger baseLogger = BaseLogger.defaultPrinter(BaseLogger.defaultHandler(new BaseLogger()));
 	
-	public boolean VK_LAYER_LUNARG_standard_validation = false;
+	public boolean VK_LAYER_LUNARG_standard_validation = true;
 	public boolean VK_LAYER_RENDERDOC_Capture = true;
 	private Logger logger = baseLogger.subLogger("asteroidsDemo");
 	
@@ -208,7 +208,7 @@ public class AsteroidsDemo implements Runnable {
 			AsteroidRenderer asteroidRenderer = new AsteroidRenderer(
 					asteroidDemoRenderPass,
 					asteroidPipeline,
-					Arrays.stream(new float[][] {ModelCube.CUBE})
+					Arrays.stream(new float[][] {ModelCube.CUBE, ModelCube.CUBE, ModelCube.CUBE, ModelCube.CUBE, ModelCube.CUBE, ModelCube.CUBE, ModelCube.CUBE, ModelCube.CUBE})
 						  .map(data -> {
 							  try (AllocatorFrame frame = Allocator.frame()) {
 								  VmaBuffer vmaBuffer = VmaBuffer.alloc(0, data.length * FP32.bytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, 0, VMA_MEMORY_USAGE_GPU_ONLY, device, new Object[] {side});
