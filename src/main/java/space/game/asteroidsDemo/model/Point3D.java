@@ -1,4 +1,4 @@
-package space.game.firstTriangle.entity;
+package space.game.asteroidsDemo.model;
 
 public class Point3D {
 	public float x;

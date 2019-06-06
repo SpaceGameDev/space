@@ -1,4 +1,4 @@
-package space.game.firstTriangle.entity;
+package space.game.asteroidsDemo.model;
 
 public class Triangle {
 	public Point3D p0;

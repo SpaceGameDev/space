@@ -1,8 +1,4 @@
-package space.game.firstTriangle.model;
-
-import space.game.firstTriangle.entity.Model;
-import space.game.firstTriangle.entity.Point3D;
-import space.game.firstTriangle.entity.Triangle;
+package space.game.asteroidsDemo.model;
 
 import java.util.ArrayList;
 import java.util.HashMap;

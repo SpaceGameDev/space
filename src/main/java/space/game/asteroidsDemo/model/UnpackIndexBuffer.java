@@ -1,4 +1,4 @@
-package space.game.firstTriangle.model;
+package space.game.asteroidsDemo.model;
 
 public class UnpackIndexBuffer {
 	
