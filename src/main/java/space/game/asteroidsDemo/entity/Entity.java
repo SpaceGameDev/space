@@ -24,6 +24,9 @@ public class Entity {
 	}
 	
 	public Translation toTranslation(Translation translation) {
-		return translation.moveForwards(position).rotateForwards(rotation.toMatrix3(new Matrix3f()));
+		return translation
+				.zero()
+				.moveForwards(position)
+				.rotateForwards(rotation.toMatrix3(new Matrix3f()));
 	}
 }

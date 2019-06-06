@@ -17,7 +17,8 @@ public class Asteroid {
 	
 	public Translation toTranslation(Translation translation, float timeSeconds) {
 		return translation
+				.zero()
 				.moveForwards(position)
-				.rotateForwards(new Quaternionf(rotation[0]).slerp(rotation[0], rotation[1], timeSeconds).toMatrix3(new Matrix3f()));
+				.rotateForwards(new Quaternionf(rotation[0]).multiply(new Quaternionf().slerp(rotation[1], timeSeconds)).toMatrix3(new Matrix3f()));
 	}
 }

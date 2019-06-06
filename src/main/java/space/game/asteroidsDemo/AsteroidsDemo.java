@@ -41,12 +41,13 @@ import space.engine.window.InputDevice.Keyboard;
 import space.engine.window.InputDevice.Mouse;
 import space.engine.window.Window;
 import space.engine.window.WindowContext;
+import space.engine.window.extensions.MouseInputMode.Modes;
 import space.engine.window.extensions.VideoModeDesktopExtension;
 import space.engine.window.glfw.GLFWContext;
 import space.engine.window.glfw.GLFWWindow;
 import space.engine.window.glfw.GLFWWindowFramework;
-import space.game.asteroidsDemo.asteroid.Asteroid;
 import space.game.asteroidsDemo.asteroid.AsteroidPipeline;
+import space.game.asteroidsDemo.asteroid.AsteroidPlacer;
 import space.game.asteroidsDemo.asteroid.AsteroidRenderer;
 import space.game.asteroidsDemo.entity.Camera;
 import space.game.asteroidsDemo.model.ModelCube;
@@ -70,6 +71,7 @@ import static space.engine.vulkan.managed.device.ManagedDevice.*;
 import static space.engine.window.Keycode.*;
 import static space.engine.window.Window.*;
 import static space.engine.window.WindowContext.API_TYPE;
+import static space.engine.window.extensions.MouseInputMode.MOUSE_MODE;
 import static space.engine.window.extensions.VideoModeExtension.*;
 
 @SuppressWarnings("FieldCanBeLocal")
@@ -160,7 +162,7 @@ public class AsteroidsDemo implements Runnable {
 				windowModify.put(TITLE, "Vulkan Window");
 				windowModify.put(WIDTH, 1080);
 				windowModify.put(HEIGHT, 1080);
-//				windowModify.put(MOUSE_MODE, Modes.CURSOR_DISABLED);
+				windowModify.put(MOUSE_MODE, Modes.CURSOR_DISABLED);
 				windowAtt = windowModify.createNewAttributeList();
 			}
 			GLFWWindow window = windowContext.createWindow(windowAtt, new Object[] {side}).awaitGetUninterrupted();
@@ -220,16 +222,7 @@ public class AsteroidsDemo implements Runnable {
 					new Object[] {side}
 			);
 			asteroidDemoRenderPass.callbacks().addHook(asteroidRenderer);
-			Asteroid ast1 = new Asteroid(0);
-			asteroidRenderer.addAsteroid(ast1);
-			Asteroid ast2 = new Asteroid(0);
-			ast2.position.add(new Vector3f(3, 0, 0));
-			ast2.rotation[0].multiply(new AxisAndAnglef(0, 1, 0, (float) (Math.PI / 4)).toQuaternion(new Quaternionf()));
-			asteroidRenderer.addAsteroid(ast2);
-			Asteroid ast3 = new Asteroid(0);
-			ast3.position.add(new Vector3f(0, 3, 0));
-			ast3.rotation[1].multiply(new AxisAndAnglef(0, 1, 0, (float) (Math.PI / 4)).toQuaternion(new Quaternionf()));
-			asteroidRenderer.addAsteroid(ast3);
+			AsteroidPlacer.placeAsteroids(asteroidRenderer, 1);
 			
 			//uniform buffer
 			VmaMappedBuffer uniformBuffer = VmaMappedBuffer.alloc(
@@ -250,7 +243,6 @@ public class AsteroidsDemo implements Runnable {
 			
 			Matrix4f matrixPerspective = ProjectionMatrix.projection(new Matrix4f(), 90, 1, 0.1f, 1000f);
 			Camera camera = new Camera();
-			camera.position.add(new Vector3f(0, 0, 5));
 			
 			float speedMouse = 0.008f;
 			float speedMovement = 0.05f;
@@ -273,19 +265,19 @@ public class AsteroidsDemo implements Runnable {
 						Quaternionf rotation = new Quaternionf();
 						if (keyboard.isKeyDown(KEY_A))
 							translation.add(new Vector3f(-speedMovement, 0, 0));
-						else if (keyboard.isKeyDown(KEY_D))
+						if (keyboard.isKeyDown(KEY_D))
 							translation.add(new Vector3f(speedMovement, 0, 0));
-						else if (keyboard.isKeyDown(KEY_R) || keyboard.isKeyDown(KEY_SPACE))
+						if (keyboard.isKeyDown(KEY_R) || keyboard.isKeyDown(KEY_SPACE))
 							translation.add(new Vector3f(0, -speedMovement, 0));
-						else if (keyboard.isKeyDown(KEY_F) || keyboard.isKeyDown(KEY_LEFT_SHIFT))
+						if (keyboard.isKeyDown(KEY_F) || keyboard.isKeyDown(KEY_LEFT_SHIFT))
 							translation.add(new Vector3f(0, speedMovement, 0));
-						else if (keyboard.isKeyDown(KEY_W))
+						if (keyboard.isKeyDown(KEY_W))
 							translation.add(new Vector3f(0, 0, -speedMovement));
-						else if (keyboard.isKeyDown(KEY_S))
+						if (keyboard.isKeyDown(KEY_S))
 							translation.add(new Vector3f(0, 0, speedMovement));
-						else if (keyboard.isKeyDown(KEY_Q))
+						if (keyboard.isKeyDown(KEY_Q))
 							rotation.multiply(new AxisAndAnglef(0, 0, 1, toRadians(-2)));
-						else if (keyboard.isKeyDown(KEY_E))
+						if (keyboard.isKeyDown(KEY_E))
 							rotation.multiply(new AxisAndAnglef(0, 0, 1, toRadians(2)));
 						camera.rotateRelative(rotation);
 						camera.translateRelative(translation);
