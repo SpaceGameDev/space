@@ -12,6 +12,23 @@ layout(location = 1) in vec3 inNormal;
 
 layout(location = 0) out vec4 outColor;
 
+const float ambientStrength = 0.2;
+const float specularStrength = 0.5;
+const vec3 lightDir = normalize(vec3(1, 1, 0));
+const vec3 lightColor = vec3(1, 0.8, 0.8);
+
 void main() {
-	outColor = vec4(inNormal / 2 + 0.5, 1.0);
+	vec3 light = vec3(ambientStrength);
+
+	//diffuse
+	vec3 viewDir = normalize(uniformGlobal.cameraOffset - inPos);
+	float diff = max(dot(inNormal, lightDir), 0);
+	light += diff * lightColor * 2;
+
+	//specular
+	vec3 reflectDir = reflect(-lightDir, inNormal);
+	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16);
+	light += specularStrength * spec * lightColor;
+
+	outColor= vec4(light, 1.0);
 }

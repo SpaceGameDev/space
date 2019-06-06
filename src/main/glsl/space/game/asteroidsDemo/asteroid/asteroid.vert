@@ -13,7 +13,8 @@ layout(location = 1) in vec3 inNormal;
 
 //in per instance
 layout(location = 8 /*9, 10*/) in mat3 modelRotation;
-layout(location = 11) in vec3 modelOffset;
+layout(location = 11 /*12, 13*/) in mat3 modelRotationInverse;
+layout(location = 14) in vec3 modelOffset;
 
 layout(location = 0) out vec3 fragPos;
 layout(location = 1) out vec3 fragNormal;
@@ -23,5 +24,5 @@ void main() {
 	vec3 cameraPosition = (worldPosition * uniformGlobal.cameraRotation) + uniformGlobal.cameraOffset;
 	gl_Position = vec4(cameraPosition, 1.0) * uniformGlobal.projection;
 	fragPos = cameraPosition;
-	fragNormal = inNormal;
+	fragNormal = modelRotationInverse * inNormal;
 }

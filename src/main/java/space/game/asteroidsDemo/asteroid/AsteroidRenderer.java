@@ -69,12 +69,13 @@ public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoI
 						   VkBuffer model = asteroidModels[index];
 						   Asteroid[] asteroids = entry.getValue().toArray(new Asteroid[0]);
 				
-						   float[] instanceData = new float[asteroids.length * 16];
+				float[] instanceData = new float[asteroids.length * 28];
 						   Translation translation = new Translation();
 						   for (int i = 0; i < asteroids.length; i++) {
 							   asteroids[i].toTranslation(translation, infos.frameTimeSeconds);
-							   translation.rotation.write4Aligned(instanceData, i * 16);
-							   translation.offset.write4Aligned(instanceData, i * 16 + 12);
+							   translation.rotation.write4Aligned(instanceData, i * 28);
+							   translation.rotation.inversePure().write4Aligned(instanceData, i * 28 + 12);
+							   translation.offset.write4Aligned(instanceData, i * 28 + 24);
 						   }
 				
 						   VmaMappedBuffer instanceBuffer = VmaMappedBuffer.alloc(0, instanceData.length * FP32.bytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 0, VMA_MEMORY_USAGE_CPU_TO_GPU, renderPass.device(), new Object[] {infos});
