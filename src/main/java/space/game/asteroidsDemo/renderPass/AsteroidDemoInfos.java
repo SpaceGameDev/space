@@ -14,13 +14,17 @@ public class AsteroidDemoInfos extends Infos {
 	public final Matrix4f projection;
 	public final Camera camera;
 	public final Translation cameraTranslation;
+	public final long frameTimeNanos;
+	public final float frameTimeSeconds;
 	public final VmaMappedBuffer uniformGlobal;
 	
-	public AsteroidDemoInfos(int frameBufferIndex, Matrix4f projection, Camera camera, Translation cameraTranslation, VmaMappedBuffer uniformGlobal) {
+	public AsteroidDemoInfos(int frameBufferIndex, Matrix4f projection, Camera camera, Translation cameraTranslation, long frameTimeNanos, VmaMappedBuffer uniformGlobal) {
 		super(frameBufferIndex);
 		this.projection = projection;
 		this.camera = camera;
 		this.cameraTranslation = cameraTranslation;
+		this.frameTimeNanos = frameTimeNanos;
+		this.frameTimeSeconds = frameTimeNanos / 1_000_000_000f;
 		this.uniformGlobal = uniformGlobal;
 		
 		float[] uniformGlobalArray = new float[(4 + 3 + 1) * 4];

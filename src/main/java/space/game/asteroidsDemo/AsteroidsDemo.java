@@ -220,9 +220,16 @@ public class AsteroidsDemo implements Runnable {
 					new Object[] {side}
 			);
 			asteroidDemoRenderPass.callbacks().addHook(asteroidRenderer);
-			asteroidRenderer.addAsteroid(new Asteroid(0));
-			asteroidRenderer.addAsteroid(new Asteroid(0).translateRelative(new Vector3f(3, 0, 0)));
-			asteroidRenderer.addAsteroid(new Asteroid(0).translateRelative(new Vector3f(0, 3, 0)));
+			Asteroid ast1 = new Asteroid(0);
+			asteroidRenderer.addAsteroid(ast1);
+			Asteroid ast2 = new Asteroid(0);
+			ast2.position.add(new Vector3f(3, 0, 0));
+			ast2.rotation[0].multiply(new AxisAndAnglef(0, 1, 0, (float) (Math.PI / 4)).toQuaternion(new Quaternionf()));
+			asteroidRenderer.addAsteroid(ast2);
+			Asteroid ast3 = new Asteroid(0);
+			ast3.position.add(new Vector3f(0, 3, 0));
+			ast3.rotation[1].multiply(new AxisAndAnglef(0, 1, 0, (float) (Math.PI / 4)).toQuaternion(new Quaternionf()));
+			asteroidRenderer.addAsteroid(ast3);
 			
 			//uniform buffer
 			VmaMappedBuffer uniformBuffer = VmaMappedBuffer.alloc(
@@ -284,7 +291,7 @@ public class AsteroidsDemo implements Runnable {
 						camera.translateRelative(translation);
 					});
 					
-					AsteroidDemoInfos infos = new AsteroidDemoInfos(imageIndex, matrixPerspective, camera, camera.toTranslation(new Translation()).inverse(), uniformBuffer);
+					AsteroidDemoInfos infos = new AsteroidDemoInfos(imageIndex, matrixPerspective, camera, camera.toTranslation(new Translation()).inverse(), System.nanoTime(), uniformBuffer);
 					return window.pollEventsTask().toFuture(() -> infos);
 				}, 60, EMPTY_OBJECT_ARRAY);
 				isRunning.awaitUninterrupted();

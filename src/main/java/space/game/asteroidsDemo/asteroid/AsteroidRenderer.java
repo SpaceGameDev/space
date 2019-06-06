@@ -67,7 +67,7 @@ public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoI
 								float[] instanceData = new float[asteroids.length * 16];
 								Translation translation = new Translation();
 								for (int i = 0; i < asteroids.length; i++) {
-									asteroids[i].toTranslation(translation);
+									asteroids[i].toTranslation(translation, infos.frameTimeSeconds);
 									translation.rotation.write4Aligned(instanceData, i * 16);
 									translation.offset.write4Aligned(instanceData, i * 16 + 12);
 								}
