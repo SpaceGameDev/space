@@ -25,15 +25,23 @@ public class ModelAsteroids {
 			List<Triangle> triangles = m.get();
 			List<Triangle> newTriangles = new ArrayList<>();
 			for(Triangle triangle : triangles) {
-				Point3D a = Point3D.getMiddlePoint(triangle.p0, triangle.p1);
-				Point3D b = Point3D.getMiddlePoint(triangle.p1, triangle.p2);
-				Point3D c = Point3D.getMiddlePoint(triangle.p2, triangle.p0);
+				Point3D a, b, c;
+				if(i % 2 == 0){
+					a = Point3D.getMiddlePoint(triangle.p0, triangle.p1);
+					b = Point3D.getMiddlePoint(triangle.p1, triangle.p2);
+					c = Point3D.getMiddlePoint(triangle.p2, triangle.p0);
+				}else{
+					a = Point3D.getMiddlePoint(triangle.p1, triangle.p0);
+					b = Point3D.getMiddlePoint(triangle.p2, triangle.p1);
+					c = Point3D.getMiddlePoint(triangle.p0, triangle.p2);
+				}
+				
 				
 				if(dictionary.containsKey(a.toString())){
 					a = dictionary.get(a.toString());
 				}else{
 					String key = a.toString();
-					a.multiply(1f + rand.nextFloat() * config[i]);
+					a.multiply(1f + rand.nextFloat() * (float) Math.pow(config[i],2));
 					dictionary.put(key, a);
 				}
 				if(dictionary.containsKey(b.toString())){
@@ -65,7 +73,44 @@ public class ModelAsteroids {
 		);
 	}
 	
-	
+	public static float[] generateGasplanet (float r, int iterations, boolean normalFaceFloats){
+		Model m = generateIcosphere(r);
+		for(int i = 0; i < iterations; i++) {
+			List<Triangle> triangles = m.get();
+			List<Triangle> newTriangles = new ArrayList<>();
+			for(Triangle triangle : triangles) {
+				Point3D a, b, c;
+				if(i % 2 == 0){
+					a = Point3D.getMiddlePoint(triangle.p0, triangle.p1);
+					b = Point3D.getMiddlePoint(triangle.p1, triangle.p2);
+					c = Point3D.getMiddlePoint(triangle.p2, triangle.p0);
+				}else{
+					a = Point3D.getMiddlePoint(triangle.p1, triangle.p0);
+					b = Point3D.getMiddlePoint(triangle.p2, triangle.p1);
+					c = Point3D.getMiddlePoint(triangle.p0, triangle.p2);
+				}
+				a.multiply(r / (float)a.length());
+				b.multiply(r / (float)b.length());
+				c.multiply(r / (float)c.length());
+				
+				//a.divide((float)a.length());
+				//b.divide((float)b.length());
+				//c.divide((float)c.length());
+				newTriangles.add(new Triangle(triangle.p0, a, c));
+				newTriangles.add(new Triangle(triangle.p1, b, a));
+				newTriangles.add(new Triangle(triangle.p2, c, b));
+				newTriangles.add(new Triangle(a, b, c));
+			}
+			m.set(newTriangles);
+		}
+		
+		if(normalFaceFloats) {
+			return m.getNormalFaceFloats();
+		}else{
+			return m.getFloats();
+			
+		}
+	}
 	
 	public static Model generateIcosphere(float radius) {
 		List<Point3D> points = new ArrayList<>();

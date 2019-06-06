@@ -104,7 +104,6 @@ import space.engine.window.glfw.GLFWWindow;
 import space.engine.window.glfw.GLFWWindowFramework;
 import space.game.firstTriangle.model.ModelAsteroids;
 import space.game.firstTriangle.model.ModelCube;
-import space.game.firstTriangle.model.ModelGasplanet;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -147,14 +146,14 @@ public class FirstTriangle implements Runnable {
 	
 	static {
 		MODELS = new float[][] {
-				ModelGasplanet.generateGasplanet(2, 0, true),
-				ModelGasplanet.generateGasplanet(2, 1, false),
-				ModelGasplanet.generateGasplanet(2, 2, false),
-				ModelGasplanet.generateGasplanet(2, 2, true),
-				ModelGasplanet.generateGasplanet(2, 3, false),
-				ModelGasplanet.generateGasplanet(2, 3, true),
-				ModelGasplanet.generateGasplanet(2, 4, false),
-				ModelGasplanet.generateGasplanet(2, 4, true),
+				ModelAsteroids.generateGasplanet(2, 0, true),
+				ModelAsteroids.generateGasplanet(2, 1, false),
+				ModelAsteroids.generateGasplanet(2, 2, false),
+				ModelAsteroids.generateGasplanet(2, 2, true),
+				ModelAsteroids.generateGasplanet(2, 3, false),
+				ModelAsteroids.generateGasplanet(2, 3, true),
+				ModelAsteroids.generateGasplanet(2, 4, false),
+				ModelAsteroids.generateGasplanet(2, 4, true),
 				ModelAsteroids.generateAsteroid(1, new float[] {}, 1).unpackIndexBuffer(),
 				ModelAsteroids.generateAsteroid(1, new float[] {1f}, 1).unpackIndexBuffer(),
 				ModelAsteroids.generateAsteroid(1, new float[] {1f, 0.2f}, 1).unpackIndexBuffer(),
