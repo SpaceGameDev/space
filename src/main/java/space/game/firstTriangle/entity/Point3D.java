@@ -53,6 +53,12 @@ public class Point3D {
 		this.z /= f;
 	}
 	
+	public void move(Point3D point3D) {
+		this.x += point3D.x;
+		this.y += point3D.y;
+		this.z += point3D.z;
+	}
+	
 	public static Point3D getMiddlePoint(Point3D p0, Point3D p1) {
 		return new Point3D(
 				(p0.x + p1.x) / 2,

@@ -45,6 +45,10 @@ public class Triangle {
 		//System.out.println(color.toString());
 	}
 	
+	public void setColor(Point3D color) {
+		this.color = color;
+	}
+	
 	public boolean contains(Point3D p) {
 		return this.p0 == p || this.p1 == p || this.p2 == p;
 	}

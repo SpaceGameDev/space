@@ -146,20 +146,74 @@ public class FirstTriangle implements Runnable {
 	
 	static {
 		MODELS = new float[][] {
-				ModelAsteroids.generateGasplanet(2, 0, true),
+				
+				ModelAsteroids.generateSurface(5, 3, new float[] {}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0, 0}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0, 0, 0}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0, 0, 0, 0}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0, 0, 0, 0, 0}),
+				
+				ModelAsteroids.generateSurface(5, 3, new float[] {}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0.1f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0.1f, 0.1f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0.1f, 0.1f, 0.01f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0.1f, 0.1f, 0.01f, 0.01f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0.1f, 0.1f, 0.01f, 0.01f, 0.01f}),
+				
+				ModelAsteroids.generateSurface(5, 3, new float[] {}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0, 0}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0, 0, 0.5f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0, 0, 0.5f, 0.1f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0, 0, 0.5f, 0.1f, 0.1f}),
+				
+				ModelAsteroids.generateSurface(5, 3, new float[] {}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0.2f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0.2f, 0.4f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0.2f, 0.4f, 0.3f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0.2f, 0.4f, 0.3f, 0.05f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0.2f, 0.4f, 0.3f, 0.05f, 0.01f}),
+				
+				ModelAsteroids.generateSurface(5, 3, new float[] {}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0.5f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0.5f, 0.2f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0.5f, 0.2f, 0.2f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0.5f, 0.2f, 0.2f, 0.05f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {0.5f, 0.2f, 0.2f, 0.05f, 0.01f}),
+				
+				ModelAsteroids.generateSurface(5, 3, new float[] {}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {1f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {1f, 0.5f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {1f, 0.5f, 0.2f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {1f, 0.5f, 0.2f, 0.05f}),
+				ModelAsteroids.generateSurface(5, 3, new float[] {1f, 0.5f, 0.2f, 0.05f, 0.01f}),
+				
+				ModelAsteroids.generateGasplanet(2, 0, false),
+				//ModelAsteroids.generateGasplanet(2, 0, true),
 				ModelAsteroids.generateGasplanet(2, 1, false),
+				//ModelAsteroids.generateGasplanet(2, 1, true),
 				ModelAsteroids.generateGasplanet(2, 2, false),
-				ModelAsteroids.generateGasplanet(2, 2, true),
+				//ModelAsteroids.generateGasplanet(2, 2, true),
 				ModelAsteroids.generateGasplanet(2, 3, false),
-				ModelAsteroids.generateGasplanet(2, 3, true),
+				//ModelAsteroids.generateGasplanet(2, 3, true),
 				ModelAsteroids.generateGasplanet(2, 4, false),
-				ModelAsteroids.generateGasplanet(2, 4, true),
+				//ModelAsteroids.generateGasplanet(2, 4, true),
+				
+				ModelAsteroids.generateAsteroid(1, new float[] {}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {1.5f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {1.5f, 0.2f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {1.5f, 0.2f, 0.05f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {1.5f, 0.2f, 0.05f, 0.05f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {1.5f, 0.2f, 0.05f, 0.05f, 0.025f}, 1).unpackIndexBuffer(),
+				
 				ModelAsteroids.generateAsteroid(1, new float[] {}, 1).unpackIndexBuffer(),
 				ModelAsteroids.generateAsteroid(1, new float[] {1f}, 1).unpackIndexBuffer(),
-				ModelAsteroids.generateAsteroid(1, new float[] {1f, 0.2f}, 1).unpackIndexBuffer(),
-				ModelAsteroids.generateAsteroid(1, new float[] {1f, 0.2f, 0.1f}, 1).unpackIndexBuffer(),
-				ModelAsteroids.generateAsteroid(1, new float[] {1f, 0.2f, 0.1f, 0.05f}, 1).unpackIndexBuffer(),
-				ModelAsteroids.generateAsteroid(1, new float[] {1f, 0.2f, 0.1f, 0.05f, 0.025f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {1f, 0.5f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {1f, 0.5f, 0.1f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {1f, 0.5f, 0.1f, 0.05f}, 1).unpackIndexBuffer(),
+				ModelAsteroids.generateAsteroid(1, new float[] {1f, 0.5f, 0.1f, 0.05f, 0.025f}, 1).unpackIndexBuffer(),
+				
 				ModelCube.CUBE
 		};
 	}

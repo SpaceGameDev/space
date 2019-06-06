@@ -41,7 +41,7 @@ public class ModelAsteroids {
 					a = dictionary.get(a.toString());
 				}else{
 					String key = a.toString();
-					a.multiply(1f + rand.nextFloat() * (float) Math.pow(config[i],2));
+					a.multiply(1f + rand.nextFloat() * config[i]);
 					dictionary.put(key, a);
 				}
 				if(dictionary.containsKey(b.toString())){
@@ -112,6 +112,87 @@ public class ModelAsteroids {
 		}
 	}
 	
+	private static Point3D surfaceColor0 = new Point3D(0.5f, 0.25f, 0);
+	private static Point3D surfaceColor1 = new Point3D(1f, 0.5f, 0);
+	
+	public static float[] generateSurface(float width, float height, float[] config) {
+		return generateSurface(width, height, config, System.currentTimeMillis());
+	}
+	public static float[] generateSurface(float width, float height, float[] config, long seed) {
+		Model m = generateRect(width, height);
+		Random rand = new Random(seed);
+		
+		for(int i = 0; i < config.length; i++) {
+			Map<String, Point3D> dictionary = new HashMap<>();
+			List<Triangle> triangles = m.get();
+			List<Triangle> newTriangles = new ArrayList<>();
+			for(Triangle triangle : triangles) {
+				Point3D a, b, c, color0, color1;
+				if(i % 2 == 0){
+					a = Point3D.getMiddlePoint(triangle.p0, triangle.p1);
+					b = Point3D.getMiddlePoint(triangle.p1, triangle.p2);
+					c = Point3D.getMiddlePoint(triangle.p2, triangle.p0);
+					
+				}else{
+					a = Point3D.getMiddlePoint(triangle.p1, triangle.p0);
+					b = Point3D.getMiddlePoint(triangle.p2, triangle.p1);
+					c = Point3D.getMiddlePoint(triangle.p0, triangle.p2);
+					
+				}
+				
+				if(triangle.color == surfaceColor0){
+						color0 = surfaceColor0;
+						color1 = surfaceColor1;
+				}else{
+						color0 = surfaceColor1;
+						color1 = surfaceColor0;
+				}
+				
+				if(dictionary.containsKey(a.toString())){
+					a = dictionary.get(a.toString());
+				}else{
+					String key = a.toString();
+					a.y *= (1f + rand.nextFloat() * config[i]);
+					a.y -= 0.001f;
+					dictionary.put(key, a);
+				}
+				if(dictionary.containsKey(b.toString())){
+					b = dictionary.get(b.toString());
+				}else{
+					String key = b.toString();
+					b.y *= (1f + rand.nextFloat() * config[i]);
+					b.y -= 0.001f;
+					dictionary.put(key, b);
+				}
+				
+				if(dictionary.containsKey(c.toString())){
+					c = dictionary.get(c.toString());
+				}else{
+					String key = c.toString();
+					c.y *= (1f + rand.nextFloat() * config[i]);
+					c.y -= 0.001f;
+					dictionary.put(key, c);
+				}
+				Triangle t0, t1, t2, t3;
+				t0 = new Triangle(triangle.p0, a, c);
+				t0.setColor(color0);
+				t1 = new Triangle(triangle.p1, b, a);
+				t1.setColor(color0);
+				t2 = new Triangle(triangle.p2, c, b);
+				t2.setColor(color0);
+				t3 = new Triangle(a, b, c);
+				t3.setColor(color1);
+				newTriangles.add(t0);
+				newTriangles.add(t1);
+				newTriangles.add(t2);
+				newTriangles.add(t3);
+			}
+			m.set(newTriangles);
+		}
+		
+		return m.getFloats();
+	}
+	
 	public static Model generateIcosphere(float radius) {
 		List<Point3D> points = new ArrayList<>();
 		float longerSide = (float) (2.0f * radius / Math.sqrt(5.0f));
@@ -161,7 +242,30 @@ public class ModelAsteroids {
 		return m;
 	}
 	
-	
+	public static Model generateRect(float width, float height) {
+		Point3D a, b, c, d;
+		/*
+		a = new Point3D(- (width / 2.0f),  height / 2.0f, 0);
+		b = new Point3D( width / 2.0f, height / 2.0f,0 );
+		c = new Point3D( - (width / 2.0f),  - (height / 2.0f),0 );
+		d = new Point3D(width / 2.0f,  - (height / 2.0f), 0);
+		*/
+		a = new Point3D(- (width / 2.0f), -1f, height / 2.0f);
+		b = new Point3D( width / 2.0f, -1f,height / 2.0f);
+		c = new Point3D( - (width / 2.0f), -1f,  - (height / 2.0f));
+		d = new Point3D(width / 2.0f,  -1f, - (height / 2.0f));
+		Model m = new Model();
+		
+		Triangle t0, t1;
+		t0 = new Triangle(a, c, b);
+		t0.setColor(surfaceColor0);
+		t1 = new Triangle(d, b, c);
+		t1.setColor(surfaceColor1);
+		
+		m.add(t0);
+		m.add(t1);
+		return m;
+	}
 	
 	public static class Result {
 		

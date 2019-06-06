@@ -23,6 +23,14 @@ public class Model {
 		this.triangleList = triangleList;
 	}
 	
+	public void move(Point3D point3D) {
+		for(Triangle triangle: triangleList) {
+			triangle.p0.move(point3D);
+			triangle.p1.move(point3D);
+			triangle.p2.move(point3D);
+		}
+	}
+	
 	public float[] getFloats() {
 		float[] floats = new float[triangleList.size() * 27];
 		int index = 0;
