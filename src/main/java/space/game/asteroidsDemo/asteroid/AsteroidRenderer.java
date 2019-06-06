@@ -58,7 +58,7 @@ public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoI
 		return List.of(
 				future(() -> {
 					VkCommandBuffer cmd = render.queue().commandPool().allocCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY, new Object[] {infos});
-					cmd.record(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT, renderPass.subpassRender.inheritanceInfo(), () ->
+					cmd.record(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT, render.inheritanceInfo(infos, renderPass.subpassRender), () ->
 							asteroids.entrySet().stream().map(entry -> {
 								int index = entry.getIndex();
 								VkBuffer model = asteroidModels[index];

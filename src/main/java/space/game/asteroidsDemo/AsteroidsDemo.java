@@ -26,6 +26,7 @@ import space.engine.vector.Quaternionf;
 import space.engine.vector.Translation;
 import space.engine.vector.Vector3f;
 import space.engine.vulkan.VkBuffer;
+import space.engine.vulkan.VkInstance;
 import space.engine.vulkan.VkInstanceExtensions;
 import space.engine.vulkan.VkInstanceValidationLayers;
 import space.engine.vulkan.VkPhysicalDevice;
@@ -43,6 +44,7 @@ import space.engine.window.InputDevice.Keyboard;
 import space.engine.window.InputDevice.Mouse;
 import space.engine.window.Window;
 import space.engine.window.WindowContext;
+import space.engine.window.extensions.MouseInputMode.Modes;
 import space.engine.window.extensions.VideoModeDesktopExtension;
 import space.engine.window.glfw.GLFWContext;
 import space.engine.window.glfw.GLFWWindow;
@@ -72,6 +74,7 @@ import static space.engine.vulkan.managed.device.ManagedDevice.*;
 import static space.engine.window.Keycode.*;
 import static space.engine.window.Window.*;
 import static space.engine.window.WindowContext.API_TYPE;
+import static space.engine.window.extensions.MouseInputMode.MOUSE_MODE;
 import static space.engine.window.extensions.VideoModeExtension.*;
 
 @SuppressWarnings("FieldCanBeLocal")
@@ -129,11 +132,7 @@ public class AsteroidsDemo implements Runnable {
 			deviceExtensionsRequired.add(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
 			
 			VkPhysicalDevice physicalDevice = Objects.requireNonNull(instance.getBestPhysicalDevice(
-					new int[][] {
-							{VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU},
-							{VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU},
-							{}
-					},
+					VkInstance.DEFAULT_BEST_PHYSICAL_DEVICE_TYPES,
 					deviceExtensionsRequired, deviceExtensionsOptional));
 			logger.log(LogLevel.INFO, "Selecting: " + physicalDevice.identification());
 			
