@@ -1,5 +1,6 @@
 package space.game.asteroidsDemo;
 
+import org.jetbrains.annotations.NotNull;
 import org.lwjgl.vulkan.EXTDebugUtils;
 import org.lwjgl.vulkan.VkExtent2D;
 import org.lwjgl.vulkan.VkOffset2D;
@@ -16,6 +17,7 @@ import space.engine.key.attribute.AttributeListModify;
 import space.engine.logger.BaseLogger;
 import space.engine.logger.LogLevel;
 import space.engine.logger.Logger;
+import space.engine.observable.ObservableReference;
 import space.engine.sync.barrier.BarrierImpl;
 import space.engine.vector.AxisAndAnglef;
 import space.engine.vector.Matrix4f;
@@ -246,15 +248,23 @@ public class AsteroidsDemo implements Runnable {
 			
 			float speedMouse = 0.008f;
 			float speedMovement = 0.05f;
-			mouses.forEach(mouse -> mouse.getMouseMovementEvent().addHook((absolute, relative) -> {
-				Objects.requireNonNull(relative);
-				Quaternionf rotation = new Quaternionf();
-				if (relative[0] != 0)
-					rotation.multiply(new AxisAndAnglef(0, -1, 0, (float) relative[0] * speedMouse));
-				if (relative[1] != 0)
-					rotation.multiply(new AxisAndAnglef(1, 0, 0, (float) relative[1] * speedMouse));
-				camera.rotateRelative(rotation);
-			}));
+			ObservableReference<@NotNull Float> speedMovementMultiplier = new ObservableReference<>(1f);
+			mouses.forEach(mouse -> {
+				mouse.getMouseMovementEvent().addHook((absolute, relative) -> {
+					Objects.requireNonNull(relative);
+					Quaternionf rotation = new Quaternionf();
+					if (relative[0] != 0)
+						rotation.multiply(new AxisAndAnglef(0, -1, 0, (float) relative[0] * speedMouse));
+					if (relative[1] != 0)
+						rotation.multiply(new AxisAndAnglef(1, 0, 0, (float) relative[1] * speedMouse));
+					camera.rotateRelative(rotation);
+				});
+				mouse.getScrollEvent().addHook(relative -> speedMovementMultiplier.set(() -> {
+					float curr = speedMovementMultiplier.assertGet();
+					float newV = curr + (float) relative[1];
+					return newV < 1 ? 1 : newV;
+				}));
+			});
 			
 			FpsRenderer<AsteroidDemoInfos> fpsRenderer = null;
 			try {
@@ -280,7 +290,8 @@ public class AsteroidsDemo implements Runnable {
 						if (keyboard.isKeyDown(KEY_E))
 							rotation.multiply(new AxisAndAnglef(0, 0, 1, toRadians(2)));
 						camera.rotateRelative(rotation);
-						camera.translateRelative(translation);
+						float multi = speedMovementMultiplier.assertGet();
+						camera.translateRelative(translation.multiply(multi * multi));
 					});
 					
 					AsteroidDemoInfos infos = new AsteroidDemoInfos(imageIndex, matrixPerspective, camera, camera.toTranslation(new Translation()).inverse(), System.nanoTime(), uniformBuffer);
