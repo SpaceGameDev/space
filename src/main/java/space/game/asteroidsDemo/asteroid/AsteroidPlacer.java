@@ -9,18 +9,19 @@ import java.util.Random;
 
 public class AsteroidPlacer {
 	
-	public static final Vector3f MIDDLE_POINT = new Vector3f(0, 0, 1).normalize().multiply(500);
+	public static final Vector3f MIDDLE_POINT = new Vector3f(0, 0, 1).normalize().multiply(2000);
 	public static final float[][] CONFIG = new float[][] {
-			{0, 0, 10},
-			{300, 0, 10},
-			{350, 0.25f, 50},
-			{450, 0.125f, 40},
-			{550, 0.075f, 30},
-			{650, 0.075f, 10},
-			{750, 0.25f, 70},
-			{800, 0.2f, 30},
-			{900, 0, 10}
+			{0, 0, 30},
+			{1200, 0, 30},
+			{1400, 0.25f, 150},
+			{1800, 0.125f, 120},
+			{2200, 0.075f, 90},
+			{2600, 0.075f, 30},
+			{3000, 0.25f, 210},
+			{3200, 0.2f, 90},
+			{3600, 0, 30}
 	};
+	public static final float PROBABILITY_FACTOR = 1f / 50;
 	private static final float PI = (float) Math.PI;
 	public static final float MAX_ROTATION_SPEED = PI / 16;
 	
@@ -41,7 +42,7 @@ public class AsteroidPlacer {
 			float distance = upper[0] - lower[0];
 			for (int i = 0; i < distance; i++) {
 				float factor = i / distance;
-				float propability = interpolerate(lower[1], upper[1], factor);
+				float propability = interpolerate(lower[1], upper[1], factor) * PROBABILITY_FACTOR;
 				
 				float circleLength = 2 * PI * i;
 				for (int j = 0; j < circleLength; j++) {
