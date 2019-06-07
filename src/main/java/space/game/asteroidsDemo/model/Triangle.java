@@ -35,8 +35,7 @@ public class Triangle {
 				this.p2.y - this.p0.y,
 				this.p2.z - this.p0.z
 		);
-		Point3D normal = v0.cross(v1);
-		this.normal = normal;
+		this.normal = v0.cross(v1).normalize();
 	}
 	
 	private void setRandomColor() {

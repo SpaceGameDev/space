@@ -19,14 +19,13 @@ public class Point3D {
 		this.z = z;
 	}
 	
-	public final double distance(Point3D p1)
-	{
-		double dx, dy, dz;
+	public final float distance(Point3D p1) {
+		float dx, dy, dz;
 		
 		dx = this.x-p1.x;
 		dy = this.y-p1.y;
 		dz = this.z-p1.z;
-		return Math.sqrt(dx*dx+dy*dy+dz*dz);
+		return (float) Math.sqrt(dx * dx + dy * dy + dz * dz);
 	}
 	
 	public Point3D cross(Point3D p) {
@@ -34,6 +33,15 @@ public class Point3D {
 			y*p.z - z*p.y,
 			z*p.x - x*p.z,
 			x*p.y - y*p.x
+		);
+	}
+	
+	public Point3D normalize() {
+		float length = (float) Math.sqrt(x * x + y * y + z * z);
+		return new Point3D(
+				x / length,
+				y / length,
+				z / length
 		);
 	}
 	
