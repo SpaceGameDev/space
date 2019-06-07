@@ -9,6 +9,7 @@ layout(binding = 0) uniform UniformGlobal {
 
 layout(location = 0) in vec3 inPos;
 layout(location = 1) in vec3 inNormal;
+layout(location = 2) in vec3 fragVertexDistance;
 
 layout(location = 0) out vec4 outColor;
 
@@ -23,12 +24,14 @@ void main() {
 	//diffuse
 	vec3 viewDir = normalize(uniformGlobal.cameraOffset - inPos);
 	float diff = max(dot(inNormal, lightDir), 0);
-	light += diff * lightColor * 2;
+	light += diff * 2;
 
 	//specular
 	vec3 reflectDir = reflect(-lightDir, inNormal);
 	float spec = pow(max(dot(viewDir, reflectDir), 0.0), 16);
-	light += specularStrength * spec * lightColor;
+	light += specularStrength * spec;
 
-	outColor= vec4(light, 1.0);
+	float effect = 1 - (fragVertexDistance.x*fragVertexDistance.x + fragVertexDistance.y*fragVertexDistance.y + fragVertexDistance.z*fragVertexDistance.z);
+	effect = effect * 0.3 + 0.7;
+	outColor = vec4(light * lightColor * effect, 1.0);
 }

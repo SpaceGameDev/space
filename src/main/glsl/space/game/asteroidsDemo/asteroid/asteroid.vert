@@ -18,6 +18,13 @@ layout(location = 14) in vec3 modelOffset;
 
 layout(location = 0) out vec3 fragPos;
 layout(location = 1) out vec3 fragNormal;
+layout(location = 2) out vec3 fragVertexDistance;
+
+const vec3[3] vertexDistanceConst = vec3[3] (
+vec3(1, 0, 0),
+vec3(0, 1, 0),
+vec3(0, 0, 1)
+);
 
 void main() {
 	vec3 worldPosition = (inPos * modelRotation) + modelOffset;
@@ -25,4 +32,5 @@ void main() {
 	gl_Position = vec4(cameraPosition, 1.0) * uniformGlobal.projection;
 	fragPos = cameraPosition;
 	fragNormal = modelRotationInverse * inNormal;
+	fragVertexDistance = vertexDistanceConst[gl_VertexIndex % 3];
 }
