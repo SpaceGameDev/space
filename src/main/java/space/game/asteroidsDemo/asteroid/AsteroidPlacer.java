@@ -9,7 +9,6 @@ import java.util.Random;
 
 public class AsteroidPlacer {
 	
-	public static final Vector3f MIDDLE_POINT = new Vector3f(0, 0, 1).normalize().multiply(2000);
 	public static final float[][] CONFIG = new float[][] {
 			{0, 0, 30},
 			{1200, 0, 30},
@@ -22,8 +21,10 @@ public class AsteroidPlacer {
 			{3600, 0, 30}
 	};
 	public static final float PROBABILITY_FACTOR = 1f / 50;
+	public static final float RADIUS_FACTOR = 1f;
 	private static final float PI = (float) Math.PI;
 	public static final float MAX_ROTATION_SPEED = PI / 16;
+	public static final Vector3f MIDDLE_POINT = new Vector3f(0, 0, 1).normalize().multiply(2000 * RADIUS_FACTOR);
 	
 	public static void placeAsteroids(AsteroidRenderer asteroidRenderer) {
 		placeAsteroids(asteroidRenderer, System.nanoTime());
@@ -39,7 +40,7 @@ public class AsteroidPlacer {
 			if (lower[1] == 0 && upper[1] == 0)
 				continue;
 			
-			float distance = upper[0] - lower[0];
+			float distance = (upper[0] - lower[0]) * RADIUS_FACTOR;
 			for (int i = 0; i < distance; i++) {
 				float factor = i / distance;
 				float propability = interpolerate(lower[1], upper[1], factor) * PROBABILITY_FACTOR;
@@ -56,7 +57,7 @@ public class AsteroidPlacer {
 							.add(new Vector3f(
 									0,
 									(r.nextFloat() * 2 - 1) * interpolerate(lower[2], upper[2], factor),
-									-interpolerate(lower[0], upper[0], factor)
+									-interpolerate(lower[0], upper[0], factor) * RADIUS_FACTOR
 							).rotate(mat));
 					ast.position[1].set(
 							new Vector3f(1, 0, 0)
