@@ -251,7 +251,7 @@ public class AsteroidsDemo implements Runnable {
 					new Object[] {side}
 			);
 			asteroidDemoRenderPass.callbacks().addHook(asteroidRenderer);
-			AsteroidPlacer.placeAsteroids(asteroidRenderer, 1);
+			AsteroidPlacer.placeAsteroids(asteroidRenderer, new float[] {3, 2, 2, 1, 1, 1}, 1);
 			
 			//uniform buffer
 			VmaMappedBuffer uniformBuffer = VmaMappedBuffer.alloc(

@@ -26,13 +26,18 @@ public class AsteroidPlacer {
 	public static final float MAX_ROTATION_SPEED = PI / 16;
 	public static final Vector3f MIDDLE_POINT = new Vector3f(0, 0, 1).normalize().multiply(2000 * RADIUS_FACTOR);
 	
-	public static void placeAsteroids(AsteroidRenderer asteroidRenderer) {
-		placeAsteroids(asteroidRenderer, System.nanoTime());
+	public static void placeAsteroids(AsteroidRenderer asteroidRenderer, float[] distribution) {
+		placeAsteroids(asteroidRenderer, distribution, System.nanoTime());
 	}
 	
-	public static void placeAsteroids(AsteroidRenderer asteroidRenderer, long seed) {
+	public static void placeAsteroids(AsteroidRenderer asteroidRenderer, float[] distribution, long seed) {
 		Random r = new Random(seed);
-		int asteroidVariations = asteroidRenderer.variations();
+		float distributionTotal = 0;
+		for (float v : distribution)
+			distributionTotal += v;
+		float[] distributionNorm = new float[distribution.length];
+		for (int i = 0; i < distribution.length; i++)
+			distributionNorm[i] = distribution[i] / distributionTotal;
 		
 		for (int c = 1; c < CONFIG.length; c++) {
 			float[] lower = CONFIG[c - 1];
@@ -41,17 +46,22 @@ public class AsteroidPlacer {
 				continue;
 			
 			float distance = (upper[0] - lower[0]) * RADIUS_FACTOR;
-			for (int i = 0; i < distance; i++) {
-				float factor = i / distance;
+			for (int radiusIndex = 0; radiusIndex < distance; radiusIndex++) {
+				float factor = radiusIndex / distance;
 				float propability = interpolerate(lower[1], upper[1], factor) * PROBABILITY_FACTOR;
 				
-				float circleLength = 2 * PI * i;
-				for (int j = 0; j < circleLength; j++) {
+				float circleLength = 2 * PI * radiusIndex;
+				for (int circularIndex = 0; circularIndex < circleLength; circularIndex++) {
 					if (r.nextFloat() > propability)
 						continue;
 					
-					Asteroid ast = new Asteroid(r.nextInt(asteroidVariations));
-					Matrix3f mat = new AxisAndAnglef(0, 1, 0, (float) j / i).toMatrix3(new Matrix3f());
+					float typeFloat = r.nextFloat();
+					int typeIndex = 0;
+					for (; typeIndex < distributionNorm.length; typeIndex++)
+						if ((typeFloat -= distributionNorm[typeIndex]) < 0)
+							break;
+					Asteroid ast = new Asteroid(typeIndex);
+					Matrix3f mat = new AxisAndAnglef(0, 1, 0, (float) circularIndex / radiusIndex).toMatrix3(new Matrix3f());
 					ast.position[0]
 							.set(MIDDLE_POINT)
 							.add(new Vector3f(
