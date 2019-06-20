@@ -23,13 +23,13 @@ public class ModelAsteroids {
 			for(Triangle triangle : triangles) {
 				Point3D a, b, c;
 				if(i % 2 == 0){
-					a = Point3D.getMiddlePoint(triangle.p0, triangle.p1);
-					b = Point3D.getMiddlePoint(triangle.p1, triangle.p2);
-					c = Point3D.getMiddlePoint(triangle.p2, triangle.p0);
+					a = Point3D.getMiddlePointSpherical(triangle.p0, triangle.p1);
+					b = Point3D.getMiddlePointSpherical(triangle.p1, triangle.p2);
+					c = Point3D.getMiddlePointSpherical(triangle.p2, triangle.p0);
 				}else{
-					a = Point3D.getMiddlePoint(triangle.p1, triangle.p0);
-					b = Point3D.getMiddlePoint(triangle.p2, triangle.p1);
-					c = Point3D.getMiddlePoint(triangle.p0, triangle.p2);
+					a = Point3D.getMiddlePointSpherical(triangle.p1, triangle.p0);
+					b = Point3D.getMiddlePointSpherical(triangle.p2, triangle.p1);
+					c = Point3D.getMiddlePointSpherical(triangle.p0, triangle.p2);
 				}
 				
 				

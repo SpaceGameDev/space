@@ -38,33 +38,35 @@ public class Point3D {
 	
 	public Point3D normalize() {
 		float length = (float) Math.sqrt(x * x + y * y + z * z);
-		return new Point3D(
-				x / length,
-				y / length,
-				z / length
-		);
+		this.x /= length;
+		this.y /= length;
+		this.z /= length;
+		return this;
 	}
 	
 	public String toString() {
 		return "(x: "+this.x+", y: "+this.y+", z: "+this.z+")";
 	}
 	
-	public void multiply(float f) {
+	public Point3D multiply(float f) {
 		this.x *= f;
 		this.y *= f;
 		this.z *= f;
+		return this;
 	}
 	
-	public void divide(float f) {
+	public Point3D divide(float f) {
 		this.x /= f;
 		this.y /= f;
 		this.z /= f;
+		return this;
 	}
 	
-	public void move(Point3D point3D) {
+	public Point3D move(Point3D point3D) {
 		this.x += point3D.x;
 		this.y += point3D.y;
 		this.z += point3D.z;
+		return this;
 	}
 	
 	public static Point3D getMiddlePoint(Point3D p0, Point3D p1) {
@@ -73,6 +75,12 @@ public class Point3D {
 				(p0.y + p1.y) / 2,
 				(p0.z + p1.z) / 2
 		);
+	}
+	
+	public static Point3D getMiddlePointSpherical(Point3D p0, Point3D p1) {
+		float l0 = (float) p0.length();
+		float l1 = (float) p1.length();
+		return getMiddlePoint(p0, p1).normalize().multiply((l0 + l1) / 2);
 	}
 	
 	public double length() {
