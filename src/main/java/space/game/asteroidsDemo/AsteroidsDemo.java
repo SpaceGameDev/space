@@ -49,6 +49,7 @@ import space.engine.window.extensions.VideoModeDesktopExtension;
 import space.engine.window.glfw.GLFWContext;
 import space.engine.window.glfw.GLFWWindow;
 import space.engine.window.glfw.GLFWWindowFramework;
+import space.game.asteroidsDemo.asteroid.Asteroid;
 import space.game.asteroidsDemo.asteroid.AsteroidPipeline;
 import space.game.asteroidsDemo.asteroid.AsteroidPlacer;
 import space.game.asteroidsDemo.asteroid.AsteroidRenderer;
@@ -93,7 +94,7 @@ public class AsteroidsDemo implements Runnable {
 	public static BaseLogger baseLogger = BaseLogger.defaultPrinter(BaseLogger.defaultHandler(new BaseLogger()));
 	
 	public boolean VK_LAYER_LUNARG_standard_validation = false;
-	public boolean VK_LAYER_RENDERDOC_Capture = false;
+	public boolean VK_LAYER_RENDERDOC_Capture = true;
 	private Logger logger = baseLogger.subLogger("asteroidsDemo");
 	
 	public void run() {
@@ -211,40 +212,40 @@ public class AsteroidsDemo implements Runnable {
 			
 			//renderer
 			VmaBuffer[] asteroid_gasgiant = uploadAsteroids(device, new Object[] {side},
-															ModelAsteroids.generateAsteroid(500, new float[] {0f, 0f, 0f, 0.0f}, 0)
+															ModelAsteroids.generateAsteroid(3000, new float[] {0f, 0f, 0f, 0.0f}, 0)
 			).awaitGetUninterrupted();
 			VmaBuffer[] asteroid_r2 = uploadAsteroids(device, new Object[] {side},
-													  ModelAsteroids.generateAsteroid(2, new float[] {1f, 0.5f}, 1),
-													  ModelAsteroids.generateAsteroid(2, new float[] {1f}, 1),
-													  ModelAsteroids.generateAsteroid(2, new float[] {}, 1)
+													  ModelAsteroids.generateAsteroid(3, new float[] {1f, 0.5f}, 1),
+													  ModelAsteroids.generateAsteroid(3, new float[] {1f}, 1),
+													  ModelAsteroids.generateAsteroid(3, new float[] {}, 1)
 			).awaitGetUninterrupted();
 			VmaBuffer[] asteroid_r4 = uploadAsteroids(device, new Object[] {side},
-													  ModelAsteroids.generateAsteroid(4, new float[] {1f, 0.5f}, 2),
-													  ModelAsteroids.generateAsteroid(4, new float[] {1f}, 2),
-													  ModelAsteroids.generateAsteroid(4, new float[] {}, 2)
+													  ModelAsteroids.generateAsteroid(5, new float[] {1f, 0.5f}, 2),
+													  ModelAsteroids.generateAsteroid(5, new float[] {1f}, 2),
+													  ModelAsteroids.generateAsteroid(5, new float[] {}, 2)
 			).awaitGetUninterrupted();
 			VmaBuffer[] asteroid_r6 = uploadAsteroids(device, new Object[] {side},
-													  ModelAsteroids.generateAsteroid(6, new float[] {1f, 0.5f}, 3),
-													  ModelAsteroids.generateAsteroid(6, new float[] {1f}, 3),
-													  ModelAsteroids.generateAsteroid(6, new float[] {}, 3)
+													  ModelAsteroids.generateAsteroid(8, new float[] {1f, 0.5f}, 3),
+													  ModelAsteroids.generateAsteroid(8, new float[] {1f}, 3),
+													  ModelAsteroids.generateAsteroid(8, new float[] {}, 3)
 			).awaitGetUninterrupted();
 			VmaBuffer[] asteroid_r8 = uploadAsteroids(device, new Object[] {side},
-													  ModelAsteroids.generateAsteroid(8, new float[] {1f, 0.5f, 0.1f}, 4),
-													  ModelAsteroids.generateAsteroid(8, new float[] {1f, 0.5f}, 4),
-													  ModelAsteroids.generateAsteroid(8, new float[] {1f}, 4),
-													  ModelAsteroids.generateAsteroid(8, new float[] {}, 4)
+													  ModelAsteroids.generateAsteroid(11, new float[] {1f, 0.5f, 0.1f}, 4),
+													  ModelAsteroids.generateAsteroid(11, new float[] {1f, 0.5f}, 4),
+													  ModelAsteroids.generateAsteroid(11, new float[] {1f}, 4),
+													  ModelAsteroids.generateAsteroid(11, new float[] {}, 4)
 			).awaitGetUninterrupted();
 			VmaBuffer[] asteroid_r10 = uploadAsteroids(device, new Object[] {side},
-													   ModelAsteroids.generateAsteroid(10, new float[] {1f, 0.5f, 0.1f}, 5),
-													   ModelAsteroids.generateAsteroid(10, new float[] {1f, 0.5f}, 5),
-													   ModelAsteroids.generateAsteroid(10, new float[] {1f}, 5),
-													   ModelAsteroids.generateAsteroid(10, new float[] {}, 5)
+													   ModelAsteroids.generateAsteroid(15, new float[] {1f, 0.5f, 0.1f}, 5),
+													   ModelAsteroids.generateAsteroid(15, new float[] {1f, 0.5f}, 5),
+													   ModelAsteroids.generateAsteroid(15, new float[] {1f}, 5),
+													   ModelAsteroids.generateAsteroid(15, new float[] {}, 5)
 			).awaitGetUninterrupted();
 			VmaBuffer[] asteroid_r12 = uploadAsteroids(device, new Object[] {side},
-													   ModelAsteroids.generateAsteroid(12, new float[] {1f, 0.5f, 0.1f}, 6),
-													   ModelAsteroids.generateAsteroid(12, new float[] {1f, 0.5f}, 6),
-													   ModelAsteroids.generateAsteroid(12, new float[] {1f}, 6),
-													   ModelAsteroids.generateAsteroid(12, new float[] {}, 6)
+													   ModelAsteroids.generateAsteroid(20, new float[] {1f, 0.5f, 0.1f}, 6),
+													   ModelAsteroids.generateAsteroid(20, new float[] {1f, 0.5f}, 6),
+													   ModelAsteroids.generateAsteroid(20, new float[] {1f}, 6),
+													   ModelAsteroids.generateAsteroid(20, new float[] {}, 6)
 			).awaitGetUninterrupted();
 			
 			AsteroidRenderer asteroidRenderer = new AsteroidRenderer(
@@ -258,10 +259,10 @@ public class AsteroidsDemo implements Runnable {
 									  minDistance = new float[] {Float.POSITIVE_INFINITY};
 									  break;
 								  case 3:
-									  minDistance = new float[] {300, 1000, Float.POSITIVE_INFINITY};
+									  minDistance = new float[] {1200, 2500, Float.POSITIVE_INFINITY};
 									  break;
 								  case 4:
-									  minDistance = new float[] {150, 300, 1000, Float.POSITIVE_INFINITY};
+									  minDistance = new float[] {400, 1200, 2500, Float.POSITIVE_INFINITY};
 									  break;
 								  default:
 									  throw new RuntimeException();
@@ -272,12 +273,18 @@ public class AsteroidsDemo implements Runnable {
 					new Object[] {side}
 			);
 			asteroidDemoRenderPass.callbacks().addHook(asteroidRenderer);
-			AsteroidPlacer.placeAsteroids(asteroidRenderer, new float[] {0, 3, 2, 2, 1, 1, 1}, 0);
+			//gas giant
+			Asteroid gasGiant = new Asteroid(0);
+			gasGiant.position[0].set(0, 0, 2000 * AsteroidPlacer.RADIUS_FACTOR);
+			gasGiant.rotation[1].multiply(new AxisAndAnglef(0, 1, 0, (float) Math.PI / 150));
+			asteroidRenderer.addAsteroid(gasGiant);
+			//asteroids
+			AsteroidPlacer.placeAsteroids(asteroidRenderer, new float[] {0, 3, 2, 2, 1, 1, 1});
 			
 			//uniform buffer
 			VmaMappedBuffer uniformBuffer = VmaMappedBuffer.alloc(
 					0,
-					(4 + 3 + 1) * 4 * FP32.bytes,
+					(4 + 3 + 1 + 1) * 4 * FP32.bytes,
 					VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 					VMA_ALLOCATION_CREATE_MAPPED_BIT,
 					VMA_MEMORY_USAGE_CPU_TO_GPU,
@@ -342,7 +349,7 @@ public class AsteroidsDemo implements Runnable {
 						camera.translateRelative(translation.multiply(multi * multi));
 					});
 					
-					AsteroidDemoInfos infos = new AsteroidDemoInfos(imageIndex, matrixPerspective, camera, camera.toTranslation(new Translation()).inverse(), frameEventTime / 60f, uniformBuffer);
+					AsteroidDemoInfos infos = new AsteroidDemoInfos(imageIndex, matrixPerspective, camera, camera.toTranslation(new Translation()).inverse(), gasGiant, new Vector3f(10, 1, 0).normalize(), frameEventTime / 60f, uniformBuffer);
 					return window.pollEventsTask().toFuture(() -> infos);
 				}, 60, EMPTY_OBJECT_ARRAY);
 				isRunning.awaitUninterrupted();

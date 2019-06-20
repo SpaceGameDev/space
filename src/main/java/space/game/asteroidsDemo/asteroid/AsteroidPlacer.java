@@ -20,22 +20,17 @@ public class AsteroidPlacer {
 			{3200, 0.2f, 90},
 			{3600, 0, 30}
 	};
-	public static final float PROBABILITY_FACTOR = 1f / 50;
-	public static final float RADIUS_FACTOR = 1f;
+	public static final float PROBABILITY_FACTOR = 1f / 300;
+	public static final float RADIUS_FACTOR = 4f;
 	private static final float PI = (float) Math.PI;
 	public static final float MAX_ROTATION_SPEED = PI / 16;
 	public static final Vector3f MIDDLE_POINT = new Vector3f(0, 0, 1).normalize().multiply(2000 * RADIUS_FACTOR);
 	
-	public static void placeAsteroids(AsteroidRenderer asteroidRenderer, float[] distribution, int gasGiantId) {
-		placeAsteroids(asteroidRenderer, distribution, gasGiantId, System.nanoTime());
+	public static void placeAsteroids(AsteroidRenderer asteroidRenderer, float[] distribution) {
+		placeAsteroids(asteroidRenderer, distribution, System.nanoTime());
 	}
 	
-	public static void placeAsteroids(AsteroidRenderer asteroidRenderer, float[] distribution, int gasGiantId, long seed) {
-		//gas giant
-		Asteroid gasGiant = new Asteroid(gasGiantId);
-		gasGiant.position[0].set(0, 0, 2000);
-		gasGiant.rotation[1].multiply(new AxisAndAnglef(0, 1, 0, PI / 200));
-		asteroidRenderer.addAsteroid(gasGiant);
+	public static void placeAsteroids(AsteroidRenderer asteroidRenderer, float[] distribution, long seed) {
 		
 		//asteroids
 		Random r = new Random(seed);

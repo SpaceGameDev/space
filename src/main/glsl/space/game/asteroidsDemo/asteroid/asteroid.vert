@@ -5,6 +5,7 @@ layout(binding = 0) uniform UniformGlobal {
 	mat4 projection;
 	mat3 cameraRotation;
 	vec3 cameraOffset;
+	vec3 lightDir;
 } uniformGlobal;
 
 //in per vertex
