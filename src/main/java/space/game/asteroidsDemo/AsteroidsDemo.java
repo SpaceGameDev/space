@@ -19,13 +19,13 @@ import space.engine.logger.LogLevel;
 import space.engine.logger.Logger;
 import space.engine.observable.ObservableReference;
 import space.engine.sync.barrier.BarrierImpl;
+import space.engine.sync.future.Future;
 import space.engine.vector.AxisAndAnglef;
 import space.engine.vector.Matrix4f;
 import space.engine.vector.ProjectionMatrix;
 import space.engine.vector.Quaternionf;
 import space.engine.vector.Translation;
 import space.engine.vector.Vector3f;
-import space.engine.vulkan.VkBuffer;
 import space.engine.vulkan.VkInstance;
 import space.engine.vulkan.VkInstanceExtensions;
 import space.engine.vulkan.VkInstanceValidationLayers;
@@ -52,6 +52,7 @@ import space.engine.window.glfw.GLFWWindowFramework;
 import space.game.asteroidsDemo.asteroid.AsteroidPipeline;
 import space.game.asteroidsDemo.asteroid.AsteroidPlacer;
 import space.game.asteroidsDemo.asteroid.AsteroidRenderer;
+import space.game.asteroidsDemo.asteroid.AsteroidRenderer.AsteroidModel;
 import space.game.asteroidsDemo.entity.Camera;
 import space.game.asteroidsDemo.model.ModelCube;
 import space.game.asteroidsDemo.renderPass.AsteroidDemoInfos;
@@ -62,6 +63,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
@@ -70,6 +72,7 @@ import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
 import static space.engine.buffer.Allocator.heap;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 import static space.engine.primitive.Primitives.FP32;
+import static space.engine.sync.barrier.Barrier.awaitAll;
 import static space.engine.vector.AxisAndAnglef.toRadians;
 import static space.engine.vulkan.managed.device.ManagedDevice.*;
 import static space.engine.window.Keycode.*;
@@ -206,19 +209,45 @@ public class AsteroidsDemo implements Runnable {
 			ManagedFrameBuffer<AsteroidDemoInfos> frameBuffer = asteroidDemoRenderPass.createManagedFrameBuffer(swapchain, device.getQueue(QUEUE_TYPE_GRAPHICS, QUEUE_FLAG_REALTIME_BIT), new Object[] {side});
 			
 			//renderer
+			VmaBuffer[] asteroid_r2 = uploadModel(device, new Object[] {side},
+												  ModelCube.CUBE,
+												  ModelCube.CUBE,
+												  ModelCube.CUBE
+			).awaitGetUninterrupted();
+			VmaBuffer[] asteroid_r4 = uploadModel(device, new Object[] {side},
+												  ModelCube.CUBE,
+												  ModelCube.CUBE,
+												  ModelCube.CUBE
+			).awaitGetUninterrupted();
+			VmaBuffer[] asteroid_r6 = uploadModel(device, new Object[] {side},
+												  ModelCube.CUBE,
+												  ModelCube.CUBE,
+												  ModelCube.CUBE
+			).awaitGetUninterrupted();
+			VmaBuffer[] asteroid_r8 = uploadModel(device, new Object[] {side},
+												  ModelCube.CUBE,
+												  ModelCube.CUBE,
+												  ModelCube.CUBE
+			).awaitGetUninterrupted();
+			VmaBuffer[] asteroid_r10 = uploadModel(device, new Object[] {side},
+												   ModelCube.CUBE,
+												   ModelCube.CUBE,
+												   ModelCube.CUBE,
+												   ModelCube.CUBE
+			).awaitGetUninterrupted();
+			VmaBuffer[] asteroid_r12 = uploadModel(device, new Object[] {side},
+												   ModelCube.CUBE,
+												   ModelCube.CUBE,
+												   ModelCube.CUBE,
+												   ModelCube.CUBE
+			).awaitGetUninterrupted();
+			
 			AsteroidRenderer asteroidRenderer = new AsteroidRenderer(
 					asteroidDemoRenderPass,
 					asteroidPipeline,
-					Arrays.stream(new float[][] {ModelCube.CUBE, ModelCube.CUBE, ModelCube.CUBE, ModelCube.CUBE, ModelCube.CUBE, ModelCube.CUBE, ModelCube.CUBE, ModelCube.CUBE})
-						  .map(data -> {
-							  try (AllocatorFrame frame = Allocator.frame()) {
-								  VmaBuffer vmaBuffer = VmaBuffer.alloc(0, data.length * FP32.bytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, 0, VMA_MEMORY_USAGE_GPU_ONLY, device, new Object[] {side});
-								  ArrayBufferFloat dataBuffer = ArrayBufferFloat.alloc(heap(), data, new Object[] {frame});
-								  vmaBuffer.uploadData(dataBuffer).awaitUninterrupted();
-								  return vmaBuffer;
-							  }
-						  })
-						  .toArray(VkBuffer[]::new),
+					Stream.of(asteroid_r2, asteroid_r4, asteroid_r6, asteroid_r8, asteroid_r10, asteroid_r12)
+						  .map(models -> new AsteroidModel(models, models.length == 3 ? new float[] {300, 1000, Float.POSITIVE_INFINITY} : new float[] {150, 300, 1000, Float.POSITIVE_INFINITY}))
+						  .toArray(AsteroidModel[]::new),
 					new Object[] {side}
 			);
 			asteroidDemoRenderPass.callbacks().addHook(asteroidRenderer);
@@ -305,5 +334,20 @@ public class AsteroidsDemo implements Runnable {
 		} finally {
 			Side.exit();
 		}
+	}
+	
+	private static Future<VmaBuffer[]> uploadModel(ManagedDevice device, Object[] parents, float[]... models) {
+		List<Future<VmaBuffer>> modelBuffers = Arrays
+				.stream(models)
+				.map(data -> {
+					try (AllocatorFrame frame = Allocator.frame()) {
+						VmaBuffer vmaBuffer = VmaBuffer.alloc(0, data.length * FP32.bytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT, 0, VMA_MEMORY_USAGE_GPU_ONLY, device, parents);
+						ArrayBufferFloat dataBuffer = ArrayBufferFloat.alloc(heap(), data, new Object[] {frame});
+						return vmaBuffer.uploadData(dataBuffer).toFuture(() -> vmaBuffer);
+					}
+				})
+				.collect(Collectors.toUnmodifiableList());
+		
+		return awaitAll(modelBuffers).toFuture(() -> modelBuffers.stream().map(Future::assertGet).toArray(VmaBuffer[]::new));
 	}
 }

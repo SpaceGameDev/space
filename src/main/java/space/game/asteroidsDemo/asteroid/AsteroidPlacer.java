@@ -32,7 +32,7 @@ public class AsteroidPlacer {
 	
 	public static void placeAsteroids(AsteroidRenderer asteroidRenderer, long seed) {
 		Random r = new Random(seed);
-		int asteroidVariations = asteroidRenderer.asteroidModels().length;
+		int asteroidVariations = asteroidRenderer.variations();
 		
 		for (int c = 1; c < CONFIG.length; c++) {
 			float[] lower = CONFIG[c - 1];
