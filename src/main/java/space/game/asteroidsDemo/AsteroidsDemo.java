@@ -210,6 +210,9 @@ public class AsteroidsDemo implements Runnable {
 			ManagedFrameBuffer<AsteroidDemoInfos> frameBuffer = asteroidDemoRenderPass.createManagedFrameBuffer(swapchain, device.getQueue(QUEUE_TYPE_GRAPHICS, QUEUE_FLAG_REALTIME_BIT), new Object[] {side});
 			
 			//renderer
+			VmaBuffer[] asteroid_gasgiant = uploadAsteroids(device, new Object[] {side},
+															ModelAsteroids.generateAsteroid(500, new float[] {0f, 0f, 0f, 0.0f}, 0)
+			).awaitGetUninterrupted();
 			VmaBuffer[] asteroid_r2 = uploadAsteroids(device, new Object[] {side},
 													  ModelAsteroids.generateAsteroid(2, new float[] {1f, 0.5f}, 1),
 													  ModelAsteroids.generateAsteroid(2, new float[] {1f}, 1),
@@ -247,13 +250,29 @@ public class AsteroidsDemo implements Runnable {
 			AsteroidRenderer asteroidRenderer = new AsteroidRenderer(
 					asteroidDemoRenderPass,
 					asteroidPipeline,
-					Stream.of(asteroid_r2, asteroid_r4, asteroid_r6, asteroid_r8, asteroid_r10, asteroid_r12)
-						  .map(models -> new AsteroidModel(models, models.length == 3 ? new float[] {300, 1000, Float.POSITIVE_INFINITY} : new float[] {150, 300, 1000, Float.POSITIVE_INFINITY}))
+					Stream.of(asteroid_gasgiant, asteroid_r2, asteroid_r4, asteroid_r6, asteroid_r8, asteroid_r10, asteroid_r12)
+						  .map(models -> {
+							  float[] minDistance;
+							  switch (models.length) {
+								  case 1:
+									  minDistance = new float[] {Float.POSITIVE_INFINITY};
+									  break;
+								  case 3:
+									  minDistance = new float[] {300, 1000, Float.POSITIVE_INFINITY};
+									  break;
+								  case 4:
+									  minDistance = new float[] {150, 300, 1000, Float.POSITIVE_INFINITY};
+									  break;
+								  default:
+									  throw new RuntimeException();
+							  }
+							  return new AsteroidModel(models, minDistance);
+						  })
 						  .toArray(AsteroidModel[]::new),
 					new Object[] {side}
 			);
 			asteroidDemoRenderPass.callbacks().addHook(asteroidRenderer);
-			AsteroidPlacer.placeAsteroids(asteroidRenderer, new float[] {3, 2, 2, 1, 1, 1}, 1);
+			AsteroidPlacer.placeAsteroids(asteroidRenderer, new float[] {0, 3, 2, 2, 1, 1, 1}, 0);
 			
 			//uniform buffer
 			VmaMappedBuffer uniformBuffer = VmaMappedBuffer.alloc(
