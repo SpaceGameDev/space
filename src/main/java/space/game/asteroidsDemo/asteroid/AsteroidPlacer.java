@@ -34,6 +34,7 @@ public class AsteroidPlacer {
 		//gas giant
 		Asteroid gasGiant = new Asteroid(gasGiantId);
 		gasGiant.position[0].set(0, 0, 2000);
+		gasGiant.rotation[1].multiply(new AxisAndAnglef(0, 1, 0, PI / 200));
 		asteroidRenderer.addAsteroid(gasGiant);
 		
 		//asteroids
@@ -75,11 +76,6 @@ public class AsteroidPlacer {
 									(r.nextFloat() * 2 - 1) * interpolerate(lower[2], upper[2], factor),
 									-interpolerate(lower[0], upper[0], factor) * RADIUS_FACTOR
 							).rotate(mat));
-					ast.position[1].set(
-							new Vector3f(1, 0, 0)
-									.multiply(1f)
-									.rotate(mat)
-					);
 					randomOrientation(r, ast.rotation[0]);
 					randomRotation(r, MAX_ROTATION_SPEED, ast.rotation[1]);
 					asteroidRenderer.addAsteroid(ast);
