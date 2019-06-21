@@ -276,6 +276,7 @@ public class AsteroidsDemo implements Runnable {
 			//gas giant
 			Asteroid gasGiant = new Asteroid(0);
 			gasGiant.position[0].set(0, 0, 2000 * AsteroidPlacer.RADIUS_FACTOR);
+			gasGiant.rotation[0].multiply(new AxisAndAnglef(0, 1, 0, (float) Math.PI));
 			gasGiant.rotation[1].multiply(new AxisAndAnglef(0, 1, 0, (float) Math.PI / 150));
 			asteroidRenderer.addAsteroid(gasGiant);
 			//asteroids
@@ -300,6 +301,7 @@ public class AsteroidsDemo implements Runnable {
 			
 			Matrix4f matrixPerspective = ProjectionMatrix.projection(new Matrix4f(), 90, (float) swapExtend.extent().width() / swapExtend.extent().height(), 0.1f, 100000f);
 			Camera camera = new Camera();
+			camera.rotateRelative(new AxisAndAnglef(0, 1, 0, 9f / 8f * (float) Math.PI).toQuaternion(new Quaternionf()));
 			
 			float speedMouse = 0.008f;
 			float speedMovement = 0.05f;
