@@ -163,7 +163,7 @@ public class AsteroidsDemo implements Runnable {
 				AttributeListModify<Window> windowModify = Window.CREATOR.createModify();
 				windowModify.put(VIDEO_MODE, VideoModeDesktopExtension.class);
 				windowModify.put(TITLE, "Vulkan Window");
-				windowModify.put(WIDTH, 1080);
+				windowModify.put(WIDTH, 1920);
 				windowModify.put(HEIGHT, 1080);
 				windowModify.put(MOUSE_MODE, Modes.CURSOR_DISABLED);
 				windowAtt = windowModify.createNewAttributeList();
@@ -270,7 +270,7 @@ public class AsteroidsDemo implements Runnable {
 			List<Keyboard> keyboards = windowContext.getInputDevices().stream().filter(dev -> dev instanceof Keyboard).map(Keyboard.class::cast).collect(Collectors.toUnmodifiableList());
 			List<Mouse> mouses = windowContext.getInputDevices().stream().filter(dev -> dev instanceof Mouse).map(Mouse.class::cast).collect(Collectors.toUnmodifiableList());
 			
-			Matrix4f matrixPerspective = ProjectionMatrix.projection(new Matrix4f(), 90, 1, 0.1f, 100000f);
+			Matrix4f matrixPerspective = ProjectionMatrix.projection(new Matrix4f(), 90, (float) swapExtend.extent().width() / swapExtend.extent().height(), 0.1f, 100000f);
 			Camera camera = new Camera();
 			
 			float speedMouse = 0.008f;
