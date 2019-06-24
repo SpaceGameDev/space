@@ -37,14 +37,14 @@ public class ModelAsteroids {
 					a = dictionary.get(a.toString());
 				}else{
 					String key = a.toString();
-					a.multiply(1f + rand.nextFloat() * config[i]);
+					a.multiply(1f + (rand.nextFloat() * 2 - 1) * config[i]);
 					dictionary.put(key, a);
 				}
 				if(dictionary.containsKey(b.toString())){
 					b = dictionary.get(b.toString());
 				}else{
 					String key = b.toString();
-					b.multiply(1f + rand.nextFloat() * config[i]);
+					b.multiply(1f + (rand.nextFloat() * 2 - 1) * config[i]);
 					dictionary.put(key, b);
 				}
 				
@@ -52,7 +52,7 @@ public class ModelAsteroids {
 					c = dictionary.get(c.toString());
 				}else{
 					String key = c.toString();
-					c.multiply(1f + rand.nextFloat() * config[i]);
+					c.multiply(1f + (rand.nextFloat() * 2 - 1) * config[i]);
 					dictionary.put(key, c);
 				}
 				newTriangles.add(new Triangle(triangle.p0, a, c));
