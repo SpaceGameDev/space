@@ -94,7 +94,7 @@ public class AsteroidsDemo implements Runnable {
 	public static BaseLogger baseLogger = BaseLogger.defaultPrinter(BaseLogger.defaultHandler(new BaseLogger()));
 	
 	public boolean VK_LAYER_LUNARG_standard_validation = false;
-	public boolean VK_LAYER_RENDERDOC_Capture = true;
+	public boolean VK_LAYER_RENDERDOC_Capture = false;
 	private Logger logger = baseLogger.subLogger("asteroidsDemo");
 	
 	public void run() {
