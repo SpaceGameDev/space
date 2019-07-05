@@ -1,0 +1,15 @@
+plugins {
+    id 'java-library'
+    id 'glslang-validator'
+}
+
+dependencies {
+    api parent
+    api parent.project(':space-engine-lwjgl')
+    api parent.project(':space-engine-window')
+
+    api "org.lwjgl:lwjgl-vulkan:$parent.lwjglVersion"
+    //there is no native version for vulkan
+    
+    testImplementation 'junit:junit:4.12'
+}
