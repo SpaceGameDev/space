@@ -1,0 +1,16 @@
+plugins {
+    id 'java-library'
+    id 'glslang-validator'
+}
+
+dependencies {
+    api parent
+    api parent.project(':space-engine-vulkan-objects')
+
+    api "org.lwjgl:lwjgl-vma:$parent.lwjglVersion"
+    implementation "org.lwjgl:lwjgl-vma:$parent.lwjglVersion:natives-linux"
+    implementation "org.lwjgl:lwjgl-vma:$parent.lwjglVersion:natives-windows"
+    implementation "org.lwjgl:lwjgl-vma:$parent.lwjglVersion:natives-macos"
+    
+    testImplementation 'junit:junit:4.12'
+}
