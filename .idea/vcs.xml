@@ -3,7 +3,5 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/space-engine" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/space-engine/glslang-validator-gradle-plugin" vcs="Git" />
   </component>
 </project>
