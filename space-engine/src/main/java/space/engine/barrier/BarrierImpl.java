@@ -64,13 +64,17 @@ public class BarrierImpl implements Barrier {
 	
 	@Override
 	public void addHook(@NotNull Runnable run) {
-		synchronized (this) {
-			List<Runnable> hookList = this.hookList;
-			if (hookList != null) {
-				hookList.add(run);
-				return;
+		List<Runnable> hookList = this.hookList;
+		if (hookList != null) {
+			synchronized (this) {
+				hookList = this.hookList;
+				if (hookList != null) {
+					hookList.add(run);
+					return;
+				}
 			}
 		}
+		
 		run.run();
 	}
 	
