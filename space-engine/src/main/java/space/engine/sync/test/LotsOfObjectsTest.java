@@ -7,6 +7,8 @@ import space.engine.sync.barrier.Barrier;
 import space.engine.sync.barrier.BarrierImpl;
 import space.engine.sync.test.TransactionTest.Entity;
 
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -15,9 +17,9 @@ import static space.engine.sync.Tasks.parallel;
 
 public class LotsOfObjectsTest {
 	
-	public static final int[] OBJECT_COUNT = new int[] {500, 1000, 2000};
-	public static boolean FANCY_PRINTOUT = true;
-	public static boolean TIMER_PRINTOUT = true;
+	public static final int[] OBJECT_COUNT = new int[] {500, 1000, 2000, 3000, 4000};
+	public static boolean FANCY_PRINTOUT = false;
+	public static boolean TIMER_PRINTOUT = false;
 	
 	public static void main(String[] args) throws InterruptedException {
 		try {
@@ -25,9 +27,9 @@ public class LotsOfObjectsTest {
 			
 			//run
 			for (int count : OBJECT_COUNT) {
-				long timeNeeded = run(count);
-				System.out.println(String.format("%1$3s", count) + ": " + formatTimeMs(timeNeeded)
-										   + " " + ((double) (count * (count - 1)) / (timeNeeded / 1E9d)) + "tr/s");
+				Result result = run(count);
+				System.out.println(String.format("%1$3s", count) + ": " + formatTimeMs(result.totalTime)
+										   + " " + ((double) result.transactions) / (result.totalTime / 1E9d) + "tr/s");
 			}
 		} finally {
 			Side.exit().awaitUninterrupted();
@@ -45,21 +47,27 @@ public class LotsOfObjectsTest {
 		}
 	}
 	
-	private static long run(int objectsCount) throws InterruptedException {
+	private static Result run(int objectsCount) throws InterruptedException {
 		Entity[] world = IntStream.range(0, objectsCount).mapToObj(v -> new Entity()).toArray(Entity[]::new);
 		long time;
 		
 		if (FANCY_PRINTOUT)
 			System.out.println(objectsCount + " Objects: taskCreator");
 		time = System.nanoTime();
-		TaskCreator<? extends Barrier> taskCreator =
-				parallel(IntStream.range(0, world.length)
-								  .boxed()
-								  .flatMap(x -> IntStream.range(0, world.length)
-														 .mapToObj(y -> new IntVector(x, y))
-														 .filter(v -> v.x != v.y))
-								  .map(v -> TransactionTest.createTransaction(world[v.x], world[v.y]))
-								  .collect(Collectors.toList()));
+		AtomicInteger transactionCount = new AtomicInteger();
+		TaskCreator<? extends Barrier> taskCreator;
+		{
+			List<? extends TaskCreator<? extends Barrier>> transactions = IntStream
+					.range(0, world.length)
+					.boxed()
+					.flatMap(x -> IntStream.range(0, world.length)
+										   .mapToObj(y -> new IntVector(x, y))
+										   .filter(v -> v.x != v.y))
+					.map(v -> TransactionTest.createTransaction(world[v.x], world[v.y]))
+					.collect(Collectors.toList());
+			transactionCount.set(transactions.size());
+			taskCreator = parallel(transactions);
+		}
 		if (TIMER_PRINTOUT)
 			System.out.println(formatTimeMs(System.nanoTime() - time));
 		
@@ -88,15 +96,26 @@ public class LotsOfObjectsTest {
 		
 		if (FANCY_PRINTOUT)
 			System.out.println(objectsCount + " Objects: done!");
+		long totalDelta = System.nanoTime() - totalTime;
 		
 		for (Entity entity : world)
 			if (entity.count != 0)
 				throw new RuntimeException();
 		
-		long totalDelta = System.nanoTime() - totalTime;
 		if (TIMER_PRINTOUT)
 			System.out.println("total execution time: " + formatTimeMs(totalDelta));
-		return totalDelta;
+		return new Result(totalDelta, transactionCount.get());
+	}
+	
+	public static class Result {
+		
+		public final long totalTime;
+		public final long transactions;
+		
+		public Result(long totalTime, long transactions) {
+			this.totalTime = totalTime;
+			this.transactions = transactions;
+		}
 	}
 	
 	@NotNull
