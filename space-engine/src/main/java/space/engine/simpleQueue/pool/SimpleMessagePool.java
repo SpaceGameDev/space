@@ -7,6 +7,8 @@ import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.FreeableStorage;
 import space.engine.simpleQueue.SimpleQueue;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.Executors;
@@ -17,8 +19,19 @@ import java.util.stream.IntStream;
 
 public abstract class SimpleMessagePool<MSG> {
 	
+	private static final VarHandle SOMETHREADSLEEPING;
+	
+	static {
+		try {
+			SOMETHREADSLEEPING = MethodHandles.lookup().findVarHandle(SimpleMessagePool.class, "someThreadSleeping", boolean.class);
+		} catch (NoSuchFieldException | IllegalAccessException e) {
+			throw new ExceptionInInitializerError(e);
+		}
+	}
+	
 	protected final @NotNull SimpleQueue<MSG> queue;
 	protected final Thread[] threads;
+	private volatile boolean someThreadSleeping = false;
 	
 	private volatile boolean isRunning = true;
 	private final AtomicInteger exitCountdown;
@@ -66,6 +79,7 @@ public abstract class SimpleMessagePool<MSG> {
 					synchronized (this) {
 						msg = queue.remove();
 						if (msg == null) {
+							SOMETHREADSLEEPING.set(this, true);
 							try {
 								this.wait();
 							} catch (InterruptedException ignored) {
@@ -119,8 +133,10 @@ public abstract class SimpleMessagePool<MSG> {
 	
 	//park
 	protected void unparkThreads() {
-		synchronized (this) {
-			this.notifyAll();
+		if (SOMETHREADSLEEPING.compareAndSet(this, true, false)) {
+			synchronized (this) {
+				this.notifyAll();
+			}
 		}
 	}
 	
