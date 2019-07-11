@@ -109,4 +109,14 @@ public class SyncLockImpl implements SyncLock {
 			unlock().run();
 		}
 	}
+	
+	/**
+	 * <b>For testing only!</b>
+	 * And only in highly controlled environments, as the returned value is immediately stale.
+	 */
+	public boolean isLocked() {
+		synchronized (this) {
+			return locked;
+		}
+	}
 }
