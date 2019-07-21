@@ -2,10 +2,9 @@ package space.engine.sync.test;
 
 import org.jetbrains.annotations.NotNull;
 import space.engine.Side;
-import space.engine.sync.TaskCreator;
+import space.engine.sync.DelayTask;
 import space.engine.sync.barrier.Barrier;
 import space.engine.sync.barrier.BarrierImpl;
-import space.engine.sync.future.Future;
 import space.engine.sync.test.TransactionTest.Entity;
 
 import java.util.List;
@@ -14,7 +13,8 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static space.engine.sync.Tasks.*;
+import static space.engine.sync.Tasks.runnable;
+import static space.engine.sync.barrier.Barrier.awaitAll;
 
 public class LotsOfObjectsTest {
 	
@@ -56,39 +56,25 @@ public class LotsOfObjectsTest {
 		BarrierImpl start = new BarrierImpl();
 		
 		if (FANCY_PRINTOUT)
-			System.out.println(objectsCount + " Objects: taskCreator");
+			System.out.println(objectsCount + " Objects: submitting");
 		long totalTime = time = System.nanoTime();
 		AtomicInteger transactionCount = new AtomicInteger();
-		TaskCreator<? extends Barrier> taskCreator;
-		{
-			int partSize = world.length / CORES;
-			int partRest = world.length % CORES;
-			
-			List<? extends Future<? extends TaskCreator<? extends Barrier>>> futures = IntStream
-					.range(0, CORES)
-					.mapToObj(i -> future(() -> {
-						List<? extends TaskCreator<? extends Barrier>> transactions = IntStream
-								.range(partSize * i, partSize * (i + 1) + (i == CORES - 1 ? partRest : 0))
-								.boxed()
-								.flatMap(x -> IntStream.range(0, world.length)
-													   .mapToObj(y -> new IntVector(x, y))
-													   .filter(v -> v.x != v.y))
-								.map(v -> TransactionTest.createTransaction(world[v.x], world[v.y]))
-								.collect(Collectors.toList());
-						transactionCount.addAndGet(transactions.size());
-						return parallel(transactions);
-					}).submit())
-					.collect(Collectors.toUnmodifiableList());
-			List<? extends TaskCreator<? extends Barrier>> taskCreators = futures.stream().map(Future::awaitGetUninterrupted).collect(Collectors.toUnmodifiableList());
-			taskCreator = parallel(taskCreators);
-		}
-		if (TIMER_PRINTOUT)
-			System.out.println(formatTimeMs(System.nanoTime() - time));
+		int partSize = world.length / CORES;
+		int partRest = world.length % CORES;
 		
-		if (FANCY_PRINTOUT)
-			System.out.println(objectsCount + " Objects: submitting");
-		time = System.nanoTime();
-		Barrier task = taskCreator.submit(start);
+		Barrier task = awaitAll(IntStream.range(0, CORES)
+										 .mapToObj(i -> runnable(() -> {
+											 List<? extends Barrier> transactions = IntStream
+													 .range(partSize * i, partSize * (i + 1) + (i == CORES - 1 ? partRest : 0))
+													 .boxed()
+													 .flatMap(x -> IntStream.range(0, world.length)
+																			.mapToObj(y -> new IntVector(x, y))
+																			.filter(v -> v.x != v.y))
+													 .map(v -> TransactionTest.createTransaction(world[v.x], world[v.y]).submit())
+													 .collect(Collectors.toList());
+											 transactionCount.addAndGet(transactions.size());
+											 throw new DelayTask(awaitAll(transactions));
+										 }).submit(start)));
 		if (TIMER_PRINTOUT)
 			System.out.println(formatTimeMs(System.nanoTime() - time));
 		
