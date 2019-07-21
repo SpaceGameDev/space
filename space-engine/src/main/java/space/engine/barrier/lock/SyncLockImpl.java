@@ -1,9 +1,11 @@
 package space.engine.barrier.lock;
 
 import org.jetbrains.annotations.NotNull;
+import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.invoke.VarHandle;
 import java.util.function.BooleanSupplier;
 
 import static space.engine.Side.pool;
@@ -12,9 +14,22 @@ public class SyncLockImpl implements SyncLock {
 	
 	public static int SYNCLOCK_CALLBACK_TRIES = 2;
 	
-	private boolean locked;
-	private int modId;
-	private @NotNull List<BooleanSupplier> notifyUnlock = new ArrayList<>();
+	private static final VarHandle LOCKED;
+	private static final VarHandle MODID;
+	
+	static {
+		try {
+			Lookup lookup = MethodHandles.lookup();
+			LOCKED = lookup.findVarHandle(SyncLockImpl.class, "locked", boolean.class);
+			MODID = lookup.findVarHandle(SyncLockImpl.class, "modId", int.class);
+		} catch (NoSuchFieldException | IllegalAccessException e) {
+			throw new ExceptionInInitializerError(e);
+		}
+	}
+	
+	private volatile boolean locked;
+	private volatile int modId;
+	private @NotNull ConcurrentLinkedSimpleQueue<BooleanSupplier> notifyUnlock = new ConcurrentLinkedSimpleQueue<>();
 	
 	@SuppressWarnings("ResultOfMethodCallIgnored")
 	public SyncLockImpl() {
@@ -24,86 +39,70 @@ public class SyncLockImpl implements SyncLock {
 	}
 	
 	@Override
-	public synchronized boolean tryLockNow() {
-		if (locked)
+	public boolean tryLockNow() {
+		if (!LOCKED.compareAndSet(this, false, true))
 			return false;
 		
-		//success
-		locked = true;
-		modId++;
+		//success, only one thread beyond this point
+		MODID.getAndAdd(this, 1);
 		return true;
 	}
 	
 	@Override
 	public Runnable unlock() {
-		final int modId;
-		synchronized (this) {
-			locked = false;
-			modId = this.modId;
-		}
+		final int modId = (int) MODID.get(this);
+		LOCKED.set(this, false);
 		
 		return () -> unlockFindNext(modId);
 	}
 	
 	private void unlockFindNext(final int modId) {
-		BooleanSupplier callback;
-		
-		synchronized (this) {
-			if (locked || modId != this.modId) {
-				//someone else locked this Lock -> he will search for the next task
-				return;
-			}
-			
-			//lock and get first callback
-			if (notifyUnlock.isEmpty()) {
-				//no callback found to accept lock
-				return;
-			}
-			callback = notifyUnlock.remove(0);
-			locked = true;
+		//locking
+		if (!LOCKED.compareAndSet(this, false, true))
+			return;
+		//ensures no duplicate findNext attempts
+		if (modId != ((int) MODID.get(this))) {
+			LOCKED.set(this, false);
+			return;
 		}
 		
-		for (int i = 0; true; i++) {
+		for (int i = 0; i < SYNCLOCK_CALLBACK_TRIES; i++) {
+			BooleanSupplier callback = notifyUnlock.remove();
+			if (callback == null) {
+				//queue ran dry
+				synchronized (this) {
+					callback = notifyUnlock.remove();
+					if (callback == null) {
+						//queue actually dry -> no-one whats this lock
+						LOCKED.set(this, false);
+						return;
+					}
+				}
+			}
 			if (callback.getAsBoolean()) {
 				//accepted lock
 				return;
 			}
-			
-			synchronized (this) {
-				if (i >= SYNCLOCK_CALLBACK_TRIES) {
-					//out of tries -> enqueue and try again later
-					locked = false;
-					pool().execute(() -> unlockFindNext(modId));
-					return;
-				}
-				
-				//get next callback
-				if (notifyUnlock.isEmpty()) {
-					//no callback found to accept lock
-					locked = false;
-					return;
-				}
-				callback = notifyUnlock.remove(0);
-			}
-			
-			//performance advantage is negligible; only at extreme transaction counts (> 100,000) between the same two objects it is still very unnoticeable
-//			Thread.yield();
 		}
+		
+		//out of tries -> enqueue and try again later
+		LOCKED.set(this, false);
+		pool().execute(() -> unlockFindNext(modId));
 	}
 	
 	@Override
 	public void tryLockLater(BooleanSupplier callback) {
-		synchronized (this) {
-			if (locked) {
-				//locked -> add callback
-				notifyUnlock.add(callback);
-				return;
+		if (!LOCKED.compareAndSet(this, false, true)) {
+			synchronized (this) {
+				if (!LOCKED.compareAndSet(this, false, true)) {
+					//lock is actually locked -> enqueue
+					notifyUnlock.add(callback);
+					return;
+				}
 			}
-			
-			//not locked -> lock and call callback
-			locked = true;
 		}
 		
+		//lock was unlocked and has been locked
 		if (!callback.getAsBoolean()) {
 			//not accepted lock
 			unlock().run();
@@ -115,8 +114,6 @@ public class SyncLockImpl implements SyncLock {
 	 * And only in highly controlled environments, as the returned value is immediately stale.
 	 */
 	public boolean isLocked() {
-		synchronized (this) {
-			return locked;
-		}
+		return (boolean) LOCKED.get(this);
 	}
 }
