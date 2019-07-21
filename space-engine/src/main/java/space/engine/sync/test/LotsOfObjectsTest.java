@@ -53,7 +53,7 @@ public class LotsOfObjectsTest {
 		
 		if (FANCY_PRINTOUT)
 			System.out.println(objectsCount + " Objects: taskCreator");
-		time = System.nanoTime();
+		long totalTime = time = System.nanoTime();
 		AtomicInteger transactionCount = new AtomicInteger();
 		TaskCreator<? extends Barrier> taskCreator;
 		{
@@ -75,7 +75,7 @@ public class LotsOfObjectsTest {
 		
 		if (FANCY_PRINTOUT)
 			System.out.println(objectsCount + " Objects: submitting");
-		long totalTime = time = System.nanoTime();
+		time = System.nanoTime();
 		Barrier task = taskCreator.submit(barrier);
 		if (TIMER_PRINTOUT)
 			System.out.println(formatTimeMs(System.nanoTime() - time));
