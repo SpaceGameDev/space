@@ -35,6 +35,7 @@ public class LinkedSimpleQueue<E> implements SimpleQueue<E> {
 	/**
 	 * current size of the SimpleQueue, for testing purposes
 	 */
+	@Override
 	public int size() {
 		Node<E> n = head;
 		for (int i = 0; true; i++) {

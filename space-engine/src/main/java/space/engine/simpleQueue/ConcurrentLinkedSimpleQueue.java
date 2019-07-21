@@ -42,6 +42,14 @@ public class ConcurrentLinkedSimpleQueue<E> implements SimpleQueue<E> {
 		return next.item;
 	}
 	
+	@Override
+	public int size() {
+		int i = 0;
+		for (Node<E> node = headRef.get(); node != null; node = node.next)
+			i++;
+		return i;
+	}
+	
 	public static class Node<E> {
 		
 		private final E item;
