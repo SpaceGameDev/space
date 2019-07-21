@@ -3,27 +3,45 @@ package space.engine.simpleQueue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.concurrent.atomic.AtomicReference;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.invoke.VarHandle;
 
 /**
  * A concurrent threadsafe linking based FILO queue.
  */
 public class ConcurrentLinkedSimpleQueue<E> implements SimpleQueue<E> {
 	
-	private AtomicReference<@NotNull Node<E>> headRef;
-	private AtomicReference<@NotNull Node<E>> tailRef;
+	private static final VarHandle HEAD;
+	private static final VarHandle TAIL;
+	
+	static {
+		try {
+			Lookup lookup = MethodHandles.lookup();
+			HEAD = lookup.findVarHandle(ConcurrentLinkedSimpleQueue.class, "head", Node.class);
+			TAIL = lookup.findVarHandle(ConcurrentLinkedSimpleQueue.class, "tail", Node.class);
+		} catch (NoSuchFieldException | IllegalAccessException e) {
+			throw new ExceptionInInitializerError(e);
+		}
+	}
+	
+	@SuppressWarnings("FieldCanBeLocal")
+	private volatile @NotNull Node<E> head;
+	@SuppressWarnings("FieldCanBeLocal")
+	private volatile @NotNull Node<E> tail;
 	
 	public ConcurrentLinkedSimpleQueue() {
 		//noinspection ConstantConditions
 		Node<E> starterNode = new Node<>(null);
-		headRef = new AtomicReference<>(starterNode);
-		tailRef = new AtomicReference<>(starterNode);
+		head = starterNode;
+		tail = starterNode;
 	}
 	
 	@Override
 	public boolean add(E e) {
 		Node<E> node = new Node<>(e);
-		Node<E> oldTail = tailRef.getAndSet(node);
+		//noinspection unchecked
+		Node<E> oldTail = (Node<E>) TAIL.getAndSet(this, node);
 		oldTail.next = node;
 		return true;
 	}
@@ -33,19 +51,19 @@ public class ConcurrentLinkedSimpleQueue<E> implements SimpleQueue<E> {
 	public E remove() {
 		Node<E> head, next;
 		do {
-			head = headRef.get();
+			head = this.head;
 			next = head.next;
 			if (next == null)
 				return null;
 		}
-		while (!headRef.compareAndSet(head, next));
+		while (!HEAD.compareAndSet(this, head, next));
 		return next.item;
 	}
 	
 	@Override
 	public int size() {
 		int i = 0;
-		for (Node<E> node = headRef.get(); node != null; node = node.next)
+		for (Node<E> node = head; node != null; node = node.next)
 			i++;
 		return i;
 	}
