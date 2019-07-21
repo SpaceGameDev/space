@@ -5,6 +5,7 @@ import space.engine.Side;
 import space.engine.sync.TaskCreator;
 import space.engine.sync.barrier.Barrier;
 import space.engine.sync.barrier.BarrierImpl;
+import space.engine.sync.future.Future;
 import space.engine.sync.test.TransactionTest.Entity;
 
 import java.util.List;
@@ -13,13 +14,14 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
-import static space.engine.sync.Tasks.parallel;
+import static space.engine.sync.Tasks.*;
 
 public class LotsOfObjectsTest {
 	
 	public static final int[] OBJECT_COUNT = new int[] {500, 1000, 2000, 3000, 4000};
-	public static boolean FANCY_PRINTOUT = false;
-	public static boolean TIMER_PRINTOUT = false;
+	public static final boolean FANCY_PRINTOUT = false;
+	public static final boolean TIMER_PRINTOUT = false;
+	public static final int CORES = Runtime.getRuntime().availableProcessors();
 	
 	public static void main(String[] args) throws InterruptedException {
 		try {
@@ -51,39 +53,49 @@ public class LotsOfObjectsTest {
 		Entity[] world = IntStream.range(0, objectsCount).mapToObj(v -> new Entity()).toArray(Entity[]::new);
 		long time;
 		
+		BarrierImpl start = new BarrierImpl();
+		
 		if (FANCY_PRINTOUT)
 			System.out.println(objectsCount + " Objects: taskCreator");
 		long totalTime = time = System.nanoTime();
 		AtomicInteger transactionCount = new AtomicInteger();
 		TaskCreator<? extends Barrier> taskCreator;
 		{
-			List<? extends TaskCreator<? extends Barrier>> transactions = IntStream
-					.range(0, world.length)
-					.boxed()
-					.flatMap(x -> IntStream.range(0, world.length)
-										   .mapToObj(y -> new IntVector(x, y))
-										   .filter(v -> v.x != v.y))
-					.map(v -> TransactionTest.createTransaction(world[v.x], world[v.y]))
-					.collect(Collectors.toList());
-			transactionCount.set(transactions.size());
-			taskCreator = parallel(transactions);
+			int partSize = world.length / CORES;
+			int partRest = world.length % CORES;
+			
+			List<? extends Future<? extends TaskCreator<? extends Barrier>>> futures = IntStream
+					.range(0, CORES)
+					.mapToObj(i -> future(() -> {
+						List<? extends TaskCreator<? extends Barrier>> transactions = IntStream
+								.range(partSize * i, partSize * (i + 1) + (i == CORES - 1 ? partRest : 0))
+								.boxed()
+								.flatMap(x -> IntStream.range(0, world.length)
+													   .mapToObj(y -> new IntVector(x, y))
+													   .filter(v -> v.x != v.y))
+								.map(v -> TransactionTest.createTransaction(world[v.x], world[v.y]))
+								.collect(Collectors.toList());
+						transactionCount.addAndGet(transactions.size());
+						return parallel(transactions);
+					}).submit())
+					.collect(Collectors.toUnmodifiableList());
+			List<? extends TaskCreator<? extends Barrier>> taskCreators = futures.stream().map(Future::awaitGetUninterrupted).collect(Collectors.toUnmodifiableList());
+			taskCreator = parallel(taskCreators);
 		}
 		if (TIMER_PRINTOUT)
 			System.out.println(formatTimeMs(System.nanoTime() - time));
 		
-		BarrierImpl barrier = new BarrierImpl();
-		
 		if (FANCY_PRINTOUT)
 			System.out.println(objectsCount + " Objects: submitting");
 		time = System.nanoTime();
-		Barrier task = taskCreator.submit(barrier);
+		Barrier task = taskCreator.submit(start);
 		if (TIMER_PRINTOUT)
 			System.out.println(formatTimeMs(System.nanoTime() - time));
 		
 		if (FANCY_PRINTOUT)
 			System.out.println(objectsCount + " Objects: launching");
 		time = System.nanoTime();
-		barrier.triggerNow();
+		start.triggerNow();
 		if (TIMER_PRINTOUT)
 			System.out.println(formatTimeMs(System.nanoTime() - time));
 		
@@ -100,7 +112,7 @@ public class LotsOfObjectsTest {
 		
 		for (Entity entity : world)
 			if (entity.count != 0)
-				throw new RuntimeException();
+				throw new RuntimeException("locking is broken");
 		
 		if (TIMER_PRINTOUT)
 			System.out.println("total execution time: " + formatTimeMs(totalDelta));
