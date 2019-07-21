@@ -6,6 +6,9 @@ import org.lwjgl.vulkan.VkExtent2D;
 import org.lwjgl.vulkan.VkOffset2D;
 import org.lwjgl.vulkan.VkRect2D;
 import space.engine.Side;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.BarrierImpl;
+import space.engine.barrier.future.Future;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferFloat;
@@ -18,8 +21,6 @@ import space.engine.logger.BaseLogger;
 import space.engine.logger.LogLevel;
 import space.engine.logger.Logger;
 import space.engine.observable.ObservableReference;
-import space.engine.sync.barrier.BarrierImpl;
-import space.engine.sync.future.Future;
 import space.engine.vector.AxisAndAnglef;
 import space.engine.vector.Matrix4f;
 import space.engine.vector.ProjectionMatrix;
@@ -72,7 +73,6 @@ import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
 import static space.engine.buffer.Allocator.heap;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 import static space.engine.primitive.Primitives.FP32;
-import static space.engine.sync.barrier.Barrier.awaitAll;
 import static space.engine.vector.AxisAndAnglef.toRadians;
 import static space.engine.vulkan.managed.device.ManagedDevice.*;
 import static space.engine.window.Keycode.*;
@@ -348,6 +348,6 @@ public class AsteroidsDemo implements Runnable {
 				})
 				.collect(Collectors.toUnmodifiableList());
 		
-		return awaitAll(modelBuffers).toFuture(() -> modelBuffers.stream().map(Future::assertGet).toArray(VmaBuffer[]::new));
+		return Barrier.when(modelBuffers).toFuture(() -> modelBuffers.stream().map(Future::assertGet).toArray(VmaBuffer[]::new));
 	}
 }

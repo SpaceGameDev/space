@@ -1,8 +1,8 @@
 package space.engine.event.typehandler;
 
 import org.jetbrains.annotations.NotNull;
-import space.engine.sync.DelayTask;
-import space.engine.sync.Tasks.SupplierWithDelay;
+import space.engine.barrier.DelayTask;
+import space.engine.barrier.functions.SupplierWithDelay;
 
 /**
  * The {@link #result()} will be the first {@link SupplierWithDelay} returning something != null.

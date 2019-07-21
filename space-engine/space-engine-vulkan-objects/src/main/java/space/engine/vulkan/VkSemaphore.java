@@ -2,19 +2,19 @@ package space.engine.vulkan;
 
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.vulkan.VkFenceCreateInfo;
+import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.pointer.PointerBufferPointer;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.FreeableStorage;
-import space.engine.sync.barrier.Barrier;
 
 import java.util.function.BiFunction;
 
 import static org.lwjgl.vulkan.VK10.*;
+import static space.engine.barrier.Barrier.DONE_BARRIER;
 import static space.engine.freeableStorage.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
-import static space.engine.sync.barrier.Barrier.ALWAYS_TRIGGERED_BARRIER;
 import static space.engine.vulkan.VkException.assertVk;
 
 public interface VkSemaphore extends Freeable {
@@ -114,7 +114,7 @@ public interface VkSemaphore extends Freeable {
 		@Override
 		protected @NotNull Barrier handleFree() {
 			nvkDestroySemaphore(device, address, 0);
-			return ALWAYS_TRIGGERED_BARRIER;
+			return DONE_BARRIER;
 		}
 	}
 }

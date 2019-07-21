@@ -2,14 +2,14 @@ package space.engine;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.functions.Starter;
 import space.engine.event.Event;
 import space.engine.event.EventEntry;
 import space.engine.event.SequentialEventBuilder;
 import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
 import space.engine.simpleQueue.pool.Executor;
 import space.engine.simpleQueue.pool.SimpleThreadPool;
-import space.engine.sync.Tasks.RunnableWithDelay;
-import space.engine.sync.barrier.Barrier;
 
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -38,17 +38,17 @@ public class Side {
 	}
 	
 	//event exit
-	public static final Event<RunnableWithDelay> EVENT_EXIT = new SequentialEventBuilder<>();
-	public static final EventEntry<RunnableWithDelay> EXIT_EVENT_ENTRY_BEFORE_APPLICATION_SHUTDOWN;
-	public static final EventEntry<RunnableWithDelay> EXIT_EVENT_ENTRY_POOL_EXIT;
+	public static final Event<Starter> EVENT_EXIT = new SequentialEventBuilder<>();
+	public static final EventEntry<Starter> EXIT_EVENT_ENTRY_BEFORE_APPLICATION_SHUTDOWN;
+	public static final EventEntry<Starter> EXIT_EVENT_ENTRY_POOL_EXIT;
 	
 	static {
-		EVENT_EXIT.addHook(EXIT_EVENT_ENTRY_BEFORE_APPLICATION_SHUTDOWN = new EventEntry<>(() -> {}));
+		EVENT_EXIT.addHook(EXIT_EVENT_ENTRY_BEFORE_APPLICATION_SHUTDOWN = new EventEntry<>(Starter.noop()));
 		//don't wait on pool exit -> will cause deadlock
 		EVENT_EXIT.addHook(EXIT_EVENT_ENTRY_POOL_EXIT = new EventEntry<>(POOL::stop, EXIT_EVENT_ENTRY_BEFORE_APPLICATION_SHUTDOWN));
 	}
 	
 	public static Barrier exit() {
-		return EVENT_EXIT.submit(RunnableWithDelay::run);
+		return EVENT_EXIT.submit(Starter::start);
 	}
 }

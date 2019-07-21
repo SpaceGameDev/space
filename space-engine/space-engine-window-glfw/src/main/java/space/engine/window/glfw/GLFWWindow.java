@@ -7,6 +7,9 @@ import org.lwjgl.glfw.GLFWWindowFocusCallbackI;
 import org.lwjgl.glfw.GLFWWindowIconifyCallbackI;
 import org.lwjgl.glfw.GLFWWindowPosCallbackI;
 import org.lwjgl.glfw.GLFWWindowSizeCallbackI;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.DelayTask;
+import space.engine.barrier.future.Future;
 import space.engine.baseobject.exceptions.FreedException;
 import space.engine.event.Event;
 import space.engine.event.EventEntry;
@@ -18,10 +21,9 @@ import space.engine.freeableStorage.FreeableStorage;
 import space.engine.key.attribute.AbstractAttributeList;
 import space.engine.key.attribute.AttributeList;
 import space.engine.key.attribute.AttributeListModify;
-import space.engine.sync.DelayTask;
-import space.engine.sync.TaskCreator;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.future.Future;
+import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
+import space.engine.simpleQueue.pool.Executor;
+import space.engine.simpleQueue.pool.SimpleThreadPool;
 import space.engine.window.Monitor;
 import space.engine.window.Monitor.VideoMode;
 import space.engine.window.Window;
@@ -31,15 +33,12 @@ import space.engine.window.extensions.VideoModeDesktopExtension;
 import space.engine.window.extensions.VideoModeExtension;
 import space.engine.window.extensions.VideoModeFullscreenExtension;
 
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static space.engine.sync.Tasks.runnable;
+import static space.engine.barrier.Barrier.nowRun;
 import static space.engine.window.extensions.BorderlessExtension.BORDERLESS;
 import static space.engine.window.extensions.MouseInputMode.MOUSE_MODE;
 import static space.engine.window.extensions.ResizeableExtension.*;
@@ -60,9 +59,9 @@ public class GLFWWindow implements Window, FreeableWrapper {
 	
 	public static @NotNull Future<GLFWWindow> create(@NotNull GLFWContext context, @NotNull AttributeList<Window> format, Object[] parents) {
 		GLFWWindow window = new GLFWWindow(context, format, parents);
-		Barrier initTask = runnable(window.storage, () -> window.initializeNativeWindow(format)).submit();
+		Barrier initTask = nowRun(window.storage, () -> window.initializeNativeWindow(format));
 		format.addHook(new EventEntry<>((modify, changes) -> {
-			throw new DelayTask(runnable(window.storage, () -> window.initializeNativeWindow(modify)).submit());
+			throw new DelayTask(nowRun(window.storage, () -> window.initializeNativeWindow(modify)));
 		}));
 		return initTask.toFuture(() -> window);
 	}
@@ -82,7 +81,7 @@ public class GLFWWindow implements Window, FreeableWrapper {
 	public static class Storage extends FreeableStorage implements Executor {
 		
 		protected volatile long windowPointer;
-		protected ExecutorService exec = Executors.newSingleThreadExecutor(r -> new Thread(r, "GLFWWindowThread-" + WINDOW_THREAD_COUNTER.getAndIncrement()));
+		protected SimpleThreadPool exec = new SimpleThreadPool(1, new ConcurrentLinkedSimpleQueue<>(), r -> new Thread(r, "GLFWWindowThread-" + WINDOW_THREAD_COUNTER.getAndIncrement()));
 		
 		public Storage(Object referent, Object[] parents) {
 			super(referent, parents);
@@ -90,11 +89,10 @@ public class GLFWWindow implements Window, FreeableWrapper {
 		
 		@Override
 		protected @NotNull Barrier handleFree() {
-			Barrier submit = runnable(exec, this::deleteNativeWindow).submit();
-			exec.shutdown();
-			//noinspection ConstantConditions
-			exec = null;
-			return submit;
+			return nowRun(exec, () -> {
+				this.deleteNativeWindow();
+				throw new DelayTask(exec.stop());
+			});
 		}
 		
 		@WindowThread
@@ -323,8 +321,8 @@ public class GLFWWindow implements Window, FreeableWrapper {
 	
 	//swap buffers
 	@Override
-	public @NotNull TaskCreator openGL_SwapBuffer(int opengl_tex_id) {
-		return runnable(storage, () -> {
+	public @NotNull Barrier openGL_SwapBuffer(int opengl_tex_id) {
+		return nowRun(storage, () -> {
 			glEnable(GL_TEXTURE_2D);
 			glBindTexture(GL_TEXTURE_2D, opengl_tex_id);
 			
@@ -347,7 +345,7 @@ public class GLFWWindow implements Window, FreeableWrapper {
 	}
 	
 	@Override
-	public @NotNull TaskCreator openGL_ES_SwapBuffer(int opengl_es_texture_id) {
+	public @NotNull Barrier openGL_ES_SwapBuffer(int opengl_es_texture_id) {
 		throw new UnsupportedOperationException("Not implemented!");
 	}
 	
@@ -363,7 +361,7 @@ public class GLFWWindow implements Window, FreeableWrapper {
 	}
 	
 	public Barrier pollEventsTask() {
-		return runnable(this, this::pollEvents).submit();
+		return nowRun(this, this::pollEvents);
 	}
 	
 	//events

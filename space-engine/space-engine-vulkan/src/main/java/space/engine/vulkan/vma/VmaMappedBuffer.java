@@ -3,6 +3,7 @@ package space.engine.vulkan.vma;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.util.vma.VmaAllocationCreateInfo;
 import org.lwjgl.vulkan.VkBufferCreateInfo;
+import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.Buffer;
@@ -10,7 +11,6 @@ import space.engine.buffer.pointer.PointerBufferPointer;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.FreeableStorage;
 import space.engine.freeableStorage.stack.FreeableStack.Frame;
-import space.engine.sync.barrier.Barrier;
 import space.engine.vulkan.VkMappedBuffer;
 import space.engine.vulkan.managed.device.ManagedDevice;
 
@@ -18,9 +18,9 @@ import java.util.function.BiFunction;
 
 import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.VK10.*;
+import static space.engine.barrier.Barrier.DONE_BARRIER;
 import static space.engine.freeableStorage.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
-import static space.engine.sync.barrier.Barrier.ALWAYS_TRIGGERED_BARRIER;
 import static space.engine.vulkan.VkException.assertVk;
 
 public class VmaMappedBuffer extends VmaBuffer implements VkMappedBuffer {
@@ -78,14 +78,14 @@ public class VmaMappedBuffer extends VmaBuffer implements VkMappedBuffer {
 	//uploadData
 	
 	/**
-	 * Upload will be completed as soon as this method returns. Always returns {@link Barrier#ALWAYS_TRIGGERED_BARRIER}.
+	 * Upload will be completed as soon as this method returns. Always returns {@link Barrier#DONE_BARRIER}.
 	 */
 	@Override
 	public @NotNull Barrier uploadData(Buffer src, long srcOffset, long dstOffset, long length) {
 		try (Frame frame = Freeable.frame()) {
 			MappedBuffer dst = mapMemory(new Object[] {frame});
 			Buffer.copyMemory(src, srcOffset, dst, dstOffset, length);
-			return ALWAYS_TRIGGERED_BARRIER;
+			return DONE_BARRIER;
 		}
 	}
 	
@@ -144,7 +144,7 @@ public class VmaMappedBuffer extends VmaBuffer implements VkMappedBuffer {
 		@Override
 		protected @NotNull Barrier handleFree() {
 			vmaUnmapMemory(vkBuffer.allocator.address(), vkBuffer.vmaAllocation);
-			return ALWAYS_TRIGGERED_BARRIER;
+			return DONE_BARRIER;
 		}
 	}
 }

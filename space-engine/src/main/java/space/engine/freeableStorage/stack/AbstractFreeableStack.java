@@ -2,9 +2,9 @@ package space.engine.freeableStorage.stack;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import space.engine.barrier.Barrier;
 import space.engine.freeableStorage.FreeableList;
 import space.engine.freeableStorage.stack.AbstractFreeableStack.Frame;
-import space.engine.sync.barrier.Barrier;
 
 public abstract class AbstractFreeableStack<FRAME extends Frame> implements FreeableStack {
 	
@@ -37,7 +37,7 @@ public abstract class AbstractFreeableStack<FRAME extends Frame> implements Free
 			assertTopFrame();
 			current = prev;
 			prev = null;
-			return subList != null ? subList.free() : Barrier.ALWAYS_TRIGGERED_BARRIER;
+			return subList != null ? subList.free() : Barrier.DONE_BARRIER;
 		}
 		
 		@Override

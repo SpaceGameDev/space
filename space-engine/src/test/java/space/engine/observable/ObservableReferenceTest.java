@@ -1,9 +1,9 @@
 package space.engine.observable;
 
 import org.junit.Test;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.BarrierImpl;
 import space.engine.event.EventEntry;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.barrier.BarrierImpl;
 
 import java.util.stream.IntStream;
 
@@ -52,14 +52,14 @@ public class ObservableReferenceTest {
 		
 		callbackWait[0] = new BarrierImpl();
 		Barrier setTo1 = reference.set(1);
-		assertFalse(setTo1.isFinished());
+		assertFalse(setTo1.isDone());
 		callbackWait[0].triggerNow();
 		setTo1.awaitUninterrupted();
 		assertEquals((Integer) 1, reference.assertGet());
 		
 		callbackWait[0] = new BarrierImpl();
 		Barrier setTo2 = reference.set(2);
-		assertFalse(setTo2.isFinished());
+		assertFalse(setTo2.isDone());
 		callbackWait[0].triggerNow();
 		setTo2.awaitUninterrupted();
 		assertEquals((Integer) 2, reference.assertGet());
@@ -82,34 +82,34 @@ public class ObservableReferenceTest {
 		Barrier setTo1 = reference.set(1);
 		Barrier setTo2 = reference.set(2);
 		
-		assertFalse(setTo0.isFinished());
-		assertFalse(setTo1.isFinished());
-		assertFalse(setTo2.isFinished());
-		assertTrue(callbackNotify[0].isFinished());
-		assertFalse(callbackNotify[1].isFinished());
-		assertFalse(callbackNotify[2].isFinished());
+		assertFalse(setTo0.isDone());
+		assertFalse(setTo1.isDone());
+		assertFalse(setTo2.isDone());
+		assertTrue(callbackNotify[0].isDone());
+		assertFalse(callbackNotify[1].isDone());
+		assertFalse(callbackNotify[2].isDone());
 		
 		//these indexes are weird but correct!
 		callbackWait[0].triggerNow();
 		setTo1.awaitUninterrupted();
 		callbackNotify[2].awaitUninterrupted();
 		
-		assertTrue(setTo0.isFinished());
-		assertTrue(setTo1.isFinished());
-		assertFalse(setTo2.isFinished());
-		assertTrue(callbackNotify[0].isFinished());
-		assertFalse(callbackNotify[1].isFinished()); //cancelled -> not called -> false
-		assertTrue(callbackNotify[2].isFinished());
+		assertTrue(setTo0.isDone());
+		assertTrue(setTo1.isDone());
+		assertFalse(setTo2.isDone());
+		assertTrue(callbackNotify[0].isDone());
+		assertFalse(callbackNotify[1].isDone()); //cancelled -> not called -> false
+		assertTrue(callbackNotify[2].isDone());
 		
 		callbackWait[2].triggerNow();
 		setTo2.awaitUninterrupted();
 		
-		assertTrue(setTo0.isFinished());
-		assertTrue(setTo1.isFinished());
-		assertTrue(setTo2.isFinished());
-		assertTrue(callbackNotify[0].isFinished());
-		assertFalse(callbackNotify[1].isFinished()); //cancelled -> not called -> false
-		assertTrue(callbackNotify[2].isFinished());
+		assertTrue(setTo0.isDone());
+		assertTrue(setTo1.isDone());
+		assertTrue(setTo2.isDone());
+		assertTrue(callbackNotify[0].isDone());
+		assertFalse(callbackNotify[1].isDone()); //cancelled -> not called -> false
+		assertTrue(callbackNotify[2].isDone());
 	}
 	
 	@Test

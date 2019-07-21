@@ -3,13 +3,13 @@ package space.engine.vulkan.vma;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.util.vma.VmaAllocatorCreateInfo;
 import org.lwjgl.util.vma.VmaVulkanFunctions;
+import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.pointer.PointerBufferPointer;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.freeableStorage.FreeableStorage;
-import space.engine.sync.barrier.Barrier;
 import space.engine.vulkan.VkInstance;
 import space.engine.vulkan.managed.device.ManagedDevice;
 
@@ -104,7 +104,7 @@ public class VmaAllocator implements FreeableWrapper {
 		@Override
 		protected @NotNull Barrier handleFree() {
 			vmaDestroyAllocator(address);
-			return Barrier.ALWAYS_TRIGGERED_BARRIER;
+			return Barrier.DONE_BARRIER;
 		}
 	}
 }

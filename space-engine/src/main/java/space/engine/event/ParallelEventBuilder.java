@@ -1,44 +1,37 @@
 package space.engine.event;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import space.engine.barrier.Barrier;
 import space.engine.event.typehandler.TypeHandler;
 import space.engine.event.typehandler.TypeHandlerParallel;
-import space.engine.sync.Tasks;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.lock.SyncLock;
-import space.engine.sync.taskImpl.MultiTask;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static space.engine.barrier.Barrier.when;
 
 /**
  * This implementation of {@link Event} will submit it's hooks individually as tasks and use Barriers to ensure correct ordering.
  */
 public class ParallelEventBuilder<FUNCTION> extends AbstractEventBuilder<FUNCTION> {
 	
-	private volatile List<Node> build;
+	private volatile @Nullable List<Node> build;
 	
 	@Override
-	public @NotNull Barrier submit(@NotNull TypeHandler<FUNCTION> typeHandler, @NotNull SyncLock[] locks, @NotNull Barrier... barriers) {
+	public @NotNull Barrier submit(@NotNull TypeHandler<FUNCTION> typeHandler) {
 		if (!(typeHandler instanceof TypeHandlerParallel))
 			throw new IllegalArgumentException("TypeHandler " + typeHandler + " does not allow multithreading!");
 		
 		List<Node> nodes = getBuild();
-		return new MultiTask(locks, barriers) {
-			@Override
-			protected Barrier setup(Barrier start) {
-				Map<Node, Barrier> runMap = new HashMap<>();
-				for (Node node : nodes) {
-					Barrier[] prevBarriers = node.prev.stream().map(runMap::get).toArray(Barrier[]::new);
-					Barrier[] barrier = new Barrier[prevBarriers.length + 1];
-					barrier[0] = start;
-					System.arraycopy(prevBarriers, 0, barrier, 1, prevBarriers.length);
-					runMap.put(node, Tasks.runnable(() -> typeHandler.accept(node.entry.function)).submit(barrier));
-				}
-				return Barrier.awaitAll(runMap.values());
-			}
-		};
+		Map<Node, Barrier> runMap = new HashMap<>();
+		for (Node node : nodes) {
+			runMap.put(node, when(node.prev.stream().map(runMap::get).toArray(Barrier[]::new))
+					.thenRun(() -> typeHandler.accept(node.entry.function))
+			);
+		}
+		return when(runMap.values());
 	}
 	
 	//build

@@ -1,10 +1,10 @@
 package space.engine.vulkan.descriptors;
 
 import org.jetbrains.annotations.NotNull;
+import space.engine.barrier.Barrier;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.freeableStorage.FreeableStorage;
-import space.engine.sync.barrier.Barrier;
 import space.engine.vulkan.VkDevice;
 import space.engine.vulkan.VkInstance;
 
@@ -75,7 +75,7 @@ public class VkDescriptorSet implements FreeableWrapper {
 		@Override
 		protected @NotNull Barrier handleFree() {
 			vkFreeDescriptorSets(pool.device(), pool.address(), address);
-			return Barrier.ALWAYS_TRIGGERED_BARRIER;
+			return Barrier.DONE_BARRIER;
 		}
 	}
 }

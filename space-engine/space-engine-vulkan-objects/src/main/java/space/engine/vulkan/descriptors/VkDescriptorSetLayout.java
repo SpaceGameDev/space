@@ -3,6 +3,7 @@ package space.engine.vulkan.descriptors;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.vulkan.VkDescriptorSetLayoutBinding;
 import org.lwjgl.vulkan.VkDescriptorSetLayoutCreateInfo;
+import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferLong;
@@ -10,7 +11,6 @@ import space.engine.buffer.pointer.PointerBufferPointer;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.freeableStorage.FreeableStorage;
-import space.engine.sync.barrier.Barrier;
 import space.engine.vulkan.VkDevice;
 import space.engine.vulkan.VkInstance;
 
@@ -118,7 +118,7 @@ public class VkDescriptorSetLayout implements FreeableWrapper {
 		@Override
 		protected @NotNull Barrier handleFree() {
 			vkDestroyDescriptorSetLayout(device, address, null);
-			return Barrier.ALWAYS_TRIGGERED_BARRIER;
+			return Barrier.DONE_BARRIER;
 		}
 	}
 }

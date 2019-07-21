@@ -1,12 +1,11 @@
 package space.engine.event.typehandler;
 
 import org.jetbrains.annotations.NotNull;
-import space.engine.sync.Tasks.SupplierWithDelay;
 
 import java.util.function.Supplier;
 
 /**
- * The {@link #result()} will be the first {@link SupplierWithDelay} returning something != null.
+ * The {@link #result()} will be the first {@link Supplier} returning something != null.
  * Sequential only.
  */
 public class TypeHandlerFirstSupplier<T> implements TypeHandler<Supplier<T>> {

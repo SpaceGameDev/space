@@ -1,13 +1,13 @@
 package space.engine.delegate.set;
 
 import org.jetbrains.annotations.NotNull;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.BarrierImpl;
 import space.engine.delegate.collection.MergingCollection;
 import space.engine.delegate.collection.UnmodifiableCollection;
 import space.engine.event.Event;
 import space.engine.event.EventEntry;
 import space.engine.event.SequentialEventBuilder;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.barrier.BarrierImpl;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,7 +31,7 @@ public class ObservableSet<E> implements Set<E> {
 	
 	private final Set<E> delegate;
 	private final SequentialEventBuilder<Consumer<Change<E>>> changeEvent = new SequentialEventBuilder<>();
-	private AtomicReference<Barrier> lastBarrier = new AtomicReference<>(Barrier.ALWAYS_TRIGGERED_BARRIER);
+	private AtomicReference<Barrier> lastBarrier = new AtomicReference<>(Barrier.DONE_BARRIER);
 	
 	public ObservableSet(Set<E> delegate) {
 		this.delegate = delegate;
@@ -336,7 +336,11 @@ public class ObservableSet<E> implements Set<E> {
 		
 		BarrierImpl newBarrier = new BarrierImpl();
 		Barrier prevBarrier = lastBarrier.getAndSet(newBarrier);
-		changeEvent.runImmediatelyIfPossible(changeConsumer -> changeConsumer.accept(change), prevBarrier).addHook(newBarrier::triggerNow);
+		prevBarrier.thenStart(() -> {
+			Barrier ret = changeEvent.submit(changeConsumer -> changeConsumer.accept(change));
+			ret.addHook(newBarrier::triggerNow);
+			return ret;
+		});
 	}
 	
 	public interface Change<E> {

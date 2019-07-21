@@ -1,13 +1,13 @@
 package space.engine.key.attribute;
 
 import org.jetbrains.annotations.NotNull;
+import space.engine.barrier.DelayTask;
+import space.engine.barrier.lock.SyncLock;
+import space.engine.barrier.lock.SyncLockImpl;
 import space.engine.event.Event;
 import space.engine.event.EventEntry;
 import space.engine.event.SequentialEventBuilder;
 import space.engine.indexmap.ConcurrentIndexMap;
-import space.engine.sync.DelayTask;
-import space.engine.sync.lock.SyncLock;
-import space.engine.sync.lock.SyncLockImpl;
 
 import java.util.List;
 import java.util.function.BooleanSupplier;

@@ -2,17 +2,16 @@ package space.engine.key.attribute;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.lock.SyncLock;
 import space.engine.indexmap.IndexMap;
 import space.engine.indexmap.IndexMapArray;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.lock.SyncLock;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static space.engine.barrier.Barrier.*;
 import static space.engine.key.attribute.AttributeListCreator.UNCHANGED;
-import static space.engine.sync.Tasks.*;
-import static space.engine.sync.barrier.Barrier.EMPTY_BARRIER_ARRAY;
 
 public class AttributeListModify<TYPE> extends AbstractAttributeList<TYPE> {
 	
@@ -111,26 +110,22 @@ public class AttributeListModify<TYPE> extends AbstractAttributeList<TYPE> {
 	
 	//apply
 	public Barrier apply() {
-		return apply(true);
-	}
-	
-	public Barrier apply(boolean lockListObject) {
-		return multiCustom(lockListObject ? new SyncLock[] {list} : SyncLock.EMPTY_SYNCLOCK_ARRAY, EMPTY_BARRIER_ARRAY, start -> {
+		return nowLock(new SyncLock[] {list}, () -> {
 			List<AttributeKey<?>> changes =
 					list.creator.getKeys()
 								.stream()
 								.limit(indexMap.size()) //limit to the max index which was set
 								.filter(this::hasChanged)
 								.collect(Collectors.toList());
-			Barrier changeEventTask = list.changeEvent.submit(callback -> callback.onChange(this, changes), start);
-			//noinspection CodeBlock2Expr
-			return runnable(() -> {
+			Barrier changeEventTask = list.changeEvent.submit(callback -> callback.onChange(this, changes));
+			return changeEventTask.thenStart(() -> {
 				indexMap.entrySet()
 						.stream()
 						.filter(entry -> entry.getValue() != UNCHANGED)
 						.forEach(entry -> list.indexMap.put(entry.getIndex(), entry.getValue()));
-			}).submit(changeEventTask);
-		}).submit();
+				return done();
+			});
+		});
 	}
 	
 	public @NotNull AttributeList<TYPE> createNewAttributeList() {

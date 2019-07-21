@@ -2,13 +2,13 @@ package space.engine.freeableStorage;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import space.engine.barrier.Barrier;
 import space.engine.baseobject.exceptions.FreedException;
 import space.engine.event.SequentialEventBuilder;
 import space.engine.event.typehandler.TypeHandlerFirstFunction;
 import space.engine.freeableStorage.stack.FreeableStack;
 import space.engine.freeableStorage.stack.FreeableStack.Frame;
 import space.engine.freeableStorage.stack.FreeableStackImpl;
-import space.engine.sync.barrier.Barrier;
 
 import java.util.Arrays;
 import java.util.function.Function;
@@ -50,7 +50,7 @@ public interface Freeable {
 	 * Frees the resource
 	 *
 	 * @return a Barrier when the recourse will be freed.
-	 * Use {@link Barrier#ALWAYS_TRIGGERED_BARRIER} if it is already freed or freed immediately.
+	 * Use {@link Barrier#DONE_BARRIER} if it is already freed or freed immediately.
 	 */
 	@NotNull Barrier free();
 	
@@ -125,7 +125,7 @@ public interface Freeable {
 		return new FreeableStorage(referent, parents) {
 			@Override
 			protected @NotNull Barrier handleFree() {
-				return Barrier.ALWAYS_TRIGGERED_BARRIER;
+				return Barrier.DONE_BARRIER;
 			}
 		};
 	}

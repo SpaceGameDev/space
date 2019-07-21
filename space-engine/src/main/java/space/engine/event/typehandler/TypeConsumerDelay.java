@@ -1,8 +1,8 @@
 package space.engine.event.typehandler;
 
 import org.jetbrains.annotations.NotNull;
-import space.engine.sync.DelayTask;
-import space.engine.sync.Tasks.ConsumerWithDelay;
+import space.engine.barrier.DelayTask;
+import space.engine.barrier.functions.ConsumerWithDelay;
 
 /**
  * Sequential only.

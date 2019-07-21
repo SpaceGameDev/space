@@ -1,15 +1,15 @@
 package space.engine.event;
 
 import org.junit.Test;
-import space.engine.sync.DelayTask;
-import space.engine.sync.Tasks.ConsumerWithDelay;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.barrier.BarrierImpl;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.BarrierImpl;
+import space.engine.barrier.DelayTask;
+import space.engine.barrier.functions.ConsumerWithDelay;
 
 import java.util.function.Consumer;
 
 import static org.junit.Assert.*;
-import static space.engine.sync.barrier.Barrier.ALWAYS_TRIGGERED_BARRIER;
+import static space.engine.barrier.Barrier.DONE_BARRIER;
 
 public class SequentialEventBuilderTest {
 	
@@ -98,7 +98,7 @@ public class SequentialEventBuilderTest {
 		SequentialEventBuilder<ConsumerWithDelay<Integer>> event = new SequentialEventBuilder<>();
 		
 		event.addHook(i -> {
-			throw new DelayTask(ALWAYS_TRIGGERED_BARRIER);
+			throw new DelayTask(DONE_BARRIER);
 		});
 		
 		event.runImmediatelyThrowIfWait(consumer -> consumer.accept(5));

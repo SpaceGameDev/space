@@ -3,6 +3,7 @@ package space.engine.vulkan.surface;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.vulkan.VkSurfaceCapabilitiesKHR;
 import org.lwjgl.vulkan.VkSurfaceFormatKHR;
+import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferInt;
@@ -10,7 +11,6 @@ import space.engine.buffer.pointer.PointerBufferInt;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.freeableStorage.FreeableStorage;
-import space.engine.sync.barrier.Barrier;
 import space.engine.vulkan.VkInstance;
 import space.engine.vulkan.VkPhysicalDevice;
 import space.engine.window.Window;
@@ -122,7 +122,7 @@ public class VkSurface<WINDOW extends Window> implements FreeableWrapper {
 		@Override
 		protected @NotNull Barrier handleFree() {
 			nvkDestroySurfaceKHR(instance, address, 0);
-			return Barrier.ALWAYS_TRIGGERED_BARRIER;
+			return Barrier.DONE_BARRIER;
 		}
 	}
 	

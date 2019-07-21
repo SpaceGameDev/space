@@ -5,6 +5,7 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.vulkan.VkDeviceCreateInfo;
 import org.lwjgl.vulkan.VkDeviceQueueCreateInfo;
 import org.lwjgl.vulkan.VkDeviceQueueCreateInfo.Buffer;
+import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferFloat;
@@ -14,7 +15,6 @@ import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.freeableStorage.FreeableStorage;
 import space.engine.indexmap.IndexMap;
 import space.engine.indexmap.IndexMapArray;
-import space.engine.sync.barrier.Barrier;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -185,7 +185,7 @@ public class VkDevice extends org.lwjgl.vulkan.VkDevice implements FreeableWrapp
 		protected @NotNull Barrier handleFree() {
 			//vkDestroyDevice
 			callPPV(function_vkDestroyDevice, device, 0);
-			return Barrier.ALWAYS_TRIGGERED_BARRIER;
+			return Barrier.DONE_BARRIER;
 		}
 	}
 	

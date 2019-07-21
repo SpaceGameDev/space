@@ -4,19 +4,19 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.vulkan.VkCommandBufferBeginInfo;
 import org.lwjgl.vulkan.VkCommandBufferInheritanceInfo;
+import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.FreeableStorage;
-import space.engine.sync.barrier.Barrier;
 
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import static org.lwjgl.vulkan.VK10.*;
+import static space.engine.barrier.Barrier.DONE_BARRIER;
 import static space.engine.freeableStorage.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
-import static space.engine.sync.barrier.Barrier.ALWAYS_TRIGGERED_BARRIER;
 import static space.engine.vulkan.VkException.assertVk;
 
 public abstract class VkCommandBuffer extends org.lwjgl.vulkan.VkCommandBuffer implements Freeable {
@@ -163,7 +163,7 @@ public abstract class VkCommandBuffer extends org.lwjgl.vulkan.VkCommandBuffer i
 		@Override
 		protected @NotNull Barrier handleFree() {
 			commandPool.releaseCommandBuffer(address);
-			return ALWAYS_TRIGGERED_BARRIER;
+			return DONE_BARRIER;
 		}
 	}
 }

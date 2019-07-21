@@ -1,6 +1,7 @@
 package space.game.asteroidsDemo.asteroid;
 
 import org.jetbrains.annotations.NotNull;
+import space.engine.barrier.future.Future;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferFloat;
@@ -9,7 +10,6 @@ import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.indexmap.IndexMap;
 import space.engine.indexmap.IndexMap.Entry;
 import space.engine.indexmap.IndexMapArray;
-import space.engine.sync.future.Future;
 import space.engine.vector.Translation;
 import space.engine.vector.Vector3f;
 import space.engine.vulkan.VkBuffer;
@@ -30,11 +30,10 @@ import java.util.stream.Collectors;
 import static org.lwjgl.util.vma.Vma.VMA_MEMORY_USAGE_CPU_TO_GPU;
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
+import static space.engine.barrier.Barrier.*;
 import static space.engine.buffer.Allocator.heap;
 import static space.engine.freeableStorage.Freeable.addIfNotContained;
 import static space.engine.primitive.Primitives.FP32;
-import static space.engine.sync.Tasks.future;
-import static space.engine.sync.barrier.Barrier.EMPTY_BARRIER_ARRAY;
 
 public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoInfos> {
 	
@@ -65,7 +64,7 @@ public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoI
 	
 	@Override
 	public @NotNull List<Future<VkCommandBuffer[]>> getCmdBuffers(@NotNull ManagedFrameBuffer<AsteroidDemoInfos> render, AsteroidDemoInfos infos) {
-		List<? extends Future<ArrayList<VkCommandBuffer>>> futures = asteroids.entrySet().stream().filter(entry -> entry.getValue() != null).map(entry -> future(() -> {
+		List<? extends Future<ArrayList<VkCommandBuffer>>> futures = asteroids.entrySet().stream().filter(entry -> entry.getValue() != null).map(entry -> nowFuture(() -> {
 			int index = entry.getIndex();
 			AsteroidModel model = asteroidModels[index];
 			
@@ -124,14 +123,14 @@ public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoI
 				cmdBuffers.add(cmd);
 			}
 			return cmdBuffers;
-		}).submit()).collect(Collectors.toUnmodifiableList());
+		})).collect(Collectors.toUnmodifiableList());
 		
-		Future<VkCommandBuffer[]> renderFuture = future(() -> futures
+		Future<VkCommandBuffer[]> renderFuture = when(futures).thenFuture(() -> futures
 				.stream()
 				.map(Future::assertGet)
 				.flatMap(ArrayList::stream)
 				.toArray(VkCommandBuffer[]::new)
-		).submit(futures.toArray(EMPTY_BARRIER_ARRAY));
+		);
 		
 		return List.of(
 				renderFuture

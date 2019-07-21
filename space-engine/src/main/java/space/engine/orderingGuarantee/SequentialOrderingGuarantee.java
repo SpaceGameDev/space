@@ -1,14 +1,14 @@
 package space.engine.orderingGuarantee;
 
 import org.jetbrains.annotations.NotNull;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.barrier.BarrierImpl;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.BarrierImpl;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.function.Function;
 
-import static space.engine.sync.barrier.Barrier.ALWAYS_TRIGGERED_BARRIER;
+import static space.engine.barrier.Barrier.DONE_BARRIER;
 
 public class SequentialOrderingGuarantee {
 	
@@ -23,7 +23,7 @@ public class SequentialOrderingGuarantee {
 		}
 	}
 	
-	private Barrier lastBarrier = ALWAYS_TRIGGERED_BARRIER;
+	private Barrier lastBarrier = DONE_BARRIER;
 	
 	/**
 	 * Enqueues a new function to be executed in the sequence.

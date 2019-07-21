@@ -2,20 +2,16 @@ package space.engine.event;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.DelayTask;
+import space.engine.barrier.functions.RunnableWithDelay;
 import space.engine.event.typehandler.TypeHandler;
-import space.engine.sync.DelayTask;
-import space.engine.sync.TaskCreator;
-import space.engine.sync.Tasks;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.lock.SyncLock;
-import space.engine.sync.taskImpl.RunnableTask;
 
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static space.engine.Side.pool;
+import static space.engine.barrier.Barrier.nowRun;
 
 /**
  * This implementation of {@link Event} will call it's hooks sequentially in a single thread
@@ -25,20 +21,19 @@ public class SequentialEventBuilder<FUNCTION> extends AbstractEventBuilder<FUNCT
 	private volatile @Nullable List<FUNCTION> build;
 	
 	@Override
-	public @NotNull Barrier submit(@NotNull TypeHandler<FUNCTION> typeHandler, @NotNull SyncLock[] locks, @NotNull Barrier... barriers) {
+	public @NotNull Barrier submit(@NotNull TypeHandler<FUNCTION> typeHandler) {
 		Iterator<FUNCTION> iterator = getBuild().iterator();
-		//noinspection unchecked
-		TaskCreator<? extends Barrier>[] runnableWithDelay = new TaskCreator[1];
-		runnableWithDelay[0] = Tasks.runnable(() -> {
-			try {
-				while (iterator.hasNext()) {
-					typeHandler.accept(iterator.next());
+		return nowRun(new RunnableWithDelay() {
+			@Override
+			public void run() throws DelayTask {
+				try {
+					while (iterator.hasNext())
+						typeHandler.accept(iterator.next());
+				} catch (DelayTask e) {
+					throw new DelayTask(e.barrier.thenRun(this));
 				}
-			} catch (DelayTask e) {
-				throw new DelayTask(runnableWithDelay[0].submit(e.barrier));
 			}
 		});
-		return runnableWithDelay[0].submit(locks, barriers);
 	}
 	
 	/**
@@ -71,45 +66,18 @@ public class SequentialEventBuilder<FUNCTION> extends AbstractEventBuilder<FUNCT
 	}
 	
 	public Barrier runImmediatelyIfPossible(@NotNull TypeHandler<FUNCTION> typeHandler) {
-		return runImmediatelyIfPossible(typeHandler, Barrier.EMPTY_BARRIER_ARRAY);
-	}
-	
-	public Barrier runImmediatelyIfPossible(@NotNull TypeHandler<FUNCTION> typeHandler, Barrier... barriers) {
-		if (barriers.length == 0 || Arrays.stream(barriers).allMatch(Barrier::isFinished)) {
-			//all barriers already finished
-			
-			Iterator<FUNCTION> iterator = getBuild().iterator();
-			boolean[] firstRun = new boolean[] {true};
-			//noinspection unchecked
-			TaskCreator<? extends RunnableTask>[] runnableWithDelay = new TaskCreator[1];
-			runnableWithDelay[0] = (locks, barriers1) -> new RunnableTask(locks, barriers1) {
-				
-				@Override
-				protected void submit1(Runnable toRun) {
-					if (firstRun[0]) {
-						firstRun[0] = false;
-						toRun.run();
-					} else {
-						pool().execute(toRun);
-					}
+		Iterator<FUNCTION> iterator = getBuild().iterator();
+		return nowRun(Runnable::run, new RunnableWithDelay() {
+			@Override
+			public void run() throws DelayTask {
+				try {
+					while (iterator.hasNext())
+						typeHandler.accept(iterator.next());
+				} catch (DelayTask e) {
+					throw new DelayTask(e.barrier.thenRun(this));
 				}
-				
-				@Override
-				protected void execute() throws DelayTask {
-					try {
-						while (iterator.hasNext()) {
-							typeHandler.accept(iterator.next());
-						}
-					} catch (DelayTask e) {
-						throw new DelayTask(runnableWithDelay[0].submit(e.barrier));
-					}
-				}
-			};
-			return runnableWithDelay[0].submit();
-		}
-		
-		//if not go the normal route
-		return submit(typeHandler, barriers);
+			}
+		});
 	}
 	
 	//build

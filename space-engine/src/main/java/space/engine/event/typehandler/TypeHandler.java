@@ -1,7 +1,7 @@
 package space.engine.event.typehandler;
 
 import org.jetbrains.annotations.NotNull;
-import space.engine.sync.DelayTask;
+import space.engine.barrier.DelayTask;
 
 /**
  * A {@link TypeHandler} handles the Execution of FUNCTIONs.

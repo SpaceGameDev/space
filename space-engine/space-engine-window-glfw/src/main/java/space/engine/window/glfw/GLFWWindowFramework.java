@@ -2,11 +2,11 @@ package space.engine.window.glfw;
 
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
+import space.engine.barrier.future.Future;
 import space.engine.delegate.collection.ObservableCollection;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.key.attribute.AttributeList;
-import space.engine.sync.future.Future;
 import space.engine.window.Monitor;
 import space.engine.window.WindowContext;
 import space.engine.window.WindowFramework;

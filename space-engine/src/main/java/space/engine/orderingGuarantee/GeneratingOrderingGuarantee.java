@@ -2,15 +2,15 @@ package space.engine.orderingGuarantee;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.barrier.BarrierImpl;
-import space.engine.sync.barrier.CancelableBarrier;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.BarrierImpl;
+import space.engine.barrier.CancelableBarrier;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.function.Function;
 
-import static space.engine.sync.barrier.CancelableBarrier.ALWAYS_TRIGGERED_CANCELABLE_BARRIER;
+import static space.engine.barrier.CancelableBarrier.CANCELABLE_DONE_BARRIER;
 
 public class GeneratingOrderingGuarantee {
 	
@@ -25,7 +25,7 @@ public class GeneratingOrderingGuarantee {
 		}
 	}
 	
-	private @NotNull CancelableBarrier lastBarrier = ALWAYS_TRIGGERED_CANCELABLE_BARRIER;
+	private @NotNull CancelableBarrier lastBarrier = CANCELABLE_DONE_BARRIER;
 	
 	/**
 	 * Cancels the previous one and executes the new one. Can be canceled by further calls to this function.
@@ -72,7 +72,7 @@ public class GeneratingOrderingGuarantee {
 	
 	private static class IntermediateCancelableBarrier extends BarrierImpl implements CancelableBarrier {
 		
-		private static final CancelableBarrier CANCEL_ALREADY_CALLED_OBJECT = ALWAYS_TRIGGERED_CANCELABLE_BARRIER;
+		private static final CancelableBarrier CANCEL_ALREADY_CALLED_OBJECT = CANCELABLE_DONE_BARRIER;
 		private static final VarHandle CANCEL;
 		
 		static {

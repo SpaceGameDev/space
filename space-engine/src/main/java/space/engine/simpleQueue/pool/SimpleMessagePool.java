@@ -1,11 +1,11 @@
 package space.engine.simpleQueue.pool;
 
 import org.jetbrains.annotations.NotNull;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.BarrierImpl;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.FreeableStorage;
 import space.engine.simpleQueue.SimpleQueue;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.barrier.BarrierImpl;
 
 import java.util.Arrays;
 import java.util.Collection;
