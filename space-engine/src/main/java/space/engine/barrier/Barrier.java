@@ -27,6 +27,8 @@ import space.engine.barrier.future.FutureWithException.FutureWith5Exception;
 import space.engine.barrier.lock.SyncLock;
 import space.engine.simpleQueue.pool.Executor;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -553,13 +555,55 @@ public interface Barrier {
 	//locks
 	default Barrier thenLock(SyncLock[] locks, Starter runnable) {
 		BarrierImpl ret = new BarrierImpl();
-		addHook(() -> SyncLock.acquireLocks(locks, () ->
-				runnable.startNoException().addHook(() -> {
-					SyncLock.unlockLocks(locks);
-					ret.triggerNow();
-				})
-		));
+		addHook(() -> SyncLock.acquireLocks(locks, () -> {
+			Barrier barrier = runnable.startNoException();
+			
+			//prevents StackOVerflow from too many Barrier.addHook() calling the Runnable immediately in combination with SyncLock.unlockLocks()
+			//if it is run immediately -> ThenLockUnlockRunnable.immediatelyRun will be false
+			ThenLockUnlockRunnable run = new ThenLockUnlockRunnable(locks, ret);
+			barrier.addHook(run);
+			//if it wasn't run immediately allow it to do so
+			run.immediateCAS();
+		}));
 		return ret;
+	}
+	
+	class ThenLockUnlockRunnable implements Runnable {
+		
+		private static final VarHandle IMMEDIATE;
+		
+		static {
+			try {
+				IMMEDIATE = MethodHandles.lookup().findVarHandle(ThenLockUnlockRunnable.class, "immediatelyRun", boolean.class);
+			} catch (NoSuchFieldException | IllegalAccessException e) {
+				throw new ExceptionInInitializerError(e);
+			}
+		}
+		
+		private final SyncLock[] locks;
+		private final BarrierImpl ret;
+		
+		@SuppressWarnings("unused")
+		private volatile boolean immediatelyRun = true;
+		
+		private ThenLockUnlockRunnable(SyncLock[] locks, BarrierImpl ret) {
+			this.locks = locks;
+			this.ret = ret;
+		}
+		
+		private boolean immediateCAS() {
+			return IMMEDIATE.compareAndSet(this, true, false);
+		}
+		
+		@Override
+		public void run() {
+			if (immediateCAS()) {
+				pool().execute(this);
+				return;
+			}
+			SyncLock.unlockLocks(locks);
+			ret.triggerNow();
+		}
 	}
 	
 	static Barrier nowLock(SyncLock[] locks, Starter runnable) {
