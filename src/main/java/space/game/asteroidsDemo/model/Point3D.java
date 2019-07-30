@@ -5,6 +5,10 @@ public class Point3D {
 	public float y;
 	public float z;
 	
+	public Point3D(Point3D point) {
+		this(point.x, point.y, point.z);
+	}
+	
 	public Point3D(float x, float y, float z) {
 		this.x = x;
 		this.y = y;

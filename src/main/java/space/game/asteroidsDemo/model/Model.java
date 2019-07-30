@@ -37,9 +37,9 @@ public class Model {
 			floats[index++] = triangle.p0.x;
 			floats[index++] = triangle.p0.y;
 			floats[index++] = triangle.p0.z;
-			floats[index++] = triangle.normal.x;
-			floats[index++] = triangle.normal.y;
-			floats[index++] = triangle.normal.z;
+			floats[index++] = triangle.n0.x;
+			floats[index++] = triangle.n0.y;
+			floats[index++] = triangle.n0.z;
 			floats[index++] = triangle.color.x;
 			floats[index++] = triangle.color.y;
 			floats[index++] = triangle.color.z;
@@ -47,9 +47,9 @@ public class Model {
 			floats[index++] = triangle.p1.x;
 			floats[index++] = triangle.p1.y;
 			floats[index++] = triangle.p1.z;
-			floats[index++] = triangle.normal.x;
-			floats[index++] = triangle.normal.y;
-			floats[index++] = triangle.normal.z;
+			floats[index++] = triangle.n1.x;
+			floats[index++] = triangle.n1.y;
+			floats[index++] = triangle.n1.z;
 			floats[index++] = triangle.color.x;
 			floats[index++] = triangle.color.y;
 			floats[index++] = triangle.color.z;
@@ -57,9 +57,9 @@ public class Model {
 			floats[index++] = triangle.p2.x;
 			floats[index++] = triangle.p2.y;
 			floats[index++] = triangle.p2.z;
-			floats[index++] = triangle.normal.x;
-			floats[index++] = triangle.normal.y;
-			floats[index++] = triangle.normal.z;
+			floats[index++] = triangle.n2.x;
+			floats[index++] = triangle.n2.y;
+			floats[index++] = triangle.n2.z;
 			floats[index++] = triangle.color.x;
 			floats[index++] = triangle.color.y;
 			floats[index++] = triangle.color.z;
@@ -123,9 +123,9 @@ public class Model {
 		float x = 0,y = 0,z = 0;
 		for(Triangle triangle: triangleList) {
 			if(triangle.contains(p)){
-				x += triangle.normal.x;
-				y += triangle.normal.y;
-				z += triangle.normal.z;
+				x += triangle.n0.x;
+				y += triangle.n0.y;
+				z += triangle.n0.z;
 			}
 		}
 		return new Point3D(x,y,z);

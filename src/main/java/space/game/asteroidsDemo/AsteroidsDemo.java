@@ -165,8 +165,8 @@ public class AsteroidsDemo implements Runnable {
 				AttributeListModify<Window> windowModify = Window.CREATOR.createModify();
 				windowModify.put(VIDEO_MODE, VideoModeDesktopExtension.class);
 				windowModify.put(TITLE, "Vulkan Window");
-				windowModify.put(WIDTH, 1920);
-				windowModify.put(HEIGHT, 1080);
+				windowModify.put(WIDTH, 3840);
+				windowModify.put(HEIGHT, 2160);
 				windowModify.put(MOUSE_MODE, Modes.CURSOR_DISABLED);
 				windowAtt = windowModify.createNewAttributeList();
 			}

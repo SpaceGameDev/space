@@ -44,6 +44,7 @@ void main() {
 	//effect
 	float effect = 1 - (fragVertexDistance.x*fragVertexDistance.x + fragVertexDistance.y*fragVertexDistance.y + fragVertexDistance.z*fragVertexDistance.z);
 	effect = effect * 0.3 + 0.7;
+//	float effect = 1.0;
 
 	//outColor
 	outColor = vec4(light * lightColor * effect, 1.0);

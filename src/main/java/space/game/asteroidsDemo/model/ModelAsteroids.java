@@ -55,10 +55,10 @@ public class ModelAsteroids {
 					c.multiply(1f + (rand.nextFloat() * 2 - 1) * config[i]);
 					dictionary.put(key, c);
 				}
-				newTriangles.add(new Triangle(triangle.p0, a, c));
-				newTriangles.add(new Triangle(triangle.p1, b, a));
-				newTriangles.add(new Triangle(triangle.p2, c, b));
-				newTriangles.add(new Triangle(a, b, c));
+				newTriangles.add(new Triangle(triangle.p0, a, c, new Point3D(triangle.p0).normalize(), new Point3D(a).normalize(), new Point3D(c).normalize()));
+				newTriangles.add(new Triangle(triangle.p1, b, a, new Point3D(triangle.p1).normalize(), new Point3D(b).normalize(), new Point3D(a).normalize()));
+				newTriangles.add(new Triangle(triangle.p2, c, b, new Point3D(triangle.p2).normalize(), new Point3D(c).normalize(), new Point3D(b).normalize()));
+				newTriangles.add(new Triangle(a, b, c, new Point3D(a).normalize(), new Point3D(b).normalize(), new Point3D(c).normalize()));
 			}
 			m.set(newTriangles);
 		}
