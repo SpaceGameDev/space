@@ -210,10 +210,10 @@ public class AsteroidsDemo implements Runnable {
 			ManagedFrameBuffer<AsteroidDemoInfos> frameBuffer = asteroidDemoRenderPass.createManagedFrameBuffer(swapchain, device.getQueue(QUEUE_TYPE_GRAPHICS, QUEUE_FLAG_REALTIME_BIT), new Object[] {side});
 			
 			float[][] config = new float[][] {
-					new float[] {0.75f},
-					new float[] {0.75f, 0.5f},
-					new float[] {0.75f, 0.5f, 0.25f},
-					new float[] {0.75f, 0.5f, 0.25f, 0.125f},
+					new float[] {0.5f},
+					new float[] {0.5f, 0.3f},
+					new float[] {0.5f, 0.3f, 0.2f},
+					new float[] {0.5f, 0.3f, 0.2f, 0.1f},
 			};
 			
 			//renderer
