@@ -33,7 +33,7 @@ void main() {
 		//diffuse
 		vec3 viewDir = normalize(uniformGlobal.cameraOffset - inPosWorldspace);
 		float diff = max(dot(inNormal, lightDir), 0);
-		light += diff * 2;
+		light += diff;
 
 		//specular
 		vec3 reflectDir = reflect(-lightDir, inNormal);
@@ -41,10 +41,6 @@ void main() {
 		light += specularStrength * spec;
 	}
 
-	//effect
-	float effect = 1 - (fragVertexDistance.x*fragVertexDistance.x + fragVertexDistance.y*fragVertexDistance.y + fragVertexDistance.z*fragVertexDistance.z);
-	effect = effect * 0.3 + 0.7;
-
 	//outColor
-	outColor = vec4(light * lightColor * effect, 1.0);
+	outColor = vec4(light * lightColor, 1.0);
 }

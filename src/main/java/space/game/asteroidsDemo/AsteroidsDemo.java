@@ -262,13 +262,13 @@ public class AsteroidsDemo implements Runnable {
 									  minDistance = new float[] {Float.POSITIVE_INFINITY};
 									  break;
 								  case 2:
-									  minDistance = new float[] {1000, Float.POSITIVE_INFINITY};
+									  minDistance = new float[] {3500, Float.POSITIVE_INFINITY};
 									  break;
 								  case 3:
-									  minDistance = new float[] {300, 1000, Float.POSITIVE_INFINITY};
+									  minDistance = new float[] {2000, 3500, Float.POSITIVE_INFINITY};
 									  break;
 								  case 4:
-									  minDistance = new float[] {150, 300, 1000, Float.POSITIVE_INFINITY};
+									  minDistance = new float[] {1000, 2000, 3500, Float.POSITIVE_INFINITY};
 									  break;
 								  default:
 									  throw new RuntimeException();
