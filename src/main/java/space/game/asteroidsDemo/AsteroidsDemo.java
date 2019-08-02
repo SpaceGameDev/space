@@ -55,7 +55,8 @@ import space.game.asteroidsDemo.asteroid.AsteroidPlacer;
 import space.game.asteroidsDemo.asteroid.AsteroidRenderer;
 import space.game.asteroidsDemo.asteroid.AsteroidRenderer.AsteroidModel;
 import space.game.asteroidsDemo.entity.Camera;
-import space.game.asteroidsDemo.model.ModelCube;
+import space.game.asteroidsDemo.model.ModelAsteroids;
+import space.game.asteroidsDemo.model.ModelAsteroids.Result;
 import space.game.asteroidsDemo.renderPass.AsteroidDemoInfos;
 import space.game.asteroidsDemo.renderPass.AsteroidDemoRenderPass;
 
@@ -208,45 +209,72 @@ public class AsteroidsDemo implements Runnable {
 			AsteroidPipeline asteroidPipeline = new AsteroidPipeline(asteroidDemoRenderPass, new Object[] {side});
 			ManagedFrameBuffer<AsteroidDemoInfos> frameBuffer = asteroidDemoRenderPass.createManagedFrameBuffer(swapchain, device.getQueue(QUEUE_TYPE_GRAPHICS, QUEUE_FLAG_REALTIME_BIT), new Object[] {side});
 			
+			float[][] config = new float[][] {
+					new float[] {0.75f},
+					new float[] {0.75f, 0.5f},
+					new float[] {0.75f, 0.5f, 0.25f},
+					new float[] {0.75f, 0.5f, 0.25f, 0.125f},
+			};
+			
 			//renderer
-			VmaBuffer[] asteroid_r2 = uploadModel(device, new Object[] {side},
-												  ModelCube.CUBE,
-												  ModelCube.CUBE,
-												  ModelCube.CUBE
+			VmaBuffer[] asteroid_r2 = uploadAsteroids(device, new Object[] {side},
+													  ModelAsteroids.generateAsteroid(2, config[2], 1),
+													  ModelAsteroids.generateAsteroid(2, config[1], 1),
+													  ModelAsteroids.generateAsteroid(2, config[0], 1)
 			).awaitGetUninterrupted();
-			VmaBuffer[] asteroid_r4 = uploadModel(device, new Object[] {side},
-												  ModelCube.CUBE,
-												  ModelCube.CUBE,
-												  ModelCube.CUBE
+			VmaBuffer[] asteroid_r4 = uploadAsteroids(device, new Object[] {side},
+													  ModelAsteroids.generateAsteroid(4, config[2], 2),
+													  ModelAsteroids.generateAsteroid(4, config[1], 2),
+													  ModelAsteroids.generateAsteroid(4, config[0], 2)
 			).awaitGetUninterrupted();
-			VmaBuffer[] asteroid_r6 = uploadModel(device, new Object[] {side},
-												  ModelCube.CUBE,
-												  ModelCube.CUBE,
-												  ModelCube.CUBE
+			VmaBuffer[] asteroid_r6 = uploadAsteroids(device, new Object[] {side},
+													  ModelAsteroids.generateAsteroid(6, config[2], 3),
+													  ModelAsteroids.generateAsteroid(6, config[1], 3),
+													  ModelAsteroids.generateAsteroid(6, config[0], 3)
 			).awaitGetUninterrupted();
-			VmaBuffer[] asteroid_r8 = uploadModel(device, new Object[] {side},
-												  ModelCube.CUBE,
-												  ModelCube.CUBE,
-												  ModelCube.CUBE
+			VmaBuffer[] asteroid_r8 = uploadAsteroids(device, new Object[] {side},
+													  ModelAsteroids.generateAsteroid(8, config[3], 4),
+													  ModelAsteroids.generateAsteroid(8, config[2], 4),
+													  ModelAsteroids.generateAsteroid(8, config[1], 4),
+													  ModelAsteroids.generateAsteroid(8, config[0], 4)
 			).awaitGetUninterrupted();
-			VmaBuffer[] asteroid_r10 = uploadModel(device, new Object[] {side},
-												   ModelCube.CUBE,
-												   ModelCube.CUBE,
-												   ModelCube.CUBE,
-												   ModelCube.CUBE
+			VmaBuffer[] asteroid_r10 = uploadAsteroids(device, new Object[] {side},
+													   ModelAsteroids.generateAsteroid(10, config[3], 5),
+													   ModelAsteroids.generateAsteroid(10, config[2], 5),
+													   ModelAsteroids.generateAsteroid(10, config[1], 5),
+													   ModelAsteroids.generateAsteroid(10, config[0], 5)
 			).awaitGetUninterrupted();
-			VmaBuffer[] asteroid_r12 = uploadModel(device, new Object[] {side},
-												   ModelCube.CUBE,
-												   ModelCube.CUBE,
-												   ModelCube.CUBE,
-												   ModelCube.CUBE
+			VmaBuffer[] asteroid_r12 = uploadAsteroids(device, new Object[] {side},
+													   ModelAsteroids.generateAsteroid(12, config[3], 6),
+													   ModelAsteroids.generateAsteroid(12, config[2], 6),
+													   ModelAsteroids.generateAsteroid(12, config[1], 6),
+													   ModelAsteroids.generateAsteroid(12, config[0], 6)
 			).awaitGetUninterrupted();
 			
 			AsteroidRenderer asteroidRenderer = new AsteroidRenderer(
 					asteroidDemoRenderPass,
 					asteroidPipeline,
 					Stream.of(asteroid_r2, asteroid_r4, asteroid_r6, asteroid_r8, asteroid_r10, asteroid_r12)
-						  .map(models -> new AsteroidModel(models, models.length == 3 ? new float[] {300, 1000, Float.POSITIVE_INFINITY} : new float[] {150, 300, 1000, Float.POSITIVE_INFINITY}))
+						  .map(models -> {
+							  float[] minDistance;
+							  switch (models.length) {
+								  case 1:
+									  minDistance = new float[] {Float.POSITIVE_INFINITY};
+									  break;
+								  case 2:
+									  minDistance = new float[] {1000, Float.POSITIVE_INFINITY};
+									  break;
+								  case 3:
+									  minDistance = new float[] {300, 1000, Float.POSITIVE_INFINITY};
+									  break;
+								  case 4:
+									  minDistance = new float[] {150, 300, 1000, Float.POSITIVE_INFINITY};
+									  break;
+								  default:
+									  throw new RuntimeException();
+							  }
+							  return new AsteroidModel(models, minDistance);
+						  })
 						  .toArray(AsteroidModel[]::new),
 					new Object[] {side}
 			);
@@ -334,6 +362,10 @@ public class AsteroidsDemo implements Runnable {
 		} finally {
 			Side.exit();
 		}
+	}
+	
+	private static Future<VmaBuffer[]> uploadAsteroids(ManagedDevice device, Object[] parents, ModelAsteroids.Result... models) {
+		return uploadModel(device, parents, Arrays.stream(models).map(Result::unpackIndexBuffer).toArray(float[][]::new));
 	}
 	
 	private static Future<VmaBuffer[]> uploadModel(ManagedDevice device, Object[] parents, float[]... models) {

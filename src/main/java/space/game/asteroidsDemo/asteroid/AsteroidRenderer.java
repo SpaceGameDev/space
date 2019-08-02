@@ -114,7 +114,7 @@ public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoI
 									   0,
 									   0
 							   });
-							   vkCmdDraw(cmd, (int) (vertexBuffer.sizeOf() / (FP32.bytes * 9)), translations.size(), 0, 0);
+					vkCmdDraw(cmd, (int) (vertexBuffer.sizeOf() / (FP32.bytes * 6)), translations.size(), 0, 0);
 					
 							   return instanceBuffer;
 						   }

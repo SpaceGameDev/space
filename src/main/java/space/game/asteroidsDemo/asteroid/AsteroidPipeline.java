@@ -96,7 +96,7 @@ public class AsteroidPipeline implements FreeableWrapper {
 							allocBuffer(frame, VkVertexInputBindingDescription::create, VkVertexInputBindingDescription.SIZEOF,
 										perVertex -> perVertex.set(
 												0,
-												FP32.bytes * 9,
+												FP32.bytes * 6,
 												VK_VERTEX_INPUT_RATE_VERTEX
 										),
 										perInstance -> perInstance.set(

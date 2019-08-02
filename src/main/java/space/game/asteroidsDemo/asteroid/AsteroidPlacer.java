@@ -48,11 +48,11 @@ public class AsteroidPlacer {
 			float distance = (upper[0] - lower[0]) * RADIUS_FACTOR;
 			for (int radiusIndex = 0; radiusIndex < distance; radiusIndex++) {
 				float factor = radiusIndex / distance;
-				float propability = interpolerate(lower[1], upper[1], factor) * PROBABILITY_FACTOR;
+				float probability = interpolerate(lower[1], upper[1], factor) * PROBABILITY_FACTOR;
 				
 				float circleLength = 2 * PI * radiusIndex;
 				for (int circularIndex = 0; circularIndex < circleLength; circularIndex++) {
-					if (r.nextFloat() > propability)
+					if (r.nextFloat() > probability)
 						continue;
 					
 					float typeFloat = r.nextFloat();
