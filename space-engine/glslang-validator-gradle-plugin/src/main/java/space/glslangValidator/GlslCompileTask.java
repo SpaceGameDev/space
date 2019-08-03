@@ -43,6 +43,8 @@ public class GlslCompileTask extends DefaultTask {
 			
 			Files.find(srcDir.toPath(), Integer.MAX_VALUE, (path, att) -> att.isRegularFile()).forEach(path -> {
 				File src = path.toFile();
+				if (src.getName().endsWith(".glsl"))
+					return;
 				File target = new File(sourcesSet.getOutputDir(), srcDir.toPath().relativize(path).toString() + ".spv");
 				//noinspection ResultOfMethodCallIgnored
 				target.getParentFile().mkdirs();
@@ -51,7 +53,7 @@ public class GlslCompileTask extends DefaultTask {
 				try {
 					getProject().exec(execSpec -> {
 						try {
-							execSpec.commandLine("glslangValidator", "-V", src.getCanonicalPath(), "-o", target.getCanonicalPath());
+							execSpec.commandLine("glslc", "-c", src.getCanonicalPath(), "-o", target.getCanonicalPath());
 							execSpec.setStandardOutput(outputStream);
 						} catch (IOException e) {
 							throw new RuntimeException(e);
