@@ -5,13 +5,15 @@ import org.gradle.api.file.FileTree;
 import org.gradle.api.file.SourceDirectorySet;
 import org.gradle.api.tasks.InputFiles;
 import org.gradle.api.tasks.OutputDirectory;
+import org.gradle.api.tasks.PathSensitive;
+import org.gradle.api.tasks.PathSensitivity;
+import org.gradle.api.tasks.SkipWhenEmpty;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.process.internal.ExecException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 
 public class GlslCompileTask extends DefaultTask {
 	
@@ -26,8 +28,10 @@ public class GlslCompileTask extends DefaultTask {
 	}
 	
 	@InputFiles
-	public FileTree getSources() {
-		return sourcesSet.getAsFileTree();
+	@SkipWhenEmpty
+	@PathSensitive(PathSensitivity.ABSOLUTE)
+	public FileTree getSource() {
+		return getProject().files(sourcesSet).getAsFileTree();
 	}
 	
 	@OutputDirectory
@@ -36,16 +40,10 @@ public class GlslCompileTask extends DefaultTask {
 	}
 	
 	@TaskAction
-	protected void compile() throws IOException {
+	protected void compile() {
 		for (File srcDir : sourcesSet.getSrcDirs()) {
-			if (!srcDir.exists())
-				return;
-			
-			Files.find(srcDir.toPath(), Integer.MAX_VALUE, (path, att) -> att.isRegularFile()).forEach(path -> {
-				File src = path.toFile();
-				if (src.getName().endsWith(".glsl"))
-					return;
-				File target = new File(sourcesSet.getOutputDir(), srcDir.toPath().relativize(path).toString() + ".spv");
+			for (File src : getProject().fileTree(srcDir).matching(sourcesSet.getFilter()).getFiles()) {
+				File target = new File(sourcesSet.getOutputDir(), src.toString().substring(srcDir.toString().length()) + ".spv");
 				//noinspection ResultOfMethodCallIgnored
 				target.getParentFile().mkdirs();
 				
@@ -58,11 +56,11 @@ public class GlslCompileTask extends DefaultTask {
 						} catch (IOException e) {
 							throw new RuntimeException(e);
 						}
-					});
+					}).rethrowFailure();
 				} catch (ExecException e) {
 					throw new ExecException(e.getMessage() + "\n" + outputStream.toString(), e);
 				}
-			});
+			}
 		}
 	}
 }
