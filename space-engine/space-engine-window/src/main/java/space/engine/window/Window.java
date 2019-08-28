@@ -1,14 +1,13 @@
 package space.engine.window;
 
 import org.jetbrains.annotations.NotNull;
+import space.engine.barrier.Barrier;
 import space.engine.event.Event;
 import space.engine.freeableStorage.Freeable;
 import space.engine.key.attribute.AttributeKey;
 import space.engine.key.attribute.AttributeListCreator;
-import space.engine.sync.TaskCreator;
+import space.engine.simpleQueue.pool.Executor;
 import space.engine.window.extensions.VideoModeExtension;
-
-import java.util.concurrent.Executor;
 
 /**
  * A {@link Window} is a {@link Window} on the Desktop.
@@ -38,17 +37,17 @@ public interface Window extends Freeable, Executor {
 	 * Swap the Framebuffer of a FBO from OpenGL.
 	 *
 	 * @param opengl_texture_id the FBO id from OpenGL
-	 * @return a Task it tell you when swapping is finished
+	 * @return a {@link Barrier} done when swapping is finished
 	 */
-	@NotNull TaskCreator openGL_SwapBuffer(int opengl_texture_id);
+	@NotNull Barrier openGL_SwapBuffer(int opengl_texture_id);
 	
 	/**
 	 * Swap the Framebuffer of a FBO from OpenGL ES.
 	 *
 	 * @param opengl_es_texture_id the FBO id from OpenGL ES
-	 * @return a Task it tell you when swapping is finished
+	 * @return a {@link Barrier} done when swapping is finished
 	 */
-	@NotNull TaskCreator openGL_ES_SwapBuffer(int opengl_es_texture_id);
+	@NotNull Barrier openGL_ES_SwapBuffer(int opengl_es_texture_id);
 	
 	//events
 	@NotNull Event<WindowCloseCallback> getWindowCloseEvent();
@@ -99,7 +98,6 @@ public interface Window extends Freeable, Executor {
 			 * May <b>not</b> be supported.
 			 */
 			HIDDEN
-			
 		}
 	}
 }

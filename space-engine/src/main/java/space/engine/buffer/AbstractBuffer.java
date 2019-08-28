@@ -2,12 +2,12 @@ package space.engine.buffer;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import space.engine.barrier.Barrier;
 import space.engine.baseobject.ToString;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.freeableStorage.FreeableStorage;
 import space.engine.string.toStringHelper.ToStringHelper;
 import space.engine.string.toStringHelper.ToStringHelper.ToStringHelperObjectsInstance;
-import space.engine.sync.barrier.Barrier;
 
 public abstract class AbstractBuffer extends Buffer implements FreeableWrapper, ToString {
 	
@@ -47,7 +47,7 @@ public abstract class AbstractBuffer extends Buffer implements FreeableWrapper, 
 		@Override
 		protected @NotNull Barrier handleFree() {
 			allocator.free(address);
-			return Barrier.ALWAYS_TRIGGERED_BARRIER;
+			return Barrier.DONE_BARRIER;
 		}
 	}
 	

@@ -7,16 +7,15 @@ import org.lwjgl.vulkan.VkFramebufferCreateInfo;
 import org.lwjgl.vulkan.VkOffset2D;
 import org.lwjgl.vulkan.VkRect2D;
 import org.lwjgl.vulkan.VkRenderPassBeginInfo;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.DelayTask;
+import space.engine.barrier.future.Future;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferLong;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.orderingGuarantee.SequentialOrderingGuarantee;
-import space.engine.sync.DelayTask;
-import space.engine.sync.Tasks;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.future.Future;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
 import space.engine.vulkan.VkFramebuffer;
@@ -35,11 +34,10 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.lwjgl.vulkan.VK10.*;
+import static space.engine.barrier.Barrier.*;
 import static space.engine.buffer.Allocator.heap;
 import static space.engine.freeableStorage.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
-import static space.engine.sync.Tasks.future;
-import static space.engine.sync.barrier.Barrier.*;
 
 public class ManagedFrameBuffer<INFOS extends Infos> implements FreeableWrapper {
 	
@@ -202,7 +200,7 @@ public class ManagedFrameBuffer<INFOS extends Infos> implements FreeableWrapper 
 	private final VkCommandBuffer mainBuffer;
 	
 	public Future<Barrier> render(INFOS infos, VkSemaphore[] waitSemaphores, int[] waitDstStageMasks, VkSemaphore[] signalSemaphores) {
-		return orderingGuarantee.next(prev -> Tasks.<Barrier>future(() -> {
+		return orderingGuarantee.next(prev -> prev.thenFuture(() -> {
 			@NotNull Subpass[] subpasses = renderPass.subpasses();
 			
 			List<List<Future<VkCommandBuffer[]>>> cmdBuffersInput = new ArrayList<>();
@@ -215,17 +213,17 @@ public class ManagedFrameBuffer<INFOS extends Infos> implements FreeableWrapper 
 									 .stream()
 									 .map(list -> list.get(subpass.id()))
 									 .collect(Collectors.toUnmodifiableList());
-							 return future(() -> futures
+						return when(futures).thenFuture(() -> futures
 									 .stream()
 									 .map(Future::assertGet)
 									 .flatMap(Arrays::stream)
 									 .toArray(VkCommandBuffer[]::new)
-							 ).submit(futures.toArray(EMPTY_BARRIER_ARRAY));
+						);
 						 }
 					)
 					.collect(Collectors.toUnmodifiableList());
 			
-			throw new DelayTask(Tasks.<Barrier>future(() -> {
+			throw new DelayTask(when(cmdBuffersSorted).<Barrier>thenFuture(() -> {
 				Future<Barrier> ret;
 				try (AllocatorFrame frame = Allocator.frame()) {
 					mainBuffer.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
@@ -267,13 +265,13 @@ public class ManagedFrameBuffer<INFOS extends Infos> implements FreeableWrapper 
 					);
 				}
 				
-				innerBarrier(ret).addHook(() -> {
+				inner(ret).addHook(() -> {
 					mainBuffer.reset(0);
 					infos.frameDone.triggerNow();
 				});
 				throw new DelayTask(ret);
-			}).submit(cmdBuffersSorted.toArray(EMPTY_BARRIER_ARRAY)));
-		}).submit(prev));
+			}));
+		}));
 	}
 	
 	//inheritanceInfo

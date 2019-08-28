@@ -2,15 +2,14 @@ package space.engine.window.glfw;
 
 import org.jetbrains.annotations.NotNull;
 import space.engine.Side;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.future.Future;
 import space.engine.event.EventEntry;
 import space.engine.freeableStorage.FreeableStorageCleaner;
 import space.engine.key.attribute.AttributeList;
 import space.engine.key.attribute.AttributeListModify;
 import space.engine.logger.BaseLogger;
 import space.engine.logger.LogLevel;
-import space.engine.sync.TaskCreator;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.future.Future;
 import space.engine.window.InputDevice.Keyboard;
 import space.engine.window.Keycode;
 import space.engine.window.Window;
@@ -31,7 +30,7 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL12.GL_CLAMP_TO_EDGE;
 import static org.lwjgl.opengl.GL30.*;
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
-import static space.engine.sync.Tasks.*;
+import static space.engine.barrier.Barrier.*;
 import static space.engine.window.Window.*;
 import static space.engine.window.WindowContext.*;
 import static space.engine.window.extensions.BorderlessExtension.BORDERLESS;
@@ -111,20 +110,20 @@ public class GLFWTest {
 		if (CRASH)
 			throw new RuntimeException("Test Crash!");
 		
-		FboInfo fboInfo = createFbo(context, 1080, 1080).submit().awaitGet();
+		FboInfo fboInfo = createFbo(context, 1080, 1080).awaitGet();
 		
 		for (int i = 0; i < SECONDS * 60 && windows.size() != 0; i++) {
 			
 			int i2 = i;
-			Barrier draw = runnable(context, () -> {
+			Barrier draw = nowRun(context, () -> {
 				glBindFramebuffer(GL_FRAMEBUFFER, fboInfo.fboId);
 				glViewport(0, 0, 1080, 1080);
 				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 				exampleDraw.run.accept(i2 / 60f);
 				glBindFramebuffer(GL_FRAMEBUFFER, 0);
 				glFinish();
-			}).submit();
-			Barrier.awaitAll(windows.stream().map(w -> w.openGL_SwapBuffer(fboInfo.texId).submit(draw)).toArray(Barrier[]::new)).await();
+			});
+			draw.thenStart(() -> when(windows.stream().map(w -> w.openGL_SwapBuffer(fboInfo.texId)))).await();
 			
 			Thread.sleep(1000 / 60);
 			
@@ -149,7 +148,7 @@ public class GLFWTest {
 //			modify.apply().await();
 		}
 		
-		deleteFbo(context, fboInfo).submit().await();
+		deleteFbo(context, fboInfo).await();
 		
 		if (FREE_WINDOW) {
 			windows.forEach(Window::free);
@@ -170,8 +169,8 @@ public class GLFWTest {
 		}
 	}
 	
-	private static @NotNull TaskCreator<? extends Future<FboInfo>> createFbo(WindowContext context, int width, int height) {
-		return future(context, () -> {
+	private static @NotNull Future<FboInfo> createFbo(WindowContext context, int width, int height) {
+		return nowFuture(context, () -> {
 			int tex = glGenTextures();
 			glBindTexture(GL_TEXTURE_2D, tex);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -198,8 +197,8 @@ public class GLFWTest {
 		});
 	}
 	
-	private static @NotNull TaskCreator<? extends Barrier> deleteFbo(WindowContext context, FboInfo info) {
-		return runnable(context, () -> {
+	private static @NotNull Barrier deleteFbo(WindowContext context, FboInfo info) {
+		return nowRun(context, () -> {
 			glDeleteFramebuffers(info.fboId);
 			glDeleteTextures(info.texId);
 		});

@@ -7,6 +7,7 @@ import org.lwjgl.vulkan.VkExtent3D;
 import org.lwjgl.vulkan.VkImageCreateInfo;
 import org.lwjgl.vulkan.VkImageSubresourceLayers;
 import org.lwjgl.vulkan.VkOffset3D;
+import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.Buffer;
@@ -14,7 +15,6 @@ import space.engine.buffer.pointer.PointerBufferPointer;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.freeableStorage.FreeableStorage;
-import space.engine.sync.barrier.Barrier;
 import space.engine.vulkan.VkImage;
 import space.engine.vulkan.managed.device.ManagedDevice;
 import space.engine.vulkan.managed.device.ManagedQueue;
@@ -195,7 +195,7 @@ public class VmaImage implements VkImage, FreeableWrapper {
 		@Override
 		protected @NotNull Barrier handleFree() {
 			vmaDestroyImage(allocator.address(), address, allocationAddress);
-			return Barrier.ALWAYS_TRIGGERED_BARRIER;
+			return Barrier.DONE_BARRIER;
 		}
 	}
 	

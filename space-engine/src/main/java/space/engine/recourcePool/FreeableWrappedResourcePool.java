@@ -2,14 +2,14 @@ package space.engine.recourcePool;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import space.engine.barrier.Barrier;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.FreeableStorage;
-import space.engine.sync.barrier.Barrier;
 
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
-import static space.engine.sync.barrier.Barrier.ALWAYS_TRIGGERED_BARRIER;
+import static space.engine.barrier.Barrier.DONE_BARRIER;
 
 /**
  * {@link FreeableWrappedResourcePool} uses a ResourcePool and wraps allocated resources in another {@link space.engine.freeableStorage.Freeable} for easy releasing by calling {@link Freeable#free()}
@@ -80,7 +80,7 @@ public abstract class FreeableWrappedResourcePool<I, O extends Freeable> {
 		protected @NotNull Barrier handleFree() {
 			reset(inner);
 			resourcePool.release(inner);
-			return ALWAYS_TRIGGERED_BARRIER;
+			return DONE_BARRIER;
 		}
 	}
 }

@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengles.GLES;
+import space.engine.barrier.future.Future;
 import space.engine.baseobject.exceptions.FreedException;
 import space.engine.delegate.collection.ObservableCollection;
 import space.engine.event.Event;
@@ -12,7 +13,6 @@ import space.engine.event.typehandler.TypeHandlerParallel;
 import space.engine.freeableStorage.Freeable;
 import space.engine.key.attribute.AbstractAttributeList;
 import space.engine.key.attribute.AttributeList;
-import space.engine.sync.future.Future;
 import space.engine.window.InputDevice;
 import space.engine.window.InputDevice.KeyInputDevice.CharacterInputEvent;
 import space.engine.window.InputDevice.KeyInputDevice.KeyInputEvent;
@@ -31,8 +31,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static org.lwjgl.glfw.GLFW.*;
+import static space.engine.barrier.Barrier.nowRun;
 import static space.engine.freeableStorage.Freeable.addIfNotContained;
-import static space.engine.sync.Tasks.runnable;
 import static space.engine.window.WindowContext.FreeableWrapper;
 import static space.engine.window.glfw.GLFWUtil.*;
 
@@ -44,7 +44,7 @@ public class GLFWContext implements WindowContext, FreeableWrapper {
 	
 	public static Future<GLFWContext> create(@NotNull GLFWWindowFramework framework, @NotNull AttributeList<WindowContext> format, Object[] parents) {
 		GLFWContext context = new GLFWContext(framework, parents);
-		return runnable(context.storage, () -> context.initNativeWindow(format)).submit().toFuture(() -> context);
+		return nowRun(context.storage, () -> context.initNativeWindow(format)).toFuture(() -> context);
 	}
 	
 	private GLFWContext(@NotNull GLFWWindowFramework framework, Object[] parents) {

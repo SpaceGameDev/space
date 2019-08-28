@@ -2,13 +2,13 @@ package space.engine.vulkan;
 
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.vulkan.VkRenderPassCreateInfo;
+import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.pointer.PointerBufferPointer;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.freeableStorage.FreeableStorage;
-import space.engine.sync.barrier.Barrier;
 
 import java.util.function.BiFunction;
 
@@ -83,7 +83,7 @@ public class VkRenderPass implements FreeableWrapper {
 		@Override
 		protected @NotNull Barrier handleFree() {
 			vkDestroyRenderPass(device, address, null);
-			return Barrier.ALWAYS_TRIGGERED_BARRIER;
+			return Barrier.DONE_BARRIER;
 		}
 	}
 }

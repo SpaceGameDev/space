@@ -5,13 +5,13 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.vulkan.VkExtent2D;
 import org.lwjgl.vulkan.VkPresentInfoKHR;
 import org.lwjgl.vulkan.VkSwapchainCreateInfoKHR;
+import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferLong;
 import space.engine.buffer.pointer.PointerBufferInt;
 import space.engine.buffer.pointer.PointerBufferLong;
 import space.engine.buffer.pointer.PointerBufferPointer;
-import space.engine.sync.barrier.Barrier;
 import space.engine.vulkan.VkException;
 import space.engine.vulkan.VkFence;
 import space.engine.vulkan.VkQueueFamilyProperties;
@@ -29,8 +29,8 @@ import java.util.Arrays;
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.KHRSwapchain.*;
 import static org.lwjgl.vulkan.VK10.*;
+import static space.engine.barrier.Barrier.DONE_BARRIER;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
-import static space.engine.sync.barrier.Barrier.ALWAYS_TRIGGERED_BARRIER;
 import static space.engine.vulkan.VkException.assertVk;
 import static space.engine.vulkan.managed.device.ManagedDevice.*;
 
@@ -200,7 +200,7 @@ public class ManagedSwapchain<WINDOW extends Window> extends VkSwapchain<WINDOW>
 						PointerBufferInt.alloc(frame, imageIndex).nioBuffer(),
 						null
 				)));
-				return ALWAYS_TRIGGERED_BARRIER;
+				return DONE_BARRIER;
 			}
 		}
 	}

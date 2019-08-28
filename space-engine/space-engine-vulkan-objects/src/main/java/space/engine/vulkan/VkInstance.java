@@ -8,6 +8,7 @@ import org.lwjgl.vulkan.VkDebugUtilsMessengerCallbackDataEXT;
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCallbackEXTI;
 import org.lwjgl.vulkan.VkDebugUtilsMessengerCreateInfoEXT;
 import org.lwjgl.vulkan.VkInstanceCreateInfo;
+import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferPointer;
@@ -20,7 +21,6 @@ import space.engine.freeableStorage.FreeableStorage;
 import space.engine.logger.LogLevel;
 import space.engine.logger.Logger;
 import space.engine.lwjgl.LwjglStructAllocator;
-import space.engine.sync.barrier.Barrier;
 import space.engine.vulkan.exception.UnsupportedConfigurationException;
 
 import java.util.ArrayList;
@@ -189,7 +189,7 @@ public class VkInstance extends org.lwjgl.vulkan.VkInstance implements FreeableW
 				callPJPV(function_vkDestroyDebugUtilsMessengerEXT, instance, debugMessenger, 0);
 			//nvkDestroyInstance
 			JNI.callPPV(function_vkDestroyInstance, instance, 0);
-			return Barrier.ALWAYS_TRIGGERED_BARRIER;
+			return Barrier.DONE_BARRIER;
 		}
 	}
 	

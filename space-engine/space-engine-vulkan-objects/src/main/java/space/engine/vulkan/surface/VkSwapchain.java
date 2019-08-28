@@ -1,6 +1,7 @@
 package space.engine.vulkan.surface;
 
 import org.jetbrains.annotations.NotNull;
+import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferPointer;
@@ -8,7 +9,6 @@ import space.engine.buffer.pointer.PointerBufferInt;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.freeableStorage.FreeableStorage;
-import space.engine.sync.barrier.Barrier;
 import space.engine.vulkan.VkDevice;
 import space.engine.vulkan.VkImage;
 import space.engine.vulkan.VkImageView;
@@ -110,7 +110,7 @@ public class VkSwapchain<WINDOW extends Window> implements FreeableWrapper {
 		@Override
 		protected @NotNull Barrier handleFree() {
 			nvkDestroySwapchainKHR(device, address, 0);
-			return Barrier.ALWAYS_TRIGGERED_BARRIER;
+			return Barrier.DONE_BARRIER;
 		}
 	}
 	

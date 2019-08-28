@@ -1,9 +1,9 @@
 package space.engine.vulkan.managed.renderPass;
 
 import org.jetbrains.annotations.NotNull;
+import space.engine.barrier.BarrierImpl;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.sync.barrier.BarrierImpl;
 
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
 

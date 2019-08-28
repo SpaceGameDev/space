@@ -2,6 +2,8 @@ package space.engine.vulkan.managed.device;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.BarrierImpl;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferLong;
@@ -9,8 +11,6 @@ import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.simpleQueue.SimpleQueue;
 import space.engine.simpleQueue.pool.SimpleMessagePool;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.barrier.BarrierImpl;
 import space.engine.vulkan.VkFence;
 
 import java.util.ArrayList;

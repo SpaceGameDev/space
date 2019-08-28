@@ -69,6 +69,7 @@ public class ArraySimpleQueue<E> implements SimpleQueue<E> {
 	/**
 	 * current size of the SimpleQueue, for testing purposes
 	 */
+	@Override
 	public int size() {
 		return index;
 	}

@@ -2,14 +2,13 @@ package space.engine.freeableStorage;
 
 import org.jetbrains.annotations.Nullable;
 import space.engine.Side;
+import space.engine.barrier.BarrierImpl;
+import space.engine.barrier.functions.Starter;
 import space.engine.event.EventEntry;
 import space.engine.logger.LogLevel;
 import space.engine.logger.Logger;
 import space.engine.logger.NullLogger;
 import space.engine.string.StringBuilder2D;
-import space.engine.sync.DelayTask;
-import space.engine.sync.Tasks.RunnableWithDelay;
-import space.engine.sync.barrier.BarrierImpl;
 
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;
@@ -23,7 +22,7 @@ public final class FreeableStorageCleaner {
 	public static final ReferenceQueue<Object> QUEUE = new ReferenceQueue<>();
 	
 	//exit event entry
-	public static final EventEntry<RunnableWithDelay> EXIT_EVENT_ENTRY_FREEABLE_ROOT_LIST_FREE;
+	public static final EventEntry<Starter> EXIT_EVENT_ENTRY_FREEABLE_ROOT_LIST_FREE;
 	
 	//instance management
 	@Nullable
@@ -81,7 +80,7 @@ public final class FreeableStorageCleaner {
 				logger.log(INFO, "Final cleanup complete!");
 				finishBarrier.triggerNow();
 			}, "FreeableStorageCleaner-Final").start();
-			throw new DelayTask(finishBarrier);
+			return finishBarrier;
 		}, new EventEntry<?>[] {Side.EXIT_EVENT_ENTRY_POOL_EXIT}, new EventEntry<?>[] {Side.EXIT_EVENT_ENTRY_BEFORE_APPLICATION_SHUTDOWN}));
 	}
 	

@@ -2,11 +2,9 @@ package space.engine.freeableStorage;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import space.engine.barrier.Barrier;
 import space.engine.baseobject.exceptions.FreedException;
 import space.engine.freeableStorage.FreeableList.Entry;
-import space.engine.sync.DelayTask;
-import space.engine.sync.Tasks;
-import space.engine.sync.barrier.Barrier;
 
 import java.lang.ref.SoftReference;
 import java.util.Arrays;
@@ -35,21 +33,17 @@ public abstract class FreeableStorageSoft<T> extends SoftReference<T> implements
 			FreeableList subList = this.subList;
 			if (subList != null) {
 				Barrier subListFree = subList.free();
-				if (subListFree != Barrier.ALWAYS_TRIGGERED_BARRIER) {
-					
+				if (!subListFree.isDone()) {
 					//we need to wait for subList to free
-					freeBarrier = Tasks.runnable(() -> {
-						Barrier barrier = handleFree();
-						if (barrier != Barrier.ALWAYS_TRIGGERED_BARRIER)
-							throw new DelayTask(barrier);
-					}).submit(subListFree);
-					freeBarrier.addHook(this::removeEntries);
-					return freeBarrier;
+					freeBarrier = subListFree.thenStart(this::handleFree);
+				} else {
+					//no waiting for subList
+					freeBarrier = handleFree();
 				}
+			} else {
+				//no waiting for subList
+				freeBarrier = handleFree();
 			}
-			
-			//no waiting for subList
-			freeBarrier = handleFree();
 		}
 		
 		//DON'T sync when calling removeEntries() as it will go UP the Freeable-tree (instead of the always down) and cause deadlocks

@@ -1,15 +1,15 @@
 package space.engine.vulkan.util;
 
 import org.jetbrains.annotations.NotNull;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.BarrierImpl;
+import space.engine.barrier.DelayTask;
+import space.engine.barrier.future.Future;
+import space.engine.barrier.timer.BarrierTimerWithTimeControl;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.freeableStorage.FreeableStorage;
 import space.engine.orderingGuarantee.SequentialOrderingGuarantee;
-import space.engine.sync.DelayTask;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.barrier.BarrierImpl;
-import space.engine.sync.future.Future;
-import space.engine.sync.timer.BarrierTimerWithTimeControl;
 import space.engine.vulkan.VkSemaphore;
 import space.engine.vulkan.managed.device.ManagedDevice;
 import space.engine.vulkan.managed.renderPass.Infos;
@@ -21,8 +21,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
-import static space.engine.sync.Tasks.runnable;
-import static space.engine.sync.barrier.Barrier.innerBarrier;
+import static space.engine.barrier.Barrier.*;
 
 public class FpsRenderer<INFOS extends Infos> implements FreeableWrapper {
 	
@@ -82,9 +81,7 @@ public class FpsRenderer<INFOS extends Infos> implements FreeableWrapper {
 		@Override
 		protected @NotNull Barrier handleFree() {
 			isRunning.set(false);
-			return runnable(() -> {
-				throw new DelayTask(Barrier.awaitAll(Arrays.stream(intermediary).map(Freeable::free)));
-			}).submit(exitBarrier);
+			return exitBarrier.thenStart(() -> Barrier.when(Arrays.stream(intermediary).map(Freeable::free)));
 		}
 	}
 	
@@ -119,27 +116,28 @@ public class FpsRenderer<INFOS extends Infos> implements FreeableWrapper {
 		
 		Barrier barrierTime = timer.create(eventTime);
 		orderingGuarantee.next(prev -> {
-			Barrier frameDone = runnable(() -> {
+			Barrier frameDone = when(prev, barrierTime).thenRun(() -> {
 				int imageIndex = swapchain.acquire(Long.MAX_VALUE, semaphoreImageReady, null);
 				Future<INFOS> infosFuture = infoCreator.apply(imageIndex, eventTime);
 				
-				throw new DelayTask(runnable(() -> {
+				throw new DelayTask(infosFuture.thenRun(() -> {
 					Future<Barrier> barrierRenderSubmitted = frameBuffer.render(
 							infosFuture.assertGet(),
 							new VkSemaphore[] {semaphoreImageReady},
 							new int[] {VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT},
 							new VkSemaphore[] {semaphoreRenderDone}
 					);
-					Barrier barrierRenderDone = innerBarrier(barrierRenderSubmitted);
+					Barrier barrierRenderDone = inner(barrierRenderSubmitted);
 					
-					Barrier barrierPresented = runnable(() -> {
-						throw new DelayTask(swapchain.present(new VkSemaphore[] {semaphoreRenderDone}, imageIndex));
-					}).submit(barrierRenderSubmitted);
+					Barrier barrierPresented = barrierRenderSubmitted.thenStart(() -> swapchain.present(new VkSemaphore[] {semaphoreRenderDone}, imageIndex));
 					
-					throw new DelayTask(Barrier.awaitAll(barrierPresented, barrierRenderDone));
-				}).submit(infosFuture));
-			}).submit(prev, barrierTime);
-			runnable(() -> run(Long.max(eventTime + 1, timer.currTime()))).submit(frameDone);
+					throw new DelayTask(Barrier.when(barrierPresented, barrierRenderDone));
+				}));
+			});
+			frameDone.thenStart(() -> {
+				run(Long.max(eventTime + 1, timer.currTime()));
+				return done();
+			});
 			return frameDone;
 		});
 	}

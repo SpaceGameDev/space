@@ -1,9 +1,9 @@
 package space.engine.vulkan;
 
 import org.jetbrains.annotations.NotNull;
+import space.engine.barrier.Barrier;
 import space.engine.buffer.Buffer;
 import space.engine.freeableStorage.Freeable;
-import space.engine.sync.barrier.Barrier;
 
 import java.util.function.BiFunction;
 

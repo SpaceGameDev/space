@@ -3,6 +3,8 @@ package space.engine.vulkan.managed.device;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.vulkan.VkSubmitInfo;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.future.Future;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferInt;
@@ -12,8 +14,6 @@ import space.engine.buffer.pointer.PointerBufferPointer;
 import space.engine.freeableStorage.Freeable;
 import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
 import space.engine.simpleQueue.pool.SimpleThreadPool;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.future.Future;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
 import space.engine.vulkan.VkFence;
@@ -28,10 +28,9 @@ import java.util.function.Function;
 
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
+import static space.engine.barrier.Barrier.*;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 import static space.engine.lwjgl.PointerBufferWrapper.wrapPointer;
-import static space.engine.sync.Tasks.future;
-import static space.engine.sync.barrier.Barrier.innerBarrier;
 
 public class ManagedQueue extends VkQueue {
 	
@@ -80,7 +79,7 @@ public class ManagedQueue extends VkQueue {
 	 * @return a {@link Future}, triggered when cmd is submitted, containing a {@link Barrier}, triggered when execution of cmd finished
 	 */
 	public Future<Barrier> submit(Entry cmd) {
-		return future(pool, () -> cmd.run(ManagedQueue.this)).submit();
+		return nowFuture(pool, () -> cmd.run(ManagedQueue.this));
 	}
 	
 	/**
@@ -175,7 +174,7 @@ public class ManagedQueue extends VkQueue {
 		Object recordingDependencies = function.apply(cmd);
 		cmd.end(recordingDependencies);
 		
-		Barrier executionDone = innerBarrier(submit(cmd));
+		Barrier executionDone = inner(submit(cmd));
 		executionDone.addHook(cmd::free);
 		return executionDone;
 	}

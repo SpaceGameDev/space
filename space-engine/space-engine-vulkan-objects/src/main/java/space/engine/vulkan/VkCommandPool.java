@@ -3,6 +3,7 @@ package space.engine.vulkan;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.vulkan.VkCommandBufferAllocateInfo;
 import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
+import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferLong;
@@ -12,7 +13,6 @@ import space.engine.buffer.pointer.PointerBufferPointer;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
 import space.engine.freeableStorage.FreeableStorage;
-import space.engine.sync.barrier.Barrier;
 import space.engine.vulkan.VkCommandBuffer.Default;
 import space.engine.vulkan.VkCommandBuffer.DestroyStorage;
 
@@ -103,7 +103,7 @@ public class VkCommandPool implements FreeableWrapper {
 		@Override
 		protected @NotNull Barrier handleFree() {
 			vkDestroyCommandPool(device, address, null);
-			return Barrier.ALWAYS_TRIGGERED_BARRIER;
+			return Barrier.DONE_BARRIER;
 		}
 	}
 	

@@ -1,13 +1,10 @@
 package space.engine.event;
 
 import org.jetbrains.annotations.NotNull;
+import space.engine.barrier.Barrier;
 import space.engine.event.typehandler.TypeHandler;
-import space.engine.sync.TaskCreator;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.lock.SyncLock;
 
-import static space.engine.sync.barrier.Barrier.*;
-import static space.engine.sync.lock.SyncLock.EMPTY_SYNCLOCK_ARRAY;
+import static space.engine.barrier.Barrier.DONE_BARRIER;
 
 /**
  * The {@link Event} Object is used to {@link Event#addHook(EventEntry)} and {@link Event#removeHook(EventEntry)} Hooks,
@@ -52,7 +49,7 @@ public interface Event<FUNCTION> {
 	
 	/**
 	 * Removes the specified hook.<br>
-	 * It is expected that the Method will be called very rarely and mustn't be optimized via hashing or other techniques.
+	 * It is expected that the Method will be called very rarely and shouldn't be optimized via hashing or other techniques.
 	 *
 	 * @param hook the hook to be removed
 	 * @return true if successful
@@ -60,36 +57,11 @@ public interface Event<FUNCTION> {
 	boolean removeHook(@NotNull EventEntry<FUNCTION> hook);
 	
 	/**
-	 * Creates a new Task based upon this template.
-	 * The Task may start execution after declared {@link Barrier Barriers} are triggered and while holding declared {@link SyncLock SyncLocks}.
+	 * Runs this Event with the specified {@link TypeHandler}.
 	 *
-	 * @return the created Task of generic type TASK
+	 * @return a Barrier triggered when the execution finished.
 	 */
-	default @NotNull Barrier submit(@NotNull TypeHandler<FUNCTION> typeHandler) {
-		return submit(typeHandler, EMPTY_SYNCLOCK_ARRAY, EMPTY_BARRIER_ARRAY);
-	}
-	
-	/**
-	 * Creates a new Task based upon this template.
-	 * The Task may start execution after declared {@link Barrier Barriers} are triggered and while holding declared {@link SyncLock SyncLocks}.
-	 *
-	 * @return the created Task of generic type TASK
-	 */
-	default @NotNull Barrier submit(@NotNull TypeHandler<FUNCTION> typeHandler, @NotNull Barrier... barriers) {
-		return submit(typeHandler, EMPTY_SYNCLOCK_ARRAY, barriers);
-	}
-	
-	/**
-	 * Creates a new Task based upon this template.
-	 * The Task may start execution after declared {@link Barrier Barriers} are triggered and while holding declared {@link SyncLock SyncLocks}.
-	 *
-	 * @return the created Task of generic type TASK
-	 */
-	@NotNull Barrier submit(@NotNull TypeHandler<FUNCTION> typeHandler, @NotNull SyncLock[] locks, @NotNull Barrier... barriers);
-	
-	default @NotNull TaskCreator<? extends Barrier> taskCreator(@NotNull TypeHandler<FUNCTION> typeHandler) {
-		return (locks, barriers) -> submit(typeHandler, locks, barriers);
-	}
+	@NotNull Barrier submit(@NotNull TypeHandler<FUNCTION> typeHandler);
 	
 	static <FUNCTION> Event<FUNCTION> voidEvent() {
 		return new Event<>() {
@@ -104,10 +76,9 @@ public interface Event<FUNCTION> {
 			}
 			
 			@Override
-			public @NotNull Barrier submit(@NotNull TypeHandler<FUNCTION> typeHandler, @NotNull SyncLock[] locks, @NotNull Barrier... barriers) {
-				return ALWAYS_TRIGGERED_BARRIER;
+			public @NotNull Barrier submit(@NotNull TypeHandler<FUNCTION> typeHandler) {
+				return DONE_BARRIER;
 			}
 		};
 	}
-	
 }

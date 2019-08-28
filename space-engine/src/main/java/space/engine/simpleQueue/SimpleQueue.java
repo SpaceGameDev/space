@@ -90,4 +90,15 @@ public interface SimpleQueue<E> {
 		}
 		return ret;
 	}
+	
+	/**
+	 * Gets the size of the Queue. For debug, monitor and testing only.
+	 * May throw an {@link UnsupportedOperationException} if not implemented.
+	 *
+	 * @return the size of the Queue
+	 * @throws UnsupportedOperationException if not supported by the queue
+	 */
+	default int size() throws UnsupportedOperationException {
+		throw new UnsupportedOperationException();
+	}
 }

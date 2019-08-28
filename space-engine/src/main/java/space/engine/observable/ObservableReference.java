@@ -2,15 +2,15 @@ package space.engine.observable;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.BarrierImpl;
+import space.engine.barrier.DelayTask;
+import space.engine.barrier.future.Future;
+import space.engine.barrier.future.FutureNotFinishedException;
 import space.engine.baseobject.CanceledCheck;
 import space.engine.event.EventEntry;
 import space.engine.event.SequentialEventBuilder;
 import space.engine.orderingGuarantee.GeneratingOrderingGuarantee;
-import space.engine.sync.DelayTask;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.barrier.BarrierImpl;
-import space.engine.sync.future.Future;
-import space.engine.sync.future.FutureNotFinishedException;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -18,8 +18,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
-import static space.engine.sync.Tasks.*;
-import static space.engine.sync.barrier.Barrier.ALWAYS_TRIGGERED_BARRIER;
+import static space.engine.barrier.Barrier.*;
 
 /**
  * An {@link ObservableReference} allows you to update a reference with {@link #set(Object)} and running an {@link space.engine.event.Event} when doing so.
@@ -46,27 +45,24 @@ public class ObservableReference<T> {
 			if (activate.get())
 				reference.set(generate);
 		});
-		Barrier[] hooksAdded = parents.map(parent -> parent.addHookNoInitialCallback(onChange)).toArray(Barrier[]::new);
+		Barrier hooksAdded = when(parents.map(parent -> parent.addHookNoInitialCallback(onChange)).toArray(Barrier[]::new));
 		
 		//only the initial value has additional barriers; usually you shouldn't use them as they block #ordering but here it's fine
-		reference.ordering.nextInbetween(prev -> runnable(hooksAdded, () -> {
+		reference.ordering.nextInbetween(prev -> when(prev, hooksAdded).thenRun(() -> {
 			//activate has to be true BEFORE we get the initial values otherwise we may miss updates
 			activate.set(true);
 			try {
 				reference.t = generate.get();
-				initialBarrier.triggerNow();
-			} catch (DelayTask e) {
-				throw new DelayTask(
-						runnable(() -> {
-							//noinspection unchecked
-							reference.t = ((Future<T>) e.barrier).assertGet();
-							initialBarrier.triggerNow();
-						}).submit(e.barrier)
-				);
 			} catch (NoUpdate ignored) {
-				throw new UnsupportedOperationException("Generator threw NoUpdate on initial value calculation!");
+			
+			} catch (DelayTask e) {
+				throw new DelayTask(e.barrier.thenStart(() -> {
+					//noinspection unchecked
+					reference.t = ((Future<T>) e.barrier).assertGet();
+					return done();
+				}));
 			}
-		}).submit(prev));
+		})).addHook(initialBarrier::triggerNow);
 		
 		return reference;
 	}
@@ -90,27 +86,23 @@ public class ObservableReference<T> {
 			if (activate.get())
 				reference.set(generate);
 		});
-		Barrier[] hooksAdded = parents.map(parent -> parent.addHookNoInitialCallback(onChange)).toArray(Barrier[]::new);
+		Barrier hooksAdded = when(parents.map(parent -> parent.addHookNoInitialCallback(onChange)).toArray(Barrier[]::new));
 		
 		//only the initial value has additional barriers; usually you shouldn't use them as they block #ordering but here it's fine
-		reference.ordering.nextInbetween(prev -> runnable(hooksAdded, () -> {
+		reference.ordering.nextInbetween(prev -> when(prev, hooksAdded).thenRun(() -> {
 			//activate has to be true BEFORE we get the initial values otherwise we may miss updates
 			activate.set(true);
 			try {
 				reference.t = generate.get(() -> false);
-				initialBarrier.triggerNow();
-			} catch (DelayTask e) {
-				throw new DelayTask(
-						runnable(() -> {
-							//noinspection unchecked
-							reference.t = ((Future<T>) e.barrier).assertGet();
-							initialBarrier.triggerNow();
-						}).submit(e.barrier)
-				);
 			} catch (NoUpdate ignored) {
-				throw new UnsupportedOperationException("Generator threw NoUpdate on initial value calculation!");
+			} catch (DelayTask e) {
+				throw new DelayTask(e.barrier.thenStart(() -> {
+					//noinspection unchecked
+					reference.t = ((Future<T>) e.barrier).assertGet();
+					return done();
+				}));
 			}
-		}).submit(prev));
+		})).addHook(initialBarrier::triggerNow);
 		
 		return reference;
 	}
@@ -123,11 +115,11 @@ public class ObservableReference<T> {
 	private volatile @Nullable T t;
 	
 	public ObservableReference() {
-		this(ALWAYS_TRIGGERED_BARRIER, null);
+		this(DONE_BARRIER, null);
 	}
 	
 	public ObservableReference(T initial) {
-		this(ALWAYS_TRIGGERED_BARRIER, initial);
+		this(DONE_BARRIER, initial);
 	}
 	
 	public ObservableReference(Barrier initialBarrier) {
@@ -152,7 +144,7 @@ public class ObservableReference<T> {
 	 */
 	@SuppressWarnings("ConstantConditions")
 	public T assertGet() throws FutureNotFinishedException {
-		if (!initialBarrier.isFinished())
+		if (!initialBarrier.isDone())
 			throw new FutureNotFinishedException(this);
 		return t;
 	}
@@ -170,71 +162,69 @@ public class ObservableReference<T> {
 	
 	//set
 	public Barrier set(T t) {
-		return ordering.next(prev -> runnableCancelable(canceledCheck -> {
-			if (canceledCheck.isCanceled())
-				return;
-			setInternal(t);
-		}).submit(prev));
+		return ordering.next(prev -> prev.thenRunCancelable(canceledCheck -> {
+			if (!canceledCheck.isCanceled())
+				setInternal(t);
+			return done();
+		}));
 	}
 	
 	public Barrier set(Generator<T> supplier) {
-		return ordering.next(prev -> runnableCancelable(canceledCheck -> {
+		return ordering.next(prev -> prev.thenRunCancelable(canceledCheck -> {
 			try {
 				if (canceledCheck.isCanceled())
-					return;
+					return done();
 				
 				T t;
 				try {
 					t = supplier.get();
 				} catch (DelayTask e) {
 					if (canceledCheck.isCanceled())
-						return;
-					throw new DelayTask(
-							runnable(() -> {
-								if (canceledCheck.isCanceled())
-									return;
-								//noinspection unchecked
-								setInternal(((Future<T>) e.barrier).assertGet());
-							}).submit(e.barrier)
-					);
+						return done();
+					return e.barrier.thenStart(() -> {
+						if (!canceledCheck.isCanceled()) {//noinspection unchecked
+							setInternal(((Future<T>) e.barrier).assertGet());
+						}
+						return done();
+					});
 				}
-				if (canceledCheck.isCanceled())
-					return;
-				setInternal(t);
+				if (!canceledCheck.isCanceled())
+					setInternal(t);
+				return done();
 			} catch (NoUpdate ignored) {
-			
+				return done();
 			}
-		}).submit(prev));
+		}));
 	}
 	
 	/**
 	 * The supplier of this and only this method will always be executed; the result however will not be stored if canceled.
 	 */
 	public Barrier set(GeneratorWithCancelCheck<T> supplier) {
-		return ordering.next(prev -> runnableCancelable(canceledCheck -> {
+		return ordering.next(prev -> prev.thenRunCancelable(canceledCheck -> {
 			try {
 				T t;
 				try {
 					t = supplier.get(canceledCheck);
 				} catch (DelayTask e) {
-					throw new DelayTask(
-							runnable(() -> {
-								//noinspection unchecked
-								setInternal(((Future<T>) e.barrier).assertGet());
-							}).submit(e.barrier)
-					);
+					return e.barrier.thenStart(() -> {
+						//noinspection unchecked
+						setInternal(((Future<T>) e.barrier).assertGet());
+						return done();
+					});
 				}
 				setInternal(t);
+				return done();
 			} catch (NoUpdate ignored) {
-			
+				return done();
 			}
-		}).submit(prev));
+		}));
 	}
 	
 	private void setInternal(T t) throws DelayTask {
 		this.t = t;
 		Barrier barrier = changeEvent.runImmediatelyIfPossible(tConsumer -> tConsumer.accept(t));
-		if (barrier != ALWAYS_TRIGGERED_BARRIER)
+		if (barrier != DONE_BARRIER)
 			throw new DelayTask(barrier);
 	}
 	
@@ -248,10 +238,10 @@ public class ObservableReference<T> {
 	
 	//addHook
 	public Barrier addHook(@NotNull EventEntry<? extends Consumer<? super T>> hook) {
-		return ordering.nextInbetween(prev -> runnable(() -> {
+		return ordering.nextInbetween(prev -> prev.thenRun(() -> {
 			hook.function.accept(t);
 			changeEvent.addHook(hook);
-		}).submit(prev));
+		}));
 	}
 	
 	public EventEntry<Consumer<? super T>> addHook(Consumer<? super T> changeConsumer) {
@@ -274,7 +264,9 @@ public class ObservableReference<T> {
 	
 	//addHookNoInitialCallback
 	public Barrier addHookNoInitialCallback(@NotNull EventEntry<? extends Consumer<? super T>> hook) {
-		return ordering.nextInbetween(prev -> runnable(() -> changeEvent.addHook(hook)).submit(prev));
+		return ordering.nextInbetween(prev -> prev.thenRun(() -> {
+			changeEvent.addHook(hook);
+		}));
 	}
 	
 	public EventEntry<Consumer<? super T>> addHookNoInitialCallback(Consumer<? super T> changeConsumer) {

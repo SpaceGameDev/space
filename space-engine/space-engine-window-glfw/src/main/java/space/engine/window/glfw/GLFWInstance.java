@@ -4,11 +4,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.glfw.GLFWErrorCallbackI;
 import org.lwjgl.glfw.GLFWMonitorCallbackI;
+import space.engine.barrier.Barrier;
 import space.engine.delegate.collection.ObservableCollection;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.FreeableList;
 import space.engine.freeableStorage.FreeableStorageWeak;
-import space.engine.sync.barrier.Barrier;
 import space.engine.window.exception.WindowFrameworkInitializationException;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -59,7 +59,7 @@ public class GLFWInstance implements Freeable {
 	//free
 	@Override
 	public @NotNull Barrier free() {
-		return Barrier.ALWAYS_TRIGGERED_BARRIER;
+		return Barrier.DONE_BARRIER;
 	}
 	
 	@Override
@@ -88,7 +88,7 @@ public class GLFWInstance implements Freeable {
 					glfwTerminate();
 				}
 			}
-			return Barrier.ALWAYS_TRIGGERED_BARRIER;
+			return Barrier.DONE_BARRIER;
 		}
 	}
 }

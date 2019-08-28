@@ -2,13 +2,13 @@ package space.engine.delegate.map;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import space.engine.barrier.Barrier;
+import space.engine.barrier.BarrierImpl;
 import space.engine.delegate.collection.UnmodifiableCollection;
 import space.engine.delegate.set.ObservableSet;
 import space.engine.event.Event;
 import space.engine.event.EventEntry;
 import space.engine.event.SequentialEventBuilder;
-import space.engine.sync.barrier.Barrier;
-import space.engine.sync.barrier.BarrierImpl;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,7 +34,7 @@ public class ObservableMap<K, V> implements Map<K, V> {
 	
 	private final Map<K, V> delegate;
 	private final SequentialEventBuilder<Consumer<Change<K, V>>> changeEvent = new SequentialEventBuilder<>();
-	private AtomicReference<Barrier> lastBarrier = new AtomicReference<>(Barrier.ALWAYS_TRIGGERED_BARRIER);
+	private AtomicReference<Barrier> lastBarrier = new AtomicReference<>(Barrier.DONE_BARRIER);
 	
 	public ObservableMap(Map<K, V> delegate) {
 		this.delegate = delegate;
@@ -332,7 +332,11 @@ public class ObservableMap<K, V> implements Map<K, V> {
 		
 		BarrierImpl newBarrier = new BarrierImpl();
 		Barrier prevBarrier = lastBarrier.getAndSet(newBarrier);
-		changeEvent.runImmediatelyIfPossible(changeConsumer -> changeConsumer.accept(change), prevBarrier).addHook(newBarrier::triggerNow);
+		prevBarrier.thenStart(() -> {
+			Barrier ret = changeEvent.submit(changeConsumer -> changeConsumer.accept(change));
+			ret.addHook(newBarrier::triggerNow);
+			return ret;
+		});
 	}
 	
 	public interface Change<K, V> {
