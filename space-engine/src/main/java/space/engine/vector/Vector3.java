@@ -1,106 +1,108 @@
 package space.engine.vector;
 
-public class Vector3f {
+import space.engine.vector.conversion.ToVector3;
+
+public class Vector3 implements ToVector3 {
 	
 	public float x;
 	public float y;
 	public float z;
 	
-	public Vector3f() {
+	public Vector3() {
 	}
 	
-	@SuppressWarnings("CopyConstructorMissesField")
-	public Vector3f(Vector3f vector) {
+	public Vector3(ToVector3 vector) {
 		set(vector);
 	}
 	
-	public Vector3f(float[] array, int offset) {
+	public Vector3(float[] array, int offset) {
 		set(array, offset);
 	}
 	
-	public Vector3f(float x, float y, float z) {
+	public Vector3(float x, float y, float z) {
 		set(x, y, z);
 	}
 	
-	public Vector3f set(Vector3f vec) {
-		return set(vec.x, vec.y, vec.z);
+	public Vector3 set(ToVector3 vec) {
+		Vector3 vector3 = vec.toVector3();
+		return set(vector3.x, vector3.y, vector3.z);
 	}
 	
-	public Vector3f set(float[] array, int offset) {
+	public Vector3 set(float[] array, int offset) {
 		return set(array[offset], array[offset + 1], array[offset + 2]);
 	}
 	
-	public Vector3f set(float x, float y, float z) {
+	public Vector3 set(float x, float y, float z) {
 		this.x = x;
 		this.y = y;
 		this.z = z;
 		return this;
 	}
 	
-	public Vector3f zero() {
+	public Vector3 zero() {
 		this.x = 0;
 		this.y = 0;
 		this.z = 0;
 		return this;
 	}
 	
-	public Vector3f add(Vector3f vec) {
+	public Vector3 add(Vector3 vec) {
 		this.x += vec.x;
 		this.y += vec.y;
 		this.z += vec.z;
 		return this;
 	}
 	
-	public Vector3f add(float x, float y, float z) {
+	public Vector3 add(float x, float y, float z) {
 		this.x += x;
 		this.y += y;
 		this.z += z;
 		return this;
 	}
 	
-	public Vector3f sub(Vector3f vec) {
+	public Vector3 sub(Vector3 vec) {
 		this.x -= vec.x;
 		this.y -= vec.y;
 		this.z -= vec.z;
 		return this;
 	}
 	
-	public Vector3f sub(float x, float y, float z) {
+	public Vector3 sub(float x, float y, float z) {
 		this.x -= x;
 		this.y -= y;
 		this.z -= z;
 		return this;
 	}
 	
-	public Vector3f multiply(float scalar) {
+	public Vector3 multiply(float scalar) {
 		this.x *= scalar;
 		this.y *= scalar;
 		this.z *= scalar;
 		return this;
 	}
 	
-	public Vector3f divide(float scalar) {
+	public Vector3 divide(float scalar) {
 		this.x /= scalar;
 		this.y /= scalar;
 		this.z /= scalar;
 		return this;
 	}
 	
-	public Vector3f inverse() {
+	public Vector3 inverse() {
 		x = -x;
 		y = -y;
 		z = -z;
 		return this;
 	}
 	
-	public Vector3f abs() {
+	public Vector3 abs() {
 		x = Math.abs(x);
 		y = Math.abs(y);
 		z = Math.abs(z);
 		return this;
 	}
 	
-	public Vector3f rotate(Matrix3f mat) {
+	public Vector3 rotate(Matrix3 mat) {
 		return set(
 				mat.m00 * x + mat.m01 * y + mat.m02 * z,
 				mat.m10 * x + mat.m11 * y + mat.m12 * z,
@@ -111,7 +113,7 @@ public class Vector3f {
 	/**
 	 * Only works if the Matrix is "pure", aka only used for rotation and translation
 	 */
-	public Vector3f rotateInversePure(Matrix3f mat) {
+	public Vector3 rotateInverse(Matrix3 mat) {
 		return set(
 				mat.m00 * x + mat.m10 * y + mat.m20 * z,
 				mat.m01 * x + mat.m11 * y + mat.m21 * z,
@@ -119,7 +121,7 @@ public class Vector3f {
 		);
 	}
 	
-	public Vector3f rotate(Matrix4f mat) {
+	public Vector3 rotate(Matrix4 mat) {
 		//w = 1
 		float mag = mat.m30 * x + mat.m31 * y + mat.m32 * z + mat.m33;
 		return set(
@@ -132,7 +134,7 @@ public class Vector3f {
 	/**
 	 * Only works if the Matrix is "pure", aka only used for rotation and translation
 	 */
-	public Vector3f rotateInversePure(Matrix4f mat) {
+	public Vector3 rotateInverse(Matrix4 mat) {
 		//w = 1
 		float mag = mat.m03 * x + mat.m13 * y + mat.m23 * z + mat.m33;
 		return set(
@@ -143,12 +145,12 @@ public class Vector3f {
 	}
 	
 	/**
-	 * Only use this fast-path if you're only doing one rotation. Otherwise use {@link Quaternionf#toMatrix3(Matrix3f)} and rotate with that {@link Matrix3f}.
+	 * Only use this fast-path if you're only doing one rotation. Otherwise use {@link Quaternion#toMatrix3(Matrix3)} and rotate with that {@link Matrix3}.
 	 * <p>
 	 * faster Algorithm from: https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
 	 */
-	public Vector3f rotate(Quaternionf q) {
-		Vector3f vec = new Vector3f(
+	public Vector3 rotate(Quaternion q) {
+		Vector3 vec = new Vector3(
 				(q.y * z - y * q.z) * 2,
 				(q.z * x - z * q.x) * 2,
 				(q.x * y - x * q.y) * 2
@@ -161,13 +163,13 @@ public class Vector3f {
 	}
 	
 	/**
-	 * Only use this fast-path if you're only doing one rotation. Otherwise use {@link Quaternionf#toMatrix3(Matrix3f)} and rotate with that {@link Matrix3f}.
+	 * Only use this fast-path if you're only doing one rotation. Otherwise use {@link Quaternion#toMatrix3(Matrix3)} and rotate with that {@link Matrix3}.
 	 * <p>
 	 * faster Algorithm from: https://blog.molecular-matters.com/2013/05/24/a-faster-quaternion-vector-multiplication/
 	 */
-	public Vector3f rotateInverse(Quaternionf q) {
+	public Vector3 rotateInverse(Quaternion q) {
 		//inverse: q.w is negated
-		Vector3f vec = new Vector3f(
+		Vector3 vec = new Vector3(
 				(q.y * z - y * q.z) * 2,
 				(q.z * x - z * q.x) * 2,
 				(q.x * y - x * q.y) * 2
@@ -179,6 +181,22 @@ public class Vector3f {
 		);
 	}
 	
+	public Vector3 translate(Translation t) {
+		return this.add(t.offset).rotate(t.matrix);
+	}
+	
+	public Vector3 translateInverse(Translation t) {
+		return this.rotateInverse(t.matrix).sub(t.offset);
+	}
+	
+	public Vector3 translateRelative(Translation t) {
+		return this.rotateInverse(t.matrix).add(t.offset);
+	}
+	
+	public Vector3 translateRelativeInverse(Translation t) {
+		return this.sub(t.offset).rotate(t.matrix);
+	}
+	
 	public float length() {
 		return (float) Math.sqrt(x * x + y * y + z * z);
 	}
@@ -187,11 +205,11 @@ public class Vector3f {
 		return x * x + y * y + z * z;
 	}
 	
-	public Vector3f normalize() {
+	public Vector3 normalize() {
 		return divide(length());
 	}
 	
-	public Vector3f cross(Vector3f vec1, Vector3f vec2) {
+	public Vector3 cross(Vector3 vec1, Vector3 vec2) {
 		return set(
 				vec1.y * vec2.z - vec2.y * vec1.z,
 				vec1.z * vec2.x - vec2.z * vec1.x,
@@ -199,14 +217,24 @@ public class Vector3f {
 		);
 	}
 	
-	public static float distance(Vector3f from, Vector3f to) {
-		float x = to.x - from.x;
-		float y = to.y - from.y;
-		float z = to.z - from.z;
+	@Override
+	public Vector3 toVector3() {
+		return this;
+	}
+	
+	@Override
+	public Vector3 toVector3(Vector3 vec) {
+		return vec.set(this);
+	}
+	
+	public static float distance(Vector3 vec1, Vector3 vec2) {
+		float x = vec2.x - vec1.x;
+		float y = vec2.y - vec1.y;
+		float z = vec2.z - vec1.z;
 		return (float) Math.sqrt(x * x + y * y + z * z);
 	}
 	
-	public static float dot(Vector3f vec1, Vector3f vec2) {
+	public static float dot(Vector3 vec1, Vector3 vec2) {
 		return vec1.x * vec2.x + vec1.y * vec2.y + vec1.z * vec2.z;
 	}
 	
@@ -227,6 +255,10 @@ public class Vector3f {
 	
 	@Override
 	public String toString() {
-		return "{" + x + " " + y + " " + z + "}";
+		return "Vector3{" +
+				"" + x +
+				", " + y +
+				", " + z +
+				'}';
 	}
 }

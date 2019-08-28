@@ -11,7 +11,8 @@ import space.engine.indexmap.IndexMap;
 import space.engine.indexmap.IndexMap.Entry;
 import space.engine.indexmap.IndexMapArray;
 import space.engine.vector.Translation;
-import space.engine.vector.Vector3f;
+import space.engine.vector.TranslationBuilder;
+import space.engine.vector.Vector3;
 import space.engine.vulkan.VkBuffer;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.managed.descriptorSet.ManagedDescriptorSetPool;
@@ -70,9 +71,9 @@ public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoI
 			
 			IndexMap<Collection<Translation>> sorted = new IndexMapArray<>();
 			for (Asteroid asteroid : entry.getValue()) {
-				Translation translation = asteroid.toTranslation(new Translation(), infos.frameTimeSeconds);
+				Translation translation = asteroid.toTranslation(new TranslationBuilder(), infos.frameTimeSeconds).build();
 				
-				float distanceToCamera = new Vector3f(translation.offset).sub(infos.camera.position).length();
+				float distanceToCamera = new Vector3(translation.offset).sub(infos.camera.position).length();
 				int i = 0;
 				for (; i < model.minDistance.length; i++)
 					if (distanceToCamera < model.minDistance[i])
@@ -95,8 +96,8 @@ public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoI
 							   Iterator<Translation> iter = translations.iterator();
 							   for (int i = 0; iter.hasNext(); i++) {
 								   Translation translation = iter.next();
-								   translation.rotation.write4Aligned(instanceData, i * 28);
-								   translation.rotation.inversePure().write4Aligned(instanceData, i * 28 + 12);
+								   translation.matrix.write4Aligned(instanceData, i * 28);
+								   translation.matrix.inverse().write4Aligned(instanceData, i * 28 + 12);
 								   translation.offset.write4Aligned(instanceData, i * 28 + 24);
 							   }
 					

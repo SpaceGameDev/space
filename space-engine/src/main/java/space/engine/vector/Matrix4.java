@@ -1,35 +1,37 @@
 package space.engine.vector;
 
+import space.engine.vector.conversion.ToMatrix4;
+
 /**
  * a row major ordered matrix
  */
-public class Matrix4f {
+public class Matrix4 implements ToMatrix4 {
 	
 	public float m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33;
 	
-	public Matrix4f() {
+	public Matrix4() {
 		identity();
 	}
 	
 	@SuppressWarnings("CopyConstructorMissesField")
-	public Matrix4f(Matrix4f mat) {
+	public Matrix4(Matrix4 mat) {
 		set(mat);
 	}
 	
-	public Matrix4f(float[] array, int offset) {
+	public Matrix4(float[] array, int offset) {
 		set(array, offset);
 	}
 	
-	public Matrix4f(float m00, float m01, float m02, float m03, float m10, float m11, float m12, float m13, float m20, float m21, float m22, float m23, float m30, float m31, float m32, float m33) {
+	public Matrix4(float m00, float m01, float m02, float m03, float m10, float m11, float m12, float m13, float m20, float m21, float m22, float m23, float m30, float m31, float m32, float m33) {
 		set(m00, m01, m02, m03, m10, m11, m12, m13, m20, m21, m22, m23, m30, m31, m32, m33);
 	}
 	
-	public Matrix4f set(Matrix4f mat) {
+	public Matrix4 set(Matrix4 mat) {
 		set(mat.m00, mat.m01, mat.m02, mat.m03, mat.m10, mat.m11, mat.m12, mat.m13, mat.m20, mat.m21, mat.m22, mat.m23, mat.m30, mat.m31, mat.m32, mat.m33);
 		return this;
 	}
 	
-	public Matrix4f set(float[] array, int offset) {
+	public Matrix4 set(float[] array, int offset) {
 		return set(
 				array[offset], array[offset + 1], array[offset + 2], array[offset + 3],
 				array[offset + 4], array[offset + 5], array[offset + 6], array[offset + 7],
@@ -38,7 +40,7 @@ public class Matrix4f {
 		);
 	}
 	
-	public Matrix4f set(float m00, float m01, float m02, float m03, float m10, float m11, float m12, float m13, float m20, float m21, float m22, float m23, float m30, float m31, float m32, float m33) {
+	public Matrix4 set(float m00, float m01, float m02, float m03, float m10, float m11, float m12, float m13, float m20, float m21, float m22, float m23, float m30, float m31, float m32, float m33) {
 		this.m00 = m00;
 		this.m01 = m01;
 		this.m02 = m02;
@@ -58,7 +60,7 @@ public class Matrix4f {
 		return this;
 	}
 	
-	public Matrix4f identity() {
+	public Matrix4 identity() {
 		return set(
 				1, 0, 0, 0,
 				0, 1, 0, 0,
@@ -67,32 +69,19 @@ public class Matrix4f {
 		);
 	}
 	
-	public Matrix4f modelOffset(Vector3f vector) {
-		Vector3f rotated = new Vector3f(vector).rotate(this);
+	public Matrix4 modelOffset(Vector3 vector) {
+		Vector3 rotated = new Vector3(vector).rotate(this);
 		this.m03 += rotated.x;
 		this.m13 += rotated.y;
 		this.m23 += rotated.z;
 		return this;
 	}
 	
-	public Matrix4f modelScale(Vector3f vector) {
-		this.m00 *= vector.x;
-		this.m01 *= vector.x;
-		this.m02 *= vector.x;
-		this.m10 *= vector.y;
-		this.m11 *= vector.y;
-		this.m12 *= vector.y;
-		this.m20 *= vector.z;
-		this.m21 *= vector.z;
-		this.m22 *= vector.z;
-		return this;
-	}
-	
-	public Matrix4f multiply(Matrix4f mat) {
+	public Matrix4 multiply(Matrix4 mat) {
 		return multiply(this, mat);
 	}
 	
-	public Matrix4f multiply(Matrix4f mat1, Matrix4f mat2) {
+	public Matrix4 multiply(Matrix4 mat1, Matrix4 mat2) {
 		return set(
 				mat1.m00 * mat2.m00 + mat1.m01 * mat2.m10 + mat1.m02 * mat2.m20 + mat1.m03 * mat2.m30,
 				mat1.m00 * mat2.m01 + mat1.m01 * mat2.m11 + mat1.m02 * mat2.m21 + mat1.m03 * mat2.m31,
@@ -113,10 +102,7 @@ public class Matrix4f {
 		);
 	}
 	
-	/**
-	 * Only works if the Matrix is "pure", aka only used for rotation and translation
-	 */
-	public Matrix4f inversePure() {
+	public Matrix4 inverse() {
 		return set(
 				m00, m10, m20, -m03,
 				m01, m11, m21, -m13,
@@ -125,7 +111,7 @@ public class Matrix4f {
 		);
 	}
 	
-	public Matrix4f multiply(float scalar) {
+	public Matrix4 multiply(float scalar) {
 		this.m00 *= scalar;
 		this.m01 *= scalar;
 		this.m02 *= scalar;
@@ -145,7 +131,7 @@ public class Matrix4f {
 		return this;
 	}
 	
-	public Matrix4f multiply(double scalar) {
+	public Matrix4 multiply(double scalar) {
 		this.m00 *= scalar;
 		this.m01 *= scalar;
 		this.m02 *= scalar;
@@ -163,6 +149,21 @@ public class Matrix4f {
 		this.m32 *= scalar;
 		this.m33 *= scalar;
 		return this;
+	}
+	
+	@Override
+	public Matrix4 toMatrix4() {
+		return this;
+	}
+	
+	@Override
+	public Matrix4 toMatrix4(Matrix4 mat) {
+		return mat.set(this);
+	}
+	
+	@Override
+	public Matrix4 toMatrix4Inverse(Matrix4 mat) {
+		return mat.set(this).inverse();
 	}
 	
 	public float[] write(float[] array, int offset) {
@@ -187,6 +188,6 @@ public class Matrix4f {
 	
 	@Override
 	public String toString() {
-		return "{" + m00 + " " + m01 + " " + m02 + " " + m03 + "} {" + m10 + " " + m11 + " " + m12 + " " + m13 + "} {" + m20 + " " + m21 + " " + m22 + " " + m23 + "} {" + m30 + " " + m31 + " " + m32 + " " + m33 + "}";
+		return "Matrix4{(" + m00 + " " + m01 + " " + m02 + " " + m03 + ") (" + m10 + " " + m11 + " " + m12 + " " + m13 + ") (" + m20 + " " + m21 + " " + m22 + " " + m23 + ") (" + m30 + " " + m31 + " " + m32 + " " + m33 + ")}";
 	}
 }

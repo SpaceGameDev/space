@@ -1,10 +1,12 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+#include "translation.glsl"
+
+//main
 layout(binding = 0) uniform UniformGlobal {
 	mat4 projection;
-	mat3 cameraRotation;
-	vec3 cameraOffset;
+	Translation cameraTranslation;
 } uniformGlobal;
 
 //in per vertex
@@ -29,9 +31,10 @@ vec3(0, 0, 1)
 
 void main() {
 	//position
-	vec3 posWorldSpace = (inPos * modelRotation) + modelOffset;
+	Translation modelTranslation = { modelRotation, modelOffset };
+	vec3 posWorldSpace = translation_translateRelative(modelTranslation, inPos);
 	fragPosWorldspace = posWorldSpace;
-	vec3 posScreenspace = (posWorldSpace * uniformGlobal.cameraRotation) + uniformGlobal.cameraOffset;
+	vec3 posScreenspace = translation_translateRelativeInverse(uniformGlobal.cameraTranslation, posWorldSpace);
 	fragPosScreenspace = posScreenspace;
 	gl_Position = vec4(posScreenspace, 1.0) * uniformGlobal.projection;
 

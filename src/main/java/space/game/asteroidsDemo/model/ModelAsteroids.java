@@ -1,6 +1,6 @@
 package space.game.asteroidsDemo.model;
 
-import space.engine.vector.Vector3f;
+import space.engine.vector.Vector3;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -45,7 +45,7 @@ public class ModelAsteroids {
 		float[] vertex = new float[position.length * 2];
 		Random r = new Random(seed);
 		for (int i = 0; i < position.length; i += 3) {
-			Vector3f normalized = new Vector3f(position, i).normalize();
+			Vector3 normalized = new Vector3(position, i).normalize();
 			normalized.write(vertex, i * 2 + 3);
 			normalized.multiply(radius + (randomness == 0 ? 0 : ((r.nextFloat() * 2 - 1) * randomness * radius)));
 			normalized.write(vertex, i * 2);
@@ -117,9 +117,9 @@ public class ModelAsteroids {
 		class Value {
 			
 			public final int id;
-			public final Vector3f vector;
+			public final Vector3 vector;
 			
-			public Value(int id, Vector3f vector) {
+			public Value(int id, Vector3 vector) {
 				this.id = id;
 				this.vector = vector;
 			}
@@ -134,7 +134,7 @@ public class ModelAsteroids {
 		for (int i = 0; i < from.indices.length; i += 3) {
 			final int i2 = i;
 			Value[] outer = IntStream.range(0, 3)
-									 .mapToObj(j -> new Value(from.indices[i2 + j], new Vector3f(from.vertices, from.indices[i2 + j] * 6)))
+									 .mapToObj(j -> new Value(from.indices[i2 + j], new Vector3(from.vertices, from.indices[i2 + j] * 6)))
 									 .toArray(Value[]::new);
 			
 			Value[] middle = Arrays.stream(new Key[] {
@@ -142,10 +142,10 @@ public class ModelAsteroids {
 					new Key(from.indices[i + 1], from.indices[i + 2]),
 					new Key(from.indices[i + 2], from.indices[i]),
 			}).map(line -> map.computeIfAbsent(line, pair -> {
-				Vector3f p0 = new Vector3f(from.vertices, pair.x * 6);
-				Vector3f p1 = new Vector3f(from.vertices, pair.y * 6);
+				Vector3 p0 = new Vector3(from.vertices, pair.x * 6);
+				Vector3 p1 = new Vector3(from.vertices, pair.y * 6);
 				//lerp 0.5f
-				Vector3f middle2 = new Vector3f(p1).sub(p0).multiply(0.5f).add(p0);
+				Vector3 middle2 = new Vector3(p1).sub(p0).multiply(0.5f).add(p0);
 				//slerp 0.5f + randomness
 				middle2.normalize().multiply((p0.length() + p1.length()) / 2 + (randomness == 0 ? 0 : ((r.nextFloat() * 2 - 1) * randomness * radius)));
 				return new Value(vertexIdCounter[0]++, middle2);

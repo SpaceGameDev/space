@@ -1,34 +1,36 @@
 package space.engine.vector;
 
+import space.engine.vector.conversion.ToMatrix3;
+
 /**
  * a row major ordered matrix
  */
-public class Matrix3f {
+public class Matrix3 implements ToMatrix3 {
 	
 	public float m00, m01, m02, m10, m11, m12, m20, m21, m22;
 	
-	public Matrix3f() {
+	public Matrix3() {
 		identity();
 	}
 	
 	@SuppressWarnings("CopyConstructorMissesField")
-	public Matrix3f(Matrix3f mat) {
+	public Matrix3(Matrix3 mat) {
 		set(mat);
 	}
 	
-	public Matrix3f(float[] array, int offset) {
+	public Matrix3(float[] array, int offset) {
 		set(array, offset);
 	}
 	
-	public Matrix3f(float m00, float m01, float m02, float m10, float m11, float m12, float m20, float m21, float m22) {
+	public Matrix3(float m00, float m01, float m02, float m10, float m11, float m12, float m20, float m21, float m22) {
 		set(m00, m01, m02, m10, m11, m12, m20, m21, m22);
 	}
 	
-	public Matrix3f set(Matrix3f mat) {
+	public Matrix3 set(Matrix3 mat) {
 		return set(mat.m00, mat.m01, mat.m02, mat.m10, mat.m11, mat.m12, mat.m20, mat.m21, mat.m22);
 	}
 	
-	public Matrix3f set(float[] array, int offset) {
+	public Matrix3 set(float[] array, int offset) {
 		return set(
 				array[offset], array[offset + 1], array[offset + 2],
 				array[offset + 3], array[offset + 4], array[offset + 5],
@@ -36,7 +38,7 @@ public class Matrix3f {
 		);
 	}
 	
-	public Matrix3f set(float m00, float m01, float m02, float m10, float m11, float m12, float m20, float m21, float m22) {
+	public Matrix3 set(float m00, float m01, float m02, float m10, float m11, float m12, float m20, float m21, float m22) {
 		this.m00 = m00;
 		this.m01 = m01;
 		this.m02 = m02;
@@ -49,7 +51,7 @@ public class Matrix3f {
 		return this;
 	}
 	
-	public Matrix3f identity() {
+	public Matrix3 identity() {
 		return set(
 				1, 0, 0,
 				0, 1, 0,
@@ -57,11 +59,11 @@ public class Matrix3f {
 		);
 	}
 	
-	public Matrix3f multiply(Matrix3f mat) {
+	public Matrix3 multiply(Matrix3 mat) {
 		return multiply(this, mat);
 	}
 	
-	public Matrix3f multiply(Matrix3f mat1, Matrix3f mat2) {
+	public Matrix3 multiply(Matrix3 mat1, Matrix3 mat2) {
 		return set(
 				mat1.m00 * mat2.m00 + mat1.m01 * mat2.m10 + mat1.m02 * mat2.m20,
 				mat1.m00 * mat2.m01 + mat1.m01 * mat2.m11 + mat1.m02 * mat2.m21,
@@ -78,7 +80,7 @@ public class Matrix3f {
 	/**
 	 * Only works if the Matrix is "pure", aka only used for rotation and translation
 	 */
-	public Matrix3f inversePure() {
+	public Matrix3 inverse() {
 		return set(
 				m00, m10, m20,
 				m01, m11, m21,
@@ -86,7 +88,7 @@ public class Matrix3f {
 		);
 	}
 	
-	public Matrix3f multiply(float scalar) {
+	public Matrix3 multiply(float scalar) {
 		this.m00 *= scalar;
 		this.m01 *= scalar;
 		this.m02 *= scalar;
@@ -99,7 +101,7 @@ public class Matrix3f {
 		return this;
 	}
 	
-	public Matrix3f multiply(double scalar) {
+	public Matrix3 multiply(double scalar) {
 		this.m00 *= scalar;
 		this.m01 *= scalar;
 		this.m02 *= scalar;
@@ -141,17 +143,24 @@ public class Matrix3f {
 		return array;
 	}
 	
-	public Matrix4f toMatrix4f(Matrix4f mat) {
-		return mat.set(
-				m00, m01, m02, 0,
-				m10, m11, m12, 0,
-				m20, m21, m22, 0,
-				0, 0, 0, 1
-		);
+	@Override
+	public Matrix3 toMatrix3() {
+		return this;
 	}
 	
 	@Override
+	public Matrix3 toMatrix3(Matrix3 mat) {
+		return mat.set(this);
+	}
+	
+	@Override
+	public Matrix3 toMatrix3Inverse(Matrix3 mat) {
+		return mat.set(this).inverse();
+	}
+	
+	
+	@Override
 	public String toString() {
-		return "{" + m00 + " " + m01 + " " + m02 + "} {" + m10 + " " + m11 + " " + m12 + "} {" + m20 + " " + m21 + " " + m22 + "}";
+		return "Matrix3{(" + m00 + " " + m01 + " " + m02 + ") (" + m10 + " " + m11 + " " + m12 + ") (" + m20 + " " + m21 + " " + m22 + ")}";
 	}
 }
