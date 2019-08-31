@@ -15,8 +15,7 @@ layout(location = 1) in vec3 inNormal;
 
 //in per instance
 layout(location = 8 /*9, 10*/) in mat3 modelRotation;
-layout(location = 11 /*12, 13*/) in mat3 modelRotationInverse;
-layout(location = 14) in vec3 modelOffset;
+layout(location = 11) in vec3 modelOffset;
 
 layout(location = 0) out vec3 fragPosScreenspace;
 layout(location = 1) out vec3 fragPosWorldspace;
@@ -39,6 +38,6 @@ void main() {
 	gl_Position = vec4(posScreenspace, 1.0) * uniformGlobal.projection;
 
 	//other
-	fragNormal = modelRotationInverse * inNormal;
+	fragNormal = inNormal * transpose(modelTranslation.rotation);
 	fragVertexDistance = vertexDistanceConst[gl_VertexIndex % 3];
 }

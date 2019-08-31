@@ -91,34 +91,32 @@ public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoI
 				
 				VkCommandBuffer cmd = render.queue().commandPool().allocCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY, EMPTY_OBJECT_ARRAY);
 				cmd.record(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT, render.inheritanceInfo(infos, renderPass.subpassRender), () -> {
-							   float[] instanceData = new float[translations.size() * 28];
-							   Iterator<Translation> iter = translations.iterator();
-							   for (int i = 0; iter.hasNext(); i++) {
-								   Translation translation = iter.next();
-								   translation.matrix.write4Aligned(instanceData, i * 28);
-								   translation.matrix.inverse().write4Aligned(instanceData, i * 28 + 12);
-								   translation.offset.write4Aligned(instanceData, i * 28 + 24);
-							   }
+					float[] instanceData = new float[translations.size() * 16];
+					Iterator<Translation> iter = translations.iterator();
+					for (int i = 0; iter.hasNext(); i++) {
+						Translation translation = iter.next();
+						translation.matrix.write4Aligned(instanceData, i * 16);
+						translation.offset.write4Aligned(instanceData, i * 16 + 12);
+					}
 					
-							   VmaMappedBuffer instanceBuffer = VmaMappedBuffer.alloc(0, instanceData.length * FP32.bytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 0, VMA_MEMORY_USAGE_CPU_TO_GPU, renderPass.device(), new Object[] {infos});
-							   try (AllocatorFrame frame = Allocator.frame()) {
-								   instanceBuffer.uploadData(ArrayBufferFloat.alloc(heap(), instanceData, new Object[] {frame}));
-							   }
+					VmaMappedBuffer instanceBuffer = VmaMappedBuffer.alloc(0, instanceData.length * FP32.bytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 0, VMA_MEMORY_USAGE_CPU_TO_GPU, renderPass.device(), new Object[] {infos});
+					try (AllocatorFrame frame = Allocator.frame()) {
+						instanceBuffer.uploadData(ArrayBufferFloat.alloc(heap(), instanceData, new Object[] {frame}));
+					}
 					
-							   asteroidPipeline.bindPipeline(cmd, descriptorSetPool.sets()[index], infos);
-							   VkBuffer vertexBuffer = model.models[entry2.getIndex()];
-							   vkCmdBindVertexBuffers(cmd, 0, new long[] {
-									   vertexBuffer.address(),
-									   instanceBuffer.address()
-							   }, new long[] {
-									   0,
-									   0
-							   });
+					asteroidPipeline.bindPipeline(cmd, descriptorSetPool.sets()[index], infos);
+					VkBuffer vertexBuffer = model.models[entry2.getIndex()];
+					vkCmdBindVertexBuffers(cmd, 0, new long[] {
+							vertexBuffer.address(),
+							instanceBuffer.address()
+					}, new long[] {
+							0,
+							0
+					});
 					vkCmdDraw(cmd, (int) (vertexBuffer.sizeOf() / (FP32.bytes * 6)), translations.size(), 0, 0);
 					
-							   return instanceBuffer;
-						   }
-				);
+					return instanceBuffer;
+				});
 				infos.frameDone.addHook(cmd::free);
 				cmdBuffers.add(cmd);
 			}

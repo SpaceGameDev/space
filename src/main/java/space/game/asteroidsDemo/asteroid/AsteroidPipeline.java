@@ -101,7 +101,7 @@ public class AsteroidPipeline implements FreeableWrapper {
 										),
 										perInstance -> perInstance.set(
 												1,
-												FP32.bytes * 28,
+												FP32.bytes * 16,
 												VK_VERTEX_INPUT_RATE_INSTANCE
 										)
 							),
@@ -136,29 +136,11 @@ public class AsteroidPipeline implements FreeableWrapper {
 												VK_FORMAT_R32G32B32_SFLOAT,
 												FP32.bytes * 8
 										),
-										inInstanceMatrixInverse1 -> inInstanceMatrixInverse1.set(
+										inInstanceOffset -> inInstanceOffset.set(
 												11,
 												1,
 												VK_FORMAT_R32G32B32_SFLOAT,
 												FP32.bytes * 12
-										),
-										inInstanceMatrixInverse2 -> inInstanceMatrixInverse2.set(
-												12,
-												1,
-												VK_FORMAT_R32G32B32_SFLOAT,
-												FP32.bytes * 16
-										),
-										inInstanceMatrixInverse3 -> inInstanceMatrixInverse3.set(
-												13,
-												1,
-												VK_FORMAT_R32G32B32_SFLOAT,
-												FP32.bytes * 20
-										),
-										inInstanceOffset -> inInstanceOffset.set(
-												14,
-												1,
-												VK_FORMAT_R32G32B32_SFLOAT,
-												FP32.bytes * 24
 										)
 							)
 					),
