@@ -32,7 +32,7 @@ public class TranslationTestSequence {
 		private final @NotNull Quaternion q;
 		
 		public OperationRotate(@NotNull ToQuaternion q) {
-			this.q = q.toQuaternion(new Quaternion());
+			this.q = q.toQuaternion();
 		}
 	}
 	
@@ -156,12 +156,12 @@ public class TranslationTestSequence {
 				Vector3 offset = ((OperationMove) operation).vec;
 				b.appendMove(offset);
 				for (Vector3 start : starts)
-					assertEquals(applySequence(sequence, 0, i + 1, new Vector3(start)), new Vector3(start).translate(b.build()), 0.01f);
+					assertEquals(applySequence(sequence, 0, i + 1, start), start.translate(b.build()), 0.01f);
 			} else if (operation instanceof OperationRotate) {
 				Quaternion offset = ((OperationRotate) operation).q;
 				b.appendRotate(offset);
 				for (Vector3 start : starts)
-					assertEquals(applySequence(sequence, 0, i + 1, new Vector3(start)), new Vector3(start).translate(b.build()), 0.01f);
+					assertEquals(applySequence(sequence, 0, i + 1, start), start.translate(b.build()), 0.01f);
 			} else {
 				throw new RuntimeException("Invalid Operation type");
 			}
@@ -172,11 +172,11 @@ public class TranslationTestSequence {
 		for (int j = 0; j < starts.length; j++) {
 			Vector3 start = starts[j];
 			Vector3 end = ends[j];
-			assertEquals(end, applySequence(sequence, 0, sequence.length, new Vector3(start)), 0.01f);
-			assertEquals(end, new Vector3(start).translate(build), 0.01f);
-			assertEquals(start, new Vector3(end).translateInverse(build), 0.01f);
-			assertEquals(start, new Vector3(end).translate(buildInverse), 0.01f);
-			assertEquals(end, new Vector3(start).translateInverse(buildInverse), 0.01f);
+			assertEquals(end, applySequence(sequence, 0, sequence.length, start), 0.01f);
+			assertEquals(end, start.translate(build), 0.01f);
+			assertEquals(start, end.translateInverse(build), 0.01f);
+			assertEquals(start, end.translate(buildInverse), 0.01f);
+			assertEquals(end, start.translateInverse(buildInverse), 0.01f);
 		}
 	}
 	
@@ -186,14 +186,14 @@ public class TranslationTestSequence {
 			Operation operation = sequence[i];
 			if (operation instanceof OperationMove) {
 				Vector3 offset = ((OperationMove) operation).vec;
-				b.appendMoveInverse(new Vector3(offset).inverse());
+				b.appendMoveInverse(offset.inverse());
 				for (Vector3 start : starts)
-					assertEquals(applySequence(sequence, 0, i + 1, new Vector3(start)), new Vector3(start).translate(b.build()), 0.01f);
+					assertEquals(applySequence(sequence, 0, i + 1, start), start.translate(b.build()), 0.01f);
 			} else if (operation instanceof OperationRotate) {
 				Quaternion offset = ((OperationRotate) operation).q;
-				b.appendRotateInverse(new Quaternion(offset).inverse());
+				b.appendRotateInverse(offset.inverse());
 				for (Vector3 start : starts)
-					assertEquals(applySequence(sequence, 0, i + 1, new Vector3(start)), new Vector3(start).translate(b.build()), 0.01f);
+					assertEquals(applySequence(sequence, 0, i + 1, start), start.translate(b.build()), 0.01f);
 			} else {
 				throw new RuntimeException("Invalid Operation type");
 			}
@@ -204,11 +204,11 @@ public class TranslationTestSequence {
 		for (int j = 0; j < starts.length; j++) {
 			Vector3 start = starts[j];
 			Vector3 end = ends[j];
-			assertEquals(end, applySequence(sequence, 0, sequence.length, new Vector3(start)), 0.01f);
-			assertEquals(end, new Vector3(start).translate(build), 0.01f);
-			assertEquals(start, new Vector3(end).translateInverse(build), 0.01f);
-			assertEquals(start, new Vector3(end).translate(buildInverse), 0.01f);
-			assertEquals(end, new Vector3(start).translateInverse(buildInverse), 0.01f);
+			assertEquals(end, applySequence(sequence, 0, sequence.length, start), 0.01f);
+			assertEquals(end, start.translate(build), 0.01f);
+			assertEquals(start, end.translateInverse(build), 0.01f);
+			assertEquals(start, end.translate(buildInverse), 0.01f);
+			assertEquals(end, start.translateInverse(buildInverse), 0.01f);
 		}
 	}
 	
@@ -220,12 +220,12 @@ public class TranslationTestSequence {
 				Vector3 offset = ((OperationMove) operation).vec;
 				b.prependMove(offset);
 				for (Vector3 end : ends)
-					assertEquals(applySequence(sequence, i, sequence.length, new Vector3(end)), new Vector3(end).translate(b.build()), 0.01f);
+					assertEquals(applySequence(sequence, i, sequence.length, end), end.translate(b.build()), 0.01f);
 			} else if (operation instanceof OperationRotate) {
 				Quaternion offset = ((OperationRotate) operation).q;
 				b.prependRotate(offset);
 				for (Vector3 end : ends)
-					assertEquals(applySequence(sequence, i, sequence.length, new Vector3(end)), new Vector3(end).translate(b.build()), 0.01f);
+					assertEquals(applySequence(sequence, i, sequence.length, end), end.translate(b.build()), 0.01f);
 			} else {
 				throw new RuntimeException("Invalid Operation type");
 			}
@@ -236,11 +236,11 @@ public class TranslationTestSequence {
 		for (int j = 0; j < ends.length; j++) {
 			Vector3 start = starts[j];
 			Vector3 end = ends[j];
-			assertEquals(end, applySequence(sequence, 0, sequence.length, new Vector3(start)), 0.01f);
-			assertEquals(end, new Vector3(start).translate(build), 0.01f);
-			assertEquals(start, new Vector3(end).translateInverse(build), 0.01f);
-			assertEquals(start, new Vector3(end).translate(buildInverse), 0.01f);
-			assertEquals(end, new Vector3(start).translateInverse(buildInverse), 0.01f);
+			assertEquals(end, applySequence(sequence, 0, sequence.length, start), 0.01f);
+			assertEquals(end, start.translate(build), 0.01f);
+			assertEquals(start, end.translateInverse(build), 0.01f);
+			assertEquals(start, end.translate(buildInverse), 0.01f);
+			assertEquals(end, start.translateInverse(buildInverse), 0.01f);
 		}
 	}
 	
@@ -250,14 +250,14 @@ public class TranslationTestSequence {
 			Operation operation = sequence[i];
 			if (operation instanceof OperationMove) {
 				Vector3 offset = ((OperationMove) operation).vec;
-				b.prependMoveInverse(new Vector3(offset).inverse());
+				b.prependMoveInverse(offset.inverse());
 				for (Vector3 end : ends)
-					assertEquals(applySequence(sequence, i, sequence.length, new Vector3(end)), new Vector3(end).translate(b.build()), 0.01f);
+					assertEquals(applySequence(sequence, i, sequence.length, end), end.translate(b.build()), 0.01f);
 			} else if (operation instanceof OperationRotate) {
 				Quaternion offset = ((OperationRotate) operation).q;
-				b.prependRotateInverse(new Quaternion(offset).inverse());
+				b.prependRotateInverse(offset.inverse());
 				for (Vector3 end : ends)
-					assertEquals(applySequence(sequence, i, sequence.length, new Vector3(end)), new Vector3(end).translate(b.build()), 0.01f);
+					assertEquals(applySequence(sequence, i, sequence.length, end), end.translate(b.build()), 0.01f);
 			} else {
 				throw new RuntimeException("Invalid Operation type");
 			}
@@ -268,11 +268,11 @@ public class TranslationTestSequence {
 		for (int j = 0; j < ends.length; j++) {
 			Vector3 start = starts[j];
 			Vector3 end = ends[j];
-			assertEquals(end, applySequence(sequence, 0, sequence.length, new Vector3(start)), 0.01f);
-			assertEquals(end, new Vector3(start).translate(build), 0.01f);
-			assertEquals(start, new Vector3(end).translateInverse(build), 0.01f);
-			assertEquals(start, new Vector3(end).translate(buildInverse), 0.01f);
-			assertEquals(end, new Vector3(start).translateInverse(buildInverse), 0.01f);
+			assertEquals(end, applySequence(sequence, 0, sequence.length, start), 0.01f);
+			assertEquals(end, start.translate(build), 0.01f);
+			assertEquals(start, end.translateInverse(build), 0.01f);
+			assertEquals(start, end.translate(buildInverse), 0.01f);
+			assertEquals(end, start.translateInverse(buildInverse), 0.01f);
 		}
 	}
 	
@@ -281,9 +281,9 @@ public class TranslationTestSequence {
 		for (int i = from; i < to; i++) {
 			Operation operation = sequence[i];
 			if (operation instanceof OperationMove) {
-				vec.add(((OperationMove) operation).vec);
+				vec = vec.add(((OperationMove) operation).vec);
 			} else if (operation instanceof OperationRotate) {
-				vec.rotate(((OperationRotate) operation).q);
+				vec = vec.rotate(((OperationRotate) operation).q);
 			} else {
 				throw new RuntimeException("Invalid Operation type");
 			}

@@ -45,10 +45,10 @@ public class ModelAsteroids {
 		float[] vertex = new float[position.length * 2];
 		Random r = new Random(seed);
 		for (int i = 0; i < position.length; i += 3) {
-			Vector3 normalized = new Vector3(position, i).normalize();
-			normalized.write(vertex, i * 2 + 3);
-			normalized.multiply(radius + (randomness == 0 ? 0 : ((r.nextFloat() * 2 - 1) * randomness * radius)));
-			normalized.write(vertex, i * 2);
+			Vector3 normals = Vector3.read(position, i).normalize();
+			Vector3 pos = normals.multiply(radius + (randomness == 0 ? 0 : ((r.nextFloat() * 2 - 1) * randomness * radius)));
+			pos.write(vertex, i * 2);
+			normals.write(vertex, i * 2 + 3);
 		}
 		
 		return new Result(vertex, new int[] {
@@ -134,7 +134,7 @@ public class ModelAsteroids {
 		for (int i = 0; i < from.indices.length; i += 3) {
 			final int i2 = i;
 			Value[] outer = IntStream.range(0, 3)
-									 .mapToObj(j -> new Value(from.indices[i2 + j], new Vector3(from.vertices, from.indices[i2 + j] * 6)))
+									 .mapToObj(j -> new Value(from.indices[i2 + j], Vector3.read(from.vertices, from.indices[i2 + j] * 6)))
 									 .toArray(Value[]::new);
 			
 			Value[] middle = Arrays.stream(new Key[] {
@@ -142,12 +142,12 @@ public class ModelAsteroids {
 					new Key(from.indices[i + 1], from.indices[i + 2]),
 					new Key(from.indices[i + 2], from.indices[i]),
 			}).map(line -> map.computeIfAbsent(line, pair -> {
-				Vector3 p0 = new Vector3(from.vertices, pair.x * 6);
-				Vector3 p1 = new Vector3(from.vertices, pair.y * 6);
+				Vector3 p0 = Vector3.read(from.vertices, pair.x * 6);
+				Vector3 p1 = Vector3.read(from.vertices, pair.y * 6);
 				//lerp 0.5f
-				Vector3 middle2 = new Vector3(p1).sub(p0).multiply(0.5f).add(p0);
+				Vector3 middle2 = p1.sub(p0).multiply(0.5f).add(p0);
 				//slerp 0.5f + randomness
-				middle2.normalize().multiply((p0.length() + p1.length()) / 2 + (randomness == 0 ? 0 : ((r.nextFloat() * 2 - 1) * randomness * radius)));
+				middle2 = middle2.normalize().multiply((p0.length() + p1.length()) / 2 + (randomness == 0 ? 0 : ((r.nextFloat() * 2 - 1) * randomness * radius)));
 				return new Value(vertexIdCounter[0]++, middle2);
 			})).toArray(Value[]::new);
 			

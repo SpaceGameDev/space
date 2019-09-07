@@ -6,19 +6,16 @@ import space.engine.vector.conversion.ToVector3;
 
 public class TranslationBuilder {
 	
-	public @NotNull Quaternion rotation = new Quaternion();
-	public @NotNull Vector3 offset = new Vector3();
+	public @NotNull Quaternion rotation;
+	public @NotNull Vector3 offset;
 	
 	public TranslationBuilder() {
+		this(Quaternion.identity(), Vector3.zero());
 	}
 	
-	public TranslationBuilder(Quaternion rotation, Vector3 offset) {
-		set(rotation, offset);
-	}
-	
-	@SuppressWarnings("CopyConstructorMissesField")
-	public TranslationBuilder(TranslationBuilder translation) {
-		set(translation);
+	protected TranslationBuilder(@NotNull Quaternion rotation, @NotNull Vector3 offset) {
+		this.rotation = rotation;
+		this.offset = offset;
 	}
 	
 	//set
@@ -27,35 +24,45 @@ public class TranslationBuilder {
 	}
 	
 	public TranslationBuilder set(Quaternion rotation, Vector3 offset) {
-		this.rotation.set(rotation);
-		this.offset.set(offset);
-		return this;
-	}
-	
-	public TranslationBuilder identity() {
-		rotation.identity();
-		offset.zero();
+		this.rotation = rotation;
+		this.offset = offset;
 		return this;
 	}
 	
 	//append
 	public TranslationBuilder appendRotate(ToQuaternion q) {
-		rotation.multiply(q.toQuaternion());
+		return appendRotate(q.toQuaternion());
+	}
+	
+	public TranslationBuilder appendRotate(Quaternion q) {
+		rotation = rotation.multiply(q);
 		return this;
 	}
 	
 	public TranslationBuilder appendRotateInverse(ToQuaternion q) {
-		rotation.multiplyInverse(q.toQuaternion());
+		return appendRotateInverse(q.toQuaternion());
+	}
+	
+	public TranslationBuilder appendRotateInverse(Quaternion q) {
+		rotation = rotation.multiplyInverse(q);
 		return this;
 	}
 	
 	public TranslationBuilder appendMove(ToVector3 vec) {
-		offset.add(new Vector3(vec).rotateInverse(rotation));
+		return appendMove(vec.toVector3());
+	}
+	
+	public TranslationBuilder appendMove(Vector3 vec) {
+		offset = offset.add(vec.rotateInverse(rotation));
 		return this;
 	}
 	
 	public TranslationBuilder appendMoveInverse(ToVector3 vec) {
-		offset.add(new Vector3(vec).inverse().rotateInverse(rotation));
+		return appendMoveInverse(vec.toVector3());
+	}
+	
+	public TranslationBuilder appendMoveInverse(Vector3 vec) {
+		offset = offset.add(vec.inverse().rotateInverse(rotation));
 		return this;
 	}
 	
@@ -73,24 +80,39 @@ public class TranslationBuilder {
 	
 	//prepend
 	public TranslationBuilder prependRotate(ToQuaternion q) {
-		Quaternion q2 = q.toQuaternion(new Quaternion());
-		offset.rotateInverse(q2);
-		rotation.set(q2.multiply(rotation));
+		return prependRotate(q.toQuaternion());
+	}
+	
+	public TranslationBuilder prependRotate(Quaternion q) {
+		offset = offset.rotateInverse(q);
+		rotation = q.multiply(rotation);
 		return this;
 	}
 	
 	public TranslationBuilder prependRotateInverse(ToQuaternion q) {
+		return prependRotateInverse(q.toQuaternion());
+	}
+	
+	public TranslationBuilder prependRotateInverse(Quaternion q) {
 		//need to inverse it anyway so not worth it
-		return prependRotate(q.toQuaternion(new Quaternion()).inverse());
+		return prependRotate(q.inverse());
 	}
 	
 	public TranslationBuilder prependMove(ToVector3 vec) {
-		offset.add(vec.toVector3());
+		return prependMove(vec.toVector3());
+	}
+	
+	public TranslationBuilder prependMove(Vector3 vec) {
+		offset = offset.add(vec);
 		return this;
 	}
 	
 	public TranslationBuilder prependMoveInverse(ToVector3 vec) {
-		offset.add(vec.toVector3(new Vector3()).inverse());
+		return prependMoveInverse(vec.toVector3());
+	}
+	
+	public TranslationBuilder prependMoveInverse(Vector3 vec) {
+		offset = offset.sub(vec);
 		return this;
 	}
 	

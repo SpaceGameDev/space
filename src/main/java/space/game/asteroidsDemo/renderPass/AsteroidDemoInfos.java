@@ -5,7 +5,6 @@ import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferFloat;
 import space.engine.vector.Matrix4;
 import space.engine.vector.Translation;
-import space.engine.vector.TranslationBuilder;
 import space.engine.vulkan.managed.renderPass.Infos;
 import space.engine.vulkan.vma.VmaMappedBuffer;
 import space.game.asteroidsDemo.entity.Camera;
@@ -22,12 +21,12 @@ public class AsteroidDemoInfos extends Infos {
 		super(frameBufferIndex);
 		this.projection = projection;
 		this.camera = camera;
+		cameraTranslation = camera.toTranslation().build();
 		this.frameTimeSeconds = frameTimeSeconds;
 		this.uniformGlobal = uniformGlobal;
 		
 		float[] uniformGlobalArray = new float[(4 + 3 + 1) * 4];
 		projection.write(uniformGlobalArray, 0);
-		cameraTranslation = camera.toTranslation(new TranslationBuilder()).build();
 		cameraTranslation.matrix.write4Aligned(uniformGlobalArray, (4) * 4);
 		cameraTranslation.offset.write(uniformGlobalArray, (4 + 3) * 4);
 		

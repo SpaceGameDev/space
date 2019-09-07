@@ -1,7 +1,6 @@
 package space.game.asteroidsDemo.asteroid;
 
 import space.engine.vector.AxisAngle;
-import space.engine.vector.Matrix3;
 import space.engine.vector.Quaternion;
 import space.engine.vector.Vector3;
 
@@ -20,8 +19,8 @@ public class AsteroidPlacer {
 			{3200, 0.2f, 90},
 			{3600, 0, 30}
 	};
-	public static final float PROBABILITY_FACTOR = 1f / 50;
-	public static final float RADIUS_FACTOR = 1f;
+	public static final float PROBABILITY_FACTOR = 1f / 300;
+	public static final float RADIUS_FACTOR = 4f;
 	private static final float PI = (float) Math.PI;
 	public static final float MAX_ROTATION_SPEED = PI / 16;
 	public static final Vector3 MIDDLE_POINT = new Vector3(0, 0, 1).normalize().multiply(2000 * RADIUS_FACTOR);
@@ -61,21 +60,18 @@ public class AsteroidPlacer {
 						if ((typeFloat -= distributionNorm[typeIndex]) < 0)
 							break;
 					Asteroid ast = new Asteroid(typeIndex);
-					Matrix3 mat = new AxisAngle(0, 1, 0, (float) circularIndex / radiusIndex).toMatrix3();
-					ast.position[0]
-							.set(MIDDLE_POINT)
+					Quaternion mat = new AxisAngle(0, 1, 0, (float) circularIndex / radiusIndex).toQuaternion();
+					ast.position[0] = MIDDLE_POINT
 							.add(new Vector3(
 									0,
 									(r.nextFloat() * 2 - 1) * interpolerate(lower[2], upper[2], factor),
 									-interpolerate(lower[0], upper[0], factor) * RADIUS_FACTOR
 							).rotate(mat));
-					ast.position[1].set(
-							new Vector3(1, 0, 0)
-									.multiply(1f)
-									.rotate(mat)
-					);
-					randomOrientation(r, ast.rotation[0]);
-					randomRotation(r, MAX_ROTATION_SPEED, ast.rotation[1]);
+					ast.position[1] = new Vector3(1, 0, 0)
+							.multiply(1f)
+							.rotate(mat);
+					ast.rotation[0] = randomOrientation(r);
+					ast.rotation[1] = randomRotation(r, MAX_ROTATION_SPEED);
 					asteroidRenderer.addAsteroid(ast);
 				}
 			}
@@ -86,25 +82,25 @@ public class AsteroidPlacer {
 		return a * (1 - factor) + b * factor;
 	}
 	
-	private static Vector3 randomVector(Random r, Vector3 vec, Vector3 areaOffset, Vector3 areaExtend) {
-		return vec.set(
+	private static Vector3 randomVector(Random r, Vector3 areaOffset, Vector3 areaExtend) {
+		return new Vector3(
 				r.nextFloat() * areaExtend.x + areaOffset.x,
 				r.nextFloat() * areaExtend.y + areaOffset.y,
 				r.nextFloat() * areaExtend.z + areaOffset.z
 		);
 	}
 	
-	private static Vector3 randomVectorNormalized(Random r, Vector3 vec) {
-		return vec.set(
+	private static Vector3 randomVectorNormalized(Random r) {
+		return new Vector3(
 				r.nextFloat() * 2 - 1,
 				r.nextFloat() * 2 - 1,
 				r.nextFloat() * 2 - 1
 		).normalize();
 	}
 	
-	private static Quaternion randomOrientation(Random r, Quaternion q) {
+	private static Quaternion randomOrientation(Random r) {
 		//this random is a bit crap; it's not a normal distributed but it'll work just fine
-		return q.set(
+		return new Quaternion(
 				r.nextFloat() * 2 - 1,
 				r.nextFloat() * 2 - 1,
 				r.nextFloat() * 2 - 1,
@@ -112,11 +108,11 @@ public class AsteroidPlacer {
 		).normalize();
 	}
 	
-	private static Quaternion randomRotation(Random r, float maxAngle, Quaternion q) {
+	private static Quaternion randomRotation(Random r, float maxAngle) {
 		//this random is a bit crap; it's not a normal distributed but it'll work just fine
 		return new AxisAngle(
-				randomVectorNormalized(r, new Vector3()),
+				randomVectorNormalized(r),
 				r.nextFloat() * maxAngle
-		).toQuaternion(q);
+		).toQuaternion();
 	}
 }

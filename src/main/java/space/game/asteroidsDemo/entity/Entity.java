@@ -6,25 +6,24 @@ import space.engine.vector.Vector3;
 
 public class Entity {
 	
-	public final Vector3 position = new Vector3();
-	public final Quaternion rotation = new Quaternion();
+	public Vector3 position = Vector3.zero();
+	public Quaternion rotation = Quaternion.identity();
 	
 	public Entity() {
 	}
 	
 	public Entity rotateRelative(Quaternion relative) {
-		rotation.set(new Quaternion(relative).inverse().multiply(rotation));
+		rotation = relative.multiply(rotation);
 		return this;
 	}
 	
 	public Entity translateRelative(Vector3 relative) {
-		position.add(new Vector3(relative).rotateInverse(rotation));
+		position = position.add(relative.rotateInverse(rotation));
 		return this;
 	}
 	
-	public TranslationBuilder toTranslation(TranslationBuilder translation) {
-		return translation
-				.identity()
+	public TranslationBuilder toTranslation() {
+		return new TranslationBuilder()
 				.appendMove(position)
 				.appendRotate(rotation);
 	}

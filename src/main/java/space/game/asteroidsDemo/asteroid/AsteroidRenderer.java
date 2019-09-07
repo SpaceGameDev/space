@@ -11,7 +11,6 @@ import space.engine.indexmap.IndexMap;
 import space.engine.indexmap.IndexMap.Entry;
 import space.engine.indexmap.IndexMapArray;
 import space.engine.vector.Translation;
-import space.engine.vector.TranslationBuilder;
 import space.engine.vector.Vector3;
 import space.engine.vulkan.VkBuffer;
 import space.engine.vulkan.VkCommandBuffer;
@@ -71,9 +70,9 @@ public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoI
 			
 			IndexMap<Collection<Translation>> sorted = new IndexMapArray<>();
 			for (Asteroid asteroid : entry.getValue()) {
-				Translation translation = asteroid.toTranslation(new TranslationBuilder(), infos.frameTimeSeconds).build();
+				Translation translation = asteroid.toTranslation(infos.frameTimeSeconds).build();
 				
-				float distanceToCamera = new Vector3(translation.offset).sub(infos.camera.position).length();
+				float distanceToCamera = Vector3.distance(translation.offset, infos.camera.position);
 				int i = 0;
 				for (; i < model.minDistance.length; i++)
 					if (distanceToCamera < model.minDistance[i])

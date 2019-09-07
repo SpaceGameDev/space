@@ -7,38 +7,9 @@ import space.engine.vector.conversion.ToMatrix3;
  */
 public class Matrix3 implements ToMatrix3 {
 	
-	public float m00, m01, m02, m10, m11, m12, m20, m21, m22;
-	
-	public Matrix3() {
-		identity();
-	}
-	
-	@SuppressWarnings("CopyConstructorMissesField")
-	public Matrix3(Matrix3 mat) {
-		set(mat);
-	}
-	
-	public Matrix3(float[] array, int offset) {
-		set(array, offset);
-	}
+	public final float m00, m01, m02, m10, m11, m12, m20, m21, m22;
 	
 	public Matrix3(float m00, float m01, float m02, float m10, float m11, float m12, float m20, float m21, float m22) {
-		set(m00, m01, m02, m10, m11, m12, m20, m21, m22);
-	}
-	
-	public Matrix3 set(Matrix3 mat) {
-		return set(mat.m00, mat.m01, mat.m02, mat.m10, mat.m11, mat.m12, mat.m20, mat.m21, mat.m22);
-	}
-	
-	public Matrix3 set(float[] array, int offset) {
-		return set(
-				array[offset], array[offset + 1], array[offset + 2],
-				array[offset + 3], array[offset + 4], array[offset + 5],
-				array[offset + 6], array[offset + 7], array[offset + 8]
-		);
-	}
-	
-	public Matrix3 set(float m00, float m01, float m02, float m10, float m11, float m12, float m20, float m21, float m22) {
 		this.m00 = m00;
 		this.m01 = m01;
 		this.m02 = m02;
@@ -48,70 +19,47 @@ public class Matrix3 implements ToMatrix3 {
 		this.m20 = m20;
 		this.m21 = m21;
 		this.m22 = m22;
-		return this;
-	}
-	
-	public Matrix3 identity() {
-		return set(
-				1, 0, 0,
-				0, 1, 0,
-				0, 0, 1
-		);
 	}
 	
 	public Matrix3 multiply(Matrix3 mat) {
-		return multiply(this, mat);
-	}
-	
-	public Matrix3 multiply(Matrix3 mat1, Matrix3 mat2) {
-		return set(
-				mat1.m00 * mat2.m00 + mat1.m01 * mat2.m10 + mat1.m02 * mat2.m20,
-				mat1.m00 * mat2.m01 + mat1.m01 * mat2.m11 + mat1.m02 * mat2.m21,
-				mat1.m00 * mat2.m02 + mat1.m01 * mat2.m12 + mat1.m02 * mat2.m22,
-				mat1.m10 * mat2.m00 + mat1.m11 * mat2.m10 + mat1.m12 * mat2.m20,
-				mat1.m10 * mat2.m01 + mat1.m11 * mat2.m11 + mat1.m12 * mat2.m21,
-				mat1.m10 * mat2.m02 + mat1.m11 * mat2.m12 + mat1.m12 * mat2.m22,
-				mat1.m20 * mat2.m00 + mat1.m21 * mat2.m10 + mat1.m22 * mat2.m20,
-				mat1.m20 * mat2.m01 + mat1.m21 * mat2.m11 + mat1.m22 * mat2.m21,
-				mat1.m20 * mat2.m02 + mat1.m21 * mat2.m12 + mat1.m22 * mat2.m22
+		return new Matrix3(
+				m00 * mat.m00 + m01 * mat.m10 + m02 * mat.m20,
+				m00 * mat.m01 + m01 * mat.m11 + m02 * mat.m21,
+				m00 * mat.m02 + m01 * mat.m12 + m02 * mat.m22,
+				m10 * mat.m00 + m11 * mat.m10 + m12 * mat.m20,
+				m10 * mat.m01 + m11 * mat.m11 + m12 * mat.m21,
+				m10 * mat.m02 + m11 * mat.m12 + m12 * mat.m22,
+				m20 * mat.m00 + m21 * mat.m10 + m22 * mat.m20,
+				m20 * mat.m01 + m21 * mat.m11 + m22 * mat.m21,
+				m20 * mat.m02 + m21 * mat.m12 + m22 * mat.m22
 		);
 	}
 	
 	/**
-	 * Only works if the Matrix is "pure", aka only used for rotation and translation
+	 * = transpose
 	 */
 	public Matrix3 inverse() {
-		return set(
+		return new Matrix3(
 				m00, m10, m20,
 				m01, m11, m21,
 				m02, m12, m22
 		);
 	}
 	
-	public Matrix3 multiply(float scalar) {
-		this.m00 *= scalar;
-		this.m01 *= scalar;
-		this.m02 *= scalar;
-		this.m10 *= scalar;
-		this.m11 *= scalar;
-		this.m12 *= scalar;
-		this.m20 *= scalar;
-		this.m21 *= scalar;
-		this.m22 *= scalar;
-		return this;
+	public static Matrix3 identity() {
+		return new Matrix3(
+				1, 0, 0,
+				0, 1, 0,
+				0, 0, 1
+		);
 	}
 	
-	public Matrix3 multiply(double scalar) {
-		this.m00 *= scalar;
-		this.m01 *= scalar;
-		this.m02 *= scalar;
-		this.m10 *= scalar;
-		this.m11 *= scalar;
-		this.m12 *= scalar;
-		this.m20 *= scalar;
-		this.m21 *= scalar;
-		this.m22 *= scalar;
-		return this;
+	public static Matrix3 read(float[] array, int offset) {
+		return new Matrix3(
+				array[offset], array[offset + 1], array[offset + 2],
+				array[offset + 3], array[offset + 4], array[offset + 5],
+				array[offset + 6], array[offset + 7], array[offset + 8]
+		);
 	}
 	
 	public float[] write(float[] array, int offset) {
@@ -149,15 +97,9 @@ public class Matrix3 implements ToMatrix3 {
 	}
 	
 	@Override
-	public Matrix3 toMatrix3(Matrix3 mat) {
-		return mat.set(this);
+	public Matrix3 toMatrix3Inverse() {
+		return inverse();
 	}
-	
-	@Override
-	public Matrix3 toMatrix3Inverse(Matrix3 mat) {
-		return mat.set(this).inverse();
-	}
-	
 	
 	@Override
 	public String toString() {

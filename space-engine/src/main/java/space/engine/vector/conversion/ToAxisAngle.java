@@ -9,21 +9,17 @@ import static java.lang.Math.*;
 
 public interface ToAxisAngle extends ToQuaternion {
 	
-	default AxisAngle toAxisAnglef() {
-		return toAxisAnglef(new AxisAngle());
-	}
-	
-	AxisAngle toAxisAnglef(AxisAngle axisAngle);
+	AxisAngle toAxisAnglef();
 	
 	@Override
-	default Quaternion toQuaternion(Quaternion q) {
+	default Quaternion toQuaternion() {
 		AxisAngle axisAngle = toAxisAnglef();
 		float s = (float) sin(axisAngle.angle / 2) / axisAngle.axis.length();
-		return q.set(axisAngle.axis.x * s, axisAngle.axis.y * s, axisAngle.axis.z * s, (float) cos(axisAngle.angle / 2));
+		return new Quaternion(axisAngle.axis.x * s, axisAngle.axis.y * s, axisAngle.axis.z * s, (float) cos(axisAngle.angle / 2));
 	}
 	
 	@Override
-	default Matrix3 toMatrix3(Matrix3 mat) {
+	default Matrix3 toMatrix3() {
 		AxisAngle axisAngle = toAxisAnglef();
 		float s = (float) sin(axisAngle.angle);
 		float c = (float) cos(axisAngle.angle);
@@ -40,7 +36,7 @@ public interface ToAxisAngle extends ToQuaternion {
 		float ys = axisAngle.axis.y * s;
 		float zs = axisAngle.axis.z * s;
 		
-		return mat.set(
+		return new Matrix3(
 				xx + c, xy - zs, xz + ys,
 				xy + zs, yy + c, yz - xs,
 				xz - ys, yz + xs, zz + c
@@ -48,7 +44,7 @@ public interface ToAxisAngle extends ToQuaternion {
 	}
 	
 	@Override
-	default Matrix4 toMatrix4(Matrix4 mat) {
+	default Matrix4 toMatrix4() {
 		AxisAngle axisAngle = toAxisAnglef();
 		float s = (float) sin(axisAngle.angle);
 		float c = (float) cos(axisAngle.angle);
@@ -65,7 +61,7 @@ public interface ToAxisAngle extends ToQuaternion {
 		float ys = axisAngle.axis.y * s;
 		float zs = axisAngle.axis.z * s;
 		
-		return mat.set(
+		return new Matrix4(
 				xx + c, xy - zs, xz + ys, 0,
 				xy + zs, yy + c, yz - xs, 0,
 				xz - ys, yz + xs, zz + c, 0,

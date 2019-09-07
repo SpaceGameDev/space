@@ -297,7 +297,7 @@ public class AsteroidsDemo implements Runnable {
 			List<Keyboard> keyboards = windowContext.getInputDevices().stream().filter(dev -> dev instanceof Keyboard).map(Keyboard.class::cast).collect(Collectors.toUnmodifiableList());
 			List<Mouse> mouses = windowContext.getInputDevices().stream().filter(dev -> dev instanceof Mouse).map(Mouse.class::cast).collect(Collectors.toUnmodifiableList());
 			
-			Matrix4 matrixPerspective = ProjectionMatrix.projection(new Matrix4(), 90, (float) swapExtend.extent().width() / swapExtend.extent().height(), 0.1f, 100000f);
+			Matrix4 matrixPerspective = ProjectionMatrix.projection(90, (float) swapExtend.extent().width() / swapExtend.extent().height(), 0.1f, 100000f);
 			Camera camera = new Camera();
 			
 			float speedMouse = 0.008f;
@@ -306,11 +306,11 @@ public class AsteroidsDemo implements Runnable {
 			mouses.forEach(mouse -> {
 				mouse.getMouseMovementEvent().addHook((absolute, relative) -> {
 					Objects.requireNonNull(relative);
-					Quaternion rotation = new Quaternion();
+					Quaternion rotation = Quaternion.identity();
 					if (relative[0] != 0)
-						rotation.multiply(new AxisAngle(0, -1, 0, (float) relative[0] * speedMouse));
+						rotation = rotation.multiply(new AxisAngle(0, 1, 0, (float) relative[0] * speedMouse));
 					if (relative[1] != 0)
-						rotation.multiply(new AxisAngle(1, 0, 0, (float) relative[1] * speedMouse));
+						rotation = rotation.multiply(new AxisAngle(-1, 0, 0, (float) relative[1] * speedMouse));
 					camera.rotateRelative(rotation);
 				});
 				mouse.getScrollEvent().addHook(relative -> speedMovementMultiplier.set(() -> {
@@ -325,24 +325,24 @@ public class AsteroidsDemo implements Runnable {
 				fpsRenderer = new FpsRenderer<>(device, swapchain, frameBuffer, (imageIndex, frameEventTime) -> {
 					
 					keyboards.forEach(keyboard -> {
-						Vector3 translation = new Vector3();
-						Quaternion rotation = new Quaternion();
+						Vector3 translation = Vector3.zero();
+						Quaternion rotation = Quaternion.identity();
 						if (keyboard.isKeyDown(KEY_A))
-							translation.add(new Vector3(-speedMovement, 0, 0));
+							translation = translation.add(new Vector3(-speedMovement, 0, 0));
 						if (keyboard.isKeyDown(KEY_D))
-							translation.add(new Vector3(speedMovement, 0, 0));
+							translation = translation.add(new Vector3(speedMovement, 0, 0));
 						if (keyboard.isKeyDown(KEY_R) || keyboard.isKeyDown(KEY_SPACE))
-							translation.add(new Vector3(0, -speedMovement, 0));
+							translation = translation.add(new Vector3(0, -speedMovement, 0));
 						if (keyboard.isKeyDown(KEY_F) || keyboard.isKeyDown(KEY_LEFT_SHIFT))
-							translation.add(new Vector3(0, speedMovement, 0));
+							translation = translation.add(new Vector3(0, speedMovement, 0));
 						if (keyboard.isKeyDown(KEY_W))
-							translation.add(new Vector3(0, 0, -speedMovement));
+							translation = translation.add(new Vector3(0, 0, -speedMovement));
 						if (keyboard.isKeyDown(KEY_S))
-							translation.add(new Vector3(0, 0, speedMovement));
+							translation = translation.add(new Vector3(0, 0, speedMovement));
 						if (keyboard.isKeyDown(KEY_Q))
-							rotation.multiply(new AxisAngle(0, 0, -1, toRadians(3)));
+							rotation = rotation.multiply(new AxisAngle(0, 0, 1, toRadians(3)));
 						if (keyboard.isKeyDown(KEY_E))
-							rotation.multiply(new AxisAngle(0, 0, 1, toRadians(3)));
+							rotation = rotation.multiply(new AxisAngle(0, 0, -1, toRadians(3)));
 						camera.rotateRelative(rotation);
 						float multi = speedMovementMultiplier.assertGet();
 						camera.translateRelative(translation.multiply(multi * multi));

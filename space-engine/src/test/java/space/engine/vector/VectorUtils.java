@@ -104,7 +104,7 @@ public class VectorUtils {
 	}
 	
 	public static void assertEquals(AxisAngle expected, AxisAngle actual, float delta) {
-		AxisAngle expected1 = expected.angle > 0 ? new AxisAngle(new Vector3(expected.axis).inverse(), -expected.angle) : expected;
+		AxisAngle expected1 = expected.angle > 0 ? new AxisAngle(expected.axis.inverse(), -expected.angle) : expected;
 		Assert.assertThat(actual, new BaseMatcher<>() {
 			@Override
 			public boolean matches(Object actual) {
@@ -112,7 +112,7 @@ public class VectorUtils {
 					return false;
 				
 				AxisAngle axisAngle = (AxisAngle) actual;
-				axisAngle = axisAngle.angle > 0 ? new AxisAngle(new Vector3(axisAngle.axis).inverse(), -axisAngle.angle) : axisAngle;
+				axisAngle = axisAngle.angle > 0 ? new AxisAngle(axisAngle.axis.inverse(), -axisAngle.angle) : axisAngle;
 				return abs(expected1.angle - axisAngle.angle) < delta
 						&& abs(expected1.axis.x - axisAngle.axis.x) < delta
 						&& abs(expected1.axis.y - axisAngle.axis.y) < delta
