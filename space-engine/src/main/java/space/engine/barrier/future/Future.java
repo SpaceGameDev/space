@@ -1,6 +1,5 @@
 package space.engine.barrier.future;
 
-import org.jetbrains.annotations.NotNull;
 import space.engine.barrier.Barrier;
 
 import java.util.concurrent.TimeUnit;
@@ -88,7 +87,8 @@ public interface Future<R> extends BaseFuture<R>, Barrier {
 	
 	//static
 	static <R> Future<R> finished(R get) {
-		return new Future<>() {
+		class Finished extends Barrier.DoneBarrier implements Future<R> {
+			
 			@Override
 			public R awaitGet() {
 				return get;
@@ -103,32 +103,8 @@ public interface Future<R> extends BaseFuture<R>, Barrier {
 			public R assertGet() throws FutureNotFinishedException {
 				return get;
 			}
-			
-			@Override
-			public boolean isDone() {
-				return true;
-			}
-			
-			@Override
-			public void addHook(@NotNull Runnable run) {
-				run.run();
-			}
-			
-			@Override
-			public void removeHook(@NotNull Runnable run) {
-				run.run();
-			}
-			
-			@Override
-			public void await() {
-			
-			}
-			
-			@Override
-			public void await(long time, TimeUnit unit) {
-			
-			}
-		};
+		}
+		return new Finished();
 	}
 	
 	/**

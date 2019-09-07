@@ -47,7 +47,11 @@ public interface Barrier {
 	
 	boolean BARRIER_DEBUG = false;
 	
-	Barrier DONE_BARRIER = new Barrier() {
+	class DoneBarrier implements Barrier {
+		
+		protected DoneBarrier() {
+		}
+		
 		@Override
 		public boolean isDone() {
 			return true;
@@ -72,8 +76,9 @@ public interface Barrier {
 		public void await(long time, TimeUnit unit) {
 		
 		}
-	};
-	Barrier[] EMPTY_BARRIER_ARRAY = new Barrier[0];
+	}
+	
+	Barrier DONE_BARRIER = new DoneBarrier();
 	
 	//getter
 	
