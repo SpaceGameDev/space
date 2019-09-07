@@ -2,6 +2,7 @@ package space.engine.barrier;
 
 import org.jetbrains.annotations.NotNull;
 import space.engine.barrier.functions.CancelableRunnableWithDelay;
+import space.engine.barrier.functions.CancelableStarter;
 import space.engine.barrier.functions.RunnableWithDelay;
 import space.engine.barrier.functions.Starter;
 import space.engine.barrier.functions.SupplierWithDelay;
@@ -228,6 +229,7 @@ public interface Barrier {
 		return barrier;
 	}
 	
+	//run
 	default Barrier thenRun(RunnableWithDelay runnable) {
 		return thenRun(pool(), runnable);
 	}
@@ -253,6 +255,7 @@ public interface Barrier {
 		return when().thenRun(executor, runnable);
 	}
 	
+	//start
 	default Barrier thenStart(Starter runnable) {
 		BarrierImpl ret = new BarrierImpl();
 		addHook(() -> runnable.startNoException().addHook(ret::triggerNow));
@@ -276,10 +279,7 @@ public interface Barrier {
 		return when().thenStart(executor, runnable);
 	}
 	
-	default CancelableBarrier thenStartCancelable(CancelableRunnableWithDelay runnable) {
-		return thenRunCancelable(Runnable::run, runnable);
-	}
-	
+	//runCancelable
 	default CancelableBarrier thenRunCancelable(CancelableRunnableWithDelay runnable) {
 		return thenRunCancelable(pool(), runnable);
 	}
@@ -288,7 +288,8 @@ public interface Barrier {
 		CancelableBarrierImpl ret = new CancelableBarrierImpl();
 		addHook(() -> executor.execute(() -> {
 			try {
-				runnable.run(ret).addHook(ret::triggerNow);
+				runnable.run(ret);
+				ret.triggerNow();
 			} catch (DelayTask delayTask) {
 				delayTask.barrier.addHook(ret::triggerNow);
 			}
@@ -304,6 +305,28 @@ public interface Barrier {
 		return when().thenRunCancelable(executor, runnable);
 	}
 	
+	//startCancelable
+	default CancelableBarrier thenStartCancelable(CancelableStarter runnable) {
+		CancelableBarrierImpl ret = new CancelableBarrierImpl();
+		addHook(() -> runnable.startNoException(ret).addHook(ret::triggerNow));
+		return ret;
+	}
+	
+	default CancelableBarrier thenStartCancelable(Executor executor, CancelableStarter runnable) {
+		CancelableBarrierImpl ret = new CancelableBarrierImpl();
+		addHook(() -> executor.execute(() -> runnable.startNoException(ret).addHook(ret::triggerNow)));
+		return ret;
+	}
+	
+	static CancelableBarrier nowStartCancelable(CancelableStarter runnable) {
+		return when().thenStartCancelable(runnable);
+	}
+	
+	static CancelableBarrier nowStartCancelable(Executor executor, CancelableStarter runnable) {
+		return when().thenStartCancelable(executor, runnable);
+	}
+	
+	//Future
 	default <T> Future<T> thenStartFuture(SupplierWithDelay<T> runnable) {
 		return thenFuture(Runnable::run, runnable);
 	}
@@ -337,6 +360,7 @@ public interface Barrier {
 		return when().thenFuture(executor, runnable);
 	}
 	
+	//FutureWithException
 	default <T, EX extends Throwable> FutureWithException<T, EX> thenStartFutureWithException(Class<EX> exceptionClass, SupplierWithDelayAndException<T, EX> runnable) {
 		return thenFutureWithException(exceptionClass, Runnable::run, runnable);
 	}
@@ -380,6 +404,7 @@ public interface Barrier {
 		return when().thenFutureWithException(exceptionClass, executor, runnable);
 	}
 	
+	//FutureWith2Exception
 	default <T, EX1 extends Throwable, EX2 extends Throwable> FutureWith2Exception<T, EX1, EX2> thenStartFutureWith2Exception(Class<EX1> exceptionClass1, Class<EX2> exceptionClass2, SupplierWithDelayAnd2Exception<T, EX1, EX2> runnable) {
 		return thenFutureWith2Exception(exceptionClass1, exceptionClass2, Runnable::run, runnable);
 	}
@@ -423,6 +448,7 @@ public interface Barrier {
 		return when().thenFutureWith2Exception(exceptionClass1, exceptionClass2, executor, runnable);
 	}
 	
+	//FutureWith3Exception
 	default <T, EX1 extends Throwable, EX2 extends Throwable, EX3 extends Throwable> FutureWith3Exception<T, EX1, EX2, EX3> thenStartFutureWith3Exception(Class<EX1> exceptionClass1, Class<EX2> exceptionClass2, Class<EX3> exceptionClass3, SupplierWithDelayAnd3Exception<T, EX1, EX2, EX3> runnable) {
 		return thenFutureWith3Exception(exceptionClass1, exceptionClass2, exceptionClass3, Runnable::run, runnable);
 	}
@@ -466,6 +492,7 @@ public interface Barrier {
 		return when().thenFutureWith3Exception(exceptionClass1, exceptionClass2, exceptionClass3, executor, runnable);
 	}
 	
+	//FutureWith4Exception
 	default <T, EX1 extends Throwable, EX2 extends Throwable, EX3 extends Throwable, EX4 extends Throwable> FutureWith4Exception<T, EX1, EX2, EX3, EX4> thenStartFutureWith4Exception(Class<EX1> exceptionClass1, Class<EX2> exceptionClass2, Class<EX3> exceptionClass3, Class<EX4> exceptionClass4, SupplierWithDelayAnd4Exception<T, EX1, EX2, EX3, EX4> runnable) {
 		return thenFutureWith4Exception(exceptionClass1, exceptionClass2, exceptionClass3, exceptionClass4, Runnable::run, runnable);
 	}
@@ -509,6 +536,7 @@ public interface Barrier {
 		return when().thenFutureWith4Exception(exceptionClass1, exceptionClass2, exceptionClass3, exceptionClass4, executor, runnable);
 	}
 	
+	//FutureWith5Exception
 	default <T, EX1 extends Throwable, EX2 extends Throwable, EX3 extends Throwable, EX4 extends Throwable, EX5 extends Throwable> FutureWith5Exception<T, EX1, EX2, EX3, EX4, EX5> thenStartFutureWith5Exception(Class<EX1> exceptionClass1, Class<EX2> exceptionClass2, Class<EX3> exceptionClass3, Class<EX4> exceptionClass4, Class<EX5> exceptionClass5, SupplierWithDelayAnd5Exception<T, EX1, EX2, EX3, EX4, EX5> runnable) {
 		return thenFutureWith5Exception(exceptionClass1, exceptionClass2, exceptionClass3, exceptionClass4, exceptionClass5, Runnable::run, runnable);
 	}

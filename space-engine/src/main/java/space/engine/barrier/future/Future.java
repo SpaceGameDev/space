@@ -78,6 +78,9 @@ public interface Future<R> extends BaseFuture<R>, Barrier {
 	//default
 	@Override
 	default Future<R> dereference() {
+		if (isDone())
+			return finished(assertGet());
+		
 		CompletableFuture<R> future = new CompletableFuture<>();
 		this.addHook(() -> future.complete(this.assertGet()));
 		return future;

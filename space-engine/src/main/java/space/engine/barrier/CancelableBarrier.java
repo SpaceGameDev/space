@@ -38,11 +38,6 @@ public interface CancelableBarrier extends Barrier, Cancelable {
 		public void cancel() {
 		
 		}
-		
-		@Override
-		public Barrier dereference() {
-			return CANCELABLE_DONE_BARRIER;
-		}
 	};
 	
 	static CancelableBarrier cancelableDone() {
