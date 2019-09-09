@@ -62,24 +62,27 @@ public abstract class SimpleMessagePool<MSG> {
 						thread.getUncaughtExceptionHandler().uncaughtException(thread, e);
 					}
 				} else {
-					//park thread until woke again
-					boolean allowSleep = false;
+					
+					//no more work -> call #handleDone()
 					try {
-						allowSleep = handleDone();
+						if (!handleDone())
+							continue;
 					} catch (Throwable e) {
 						Thread thread = Thread.currentThread();
 						thread.getUncaughtExceptionHandler().uncaughtException(thread, e);
 					}
-					if (!isRunning)
-						break;
-					if (!allowSleep)
-						continue;
 					
-					//sleep if there is actually no work
+					//#handleDone() allows sleeping
 					synchronized (this) {
+						SOMETHREADSLEEPING.set(this, true);
+						
+						//check preconditions for sleeping
+						if (!isRunning)
+							break;
 						msg = queue.remove();
 						if (msg == null) {
-							SOMETHREADSLEEPING.set(this, true);
+							
+							//actually sleep
 							try {
 								this.wait();
 							} catch (InterruptedException ignored) {
@@ -89,7 +92,7 @@ public abstract class SimpleMessagePool<MSG> {
 						}
 					}
 					
-					//new work was submitted since last check
+					//new work was submitted while thread wanted to go sleeping
 					try {
 						handle(msg);
 					} catch (Throwable e) {
