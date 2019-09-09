@@ -20,7 +20,7 @@ import space.engine.key.attribute.AttributeListModify;
 import space.engine.logger.BaseLogger;
 import space.engine.logger.LogLevel;
 import space.engine.logger.Logger;
-import space.engine.observable.ObservableReference;
+import space.engine.observable.MutableObservableReference;
 import space.engine.vector.AxisAngle;
 import space.engine.vector.Matrix4;
 import space.engine.vector.ProjectionMatrix;
@@ -302,7 +302,7 @@ public class AsteroidsDemo implements Runnable {
 			
 			float speedMouse = 0.008f;
 			float speedMovement = 0.05f;
-			ObservableReference<@NotNull Float> speedMovementMultiplier = new ObservableReference<>(1f);
+			MutableObservableReference<@NotNull Float> speedMovementMultiplier = new MutableObservableReference<>(1f);
 			mouses.forEach(mouse -> {
 				mouse.getMouseMovementEvent().addHook((absolute, relative) -> {
 					Objects.requireNonNull(relative);
@@ -313,8 +313,7 @@ public class AsteroidsDemo implements Runnable {
 						rotation = rotation.multiply(new AxisAngle(-1, 0, 0, (float) relative[1] * speedMouse));
 					camera.rotateRelative(rotation);
 				});
-				mouse.getScrollEvent().addHook(relative -> speedMovementMultiplier.set(() -> {
-					float curr = speedMovementMultiplier.assertGet();
+				mouse.getScrollEvent().addHook(relative -> speedMovementMultiplier.set(curr -> {
 					float newV = curr + (float) relative[1];
 					return newV < 1 ? 1 : newV;
 				}));
