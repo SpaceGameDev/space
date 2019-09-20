@@ -60,7 +60,6 @@ public class ParallelEventBuilder<FUNCTION> extends AbstractEventBuilder<FUNCTIO
 	
 	@Override
 	public void clearCache() {
-		super.clearCache();
 		build = null;
 	}
 }

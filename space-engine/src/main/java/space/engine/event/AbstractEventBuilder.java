@@ -24,8 +24,9 @@ public abstract class AbstractEventBuilder<FUNCTION> implements Event<FUNCTION>,
 	
 	//hooks
 	@Override
-	public synchronized void addHook(@NotNull EventEntry<? extends FUNCTION> task) {
-		list.add(task);
+	public <T extends FUNCTION> EventEntry<T> addHook(@NotNull EventEntry<T> hook) {
+		list.add(hook);
+		return hook;
 	}
 	
 	@Override
@@ -34,9 +35,7 @@ public abstract class AbstractEventBuilder<FUNCTION> implements Event<FUNCTION>,
 	}
 	
 	@Override
-	public void clearCache() {
-	
-	}
+	public abstract void clearCache();
 	
 	/**
 	 * @param optimizeNextPriority whether to resort the {@link List} of next {@link Node}s, in order to put Nodes with more Dependencies further at the top, and with less towards the end
