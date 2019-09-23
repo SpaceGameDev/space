@@ -55,6 +55,10 @@ public abstract class SimpleMessagePool<MSG> {
 		this(threadCnt, threadFactory, new ConcurrentLinkedSimpleQueue<>(), DEFAULT_PAUSE_COUNTDOWN);
 	}
 	
+	public SimpleMessagePool(int threadCnt, ThreadFactory threadFactory, @NotNull SimpleQueue<MSG> queue) {
+		this(threadCnt, threadFactory, queue, DEFAULT_PAUSE_COUNTDOWN, true);
+	}
+	
 	/**
 	 * Creates a new {@link SimpleThreadPool}
 	 *

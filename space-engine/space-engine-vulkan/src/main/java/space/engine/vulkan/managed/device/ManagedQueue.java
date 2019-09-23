@@ -122,7 +122,7 @@ public class ManagedQueue extends VkQueue {
 		@Override
 		public Barrier run(ManagedQueue queue) {
 			try (AllocatorFrame frame = Allocator.frame()) {
-				VkFence fence = queue.device().vkFencePool().allocate(EMPTY_OBJECT_ARRAY);
+				VkFence fence = queue.device().vkFencePool().allocate();
 				nvkQueueSubmit(queue, 1, mallocStruct(frame, VkSubmitInfo::create, VkSubmitInfo.SIZEOF).set(
 						VK_STRUCTURE_TYPE_SUBMIT_INFO,
 						0,

@@ -2,8 +2,8 @@ package space.engine.vulkan.managed.device;
 
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.vulkan.VkDeviceCreateInfo;
+import space.engine.recourcePool.BlockResourcePool;
 import space.engine.recourcePool.FreeableWrappedResourcePool;
-import space.engine.recourcePool.ResourcePool;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
 import space.engine.vulkan.VkDevice;
@@ -98,7 +98,7 @@ public abstract class ManagedDevice extends VkDevice {
 	
 	private FreeableWrappedResourcePool<VkFence, VkFence> createVkFencePool() {
 		return FreeableWrappedResourcePool.withLamdba(
-				ResourcePool.withLambda(16, count -> VkFence.allocateDirect(this, count, EMPTY_OBJECT_ARRAY)),
+				BlockResourcePool.withLambda(16, count -> VkFence.allocateDirect(this, count, EMPTY_OBJECT_ARRAY)),
 				(inner, storageCreator, parents) -> new VkFence.Default(inner.address(), this, storageCreator, parents),
 				VkFence::reset
 		);
@@ -106,7 +106,7 @@ public abstract class ManagedDevice extends VkDevice {
 	
 	private FreeableWrappedResourcePool<VkSemaphore, VkSemaphore> createVkSemaphorePool() {
 		return FreeableWrappedResourcePool.withLamdba(
-				ResourcePool.withLambda(16, count -> VkSemaphore.allocateDirect(this, count, EMPTY_OBJECT_ARRAY)),
+				BlockResourcePool.withLambda(16, count -> VkSemaphore.allocateDirect(this, count, EMPTY_OBJECT_ARRAY)),
 				(inner, storageCreator, parents) -> new VkSemaphore.Default(inner.address(), this, storageCreator, parents),
 				semaphore -> {}
 		);
@@ -114,7 +114,7 @@ public abstract class ManagedDevice extends VkDevice {
 	
 	private FreeableWrappedResourcePool<VkEvent, VkEvent> createVkEventPool() {
 		return FreeableWrappedResourcePool.withLamdba(
-				ResourcePool.withLambda(16, count -> VkEvent.allocateDirect(this, count, EMPTY_OBJECT_ARRAY)),
+				BlockResourcePool.withLambda(16, count -> VkEvent.allocateDirect(this, count, EMPTY_OBJECT_ARRAY)),
 				(inner, storageCreator, parents) -> new VkEvent.Default(inner.address(), this, storageCreator, parents),
 				VkEvent::reset
 		);
@@ -124,7 +124,7 @@ public abstract class ManagedDevice extends VkDevice {
 		return ThreadLocal.withInitial(() -> {
 			VkCommandPool commandPool = VkCommandPool.alloc(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, getQueueFamily(QUEUE_TYPE_GRAPHICS), this, EMPTY_OBJECT_ARRAY);
 			return FreeableWrappedResourcePool.withLamdba(
-					ResourcePool.withLambda(16, count -> commandPool.allocCommandBuffers(level, count, EMPTY_OBJECT_ARRAY)),
+					BlockResourcePool.withLambda(16, count -> commandPool.allocCommandBuffers(level, count, EMPTY_OBJECT_ARRAY)),
 					(inner, storageCreator, parents) -> new VkCommandBuffer.Default(inner.address(), inner.commandPool(), storageCreator, parents),
 					VkCommandBuffer::reset
 			);

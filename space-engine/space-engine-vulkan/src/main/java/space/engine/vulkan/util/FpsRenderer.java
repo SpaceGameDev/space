@@ -33,8 +33,8 @@ public class FpsRenderer<INFOS extends Infos> implements FreeableWrapper {
 		
 		//all explicitly freed in Storage
 		this.timer = new BarrierTimerWithTimeControl(fps / 1_000_000_000f, -System.nanoTime(), EMPTY_OBJECT_ARRAY);
-		this.semaphoreImageReady = device.vkSemaphorePool().allocate(EMPTY_OBJECT_ARRAY);
-		this.semaphoreRenderDone = device.vkSemaphorePool().allocate(EMPTY_OBJECT_ARRAY);
+		this.semaphoreImageReady = device.vkSemaphorePool().allocate();
+		this.semaphoreRenderDone = device.vkSemaphorePool().allocate();
 		this.storage = new Storage(this, Freeable.addIfNotContained(parents, swapchain, frameBuffer));
 		
 		start();
