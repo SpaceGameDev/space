@@ -6,8 +6,8 @@ import org.lwjgl.vulkan.VkPhysicalDeviceProperties;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.pointer.PointerBufferInt;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.vulkan.exception.UnsupportedConfigurationException;
 
 import java.util.Collection;
@@ -24,7 +24,7 @@ import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.engine.vulkan.VkException.assertVk;
 
-public class VkPhysicalDevice extends org.lwjgl.vulkan.VkPhysicalDevice implements FreeableWrapper {
+public class VkPhysicalDevice extends org.lwjgl.vulkan.VkPhysicalDevice implements CleanerWrapper {
 	
 	public static @NotNull VkPhysicalDevice wrap(long handle, @NotNull VkInstance instance, @NotNull Object[] parents) {
 		return new VkPhysicalDevice(handle, instance, Freeable::createDummy, parents);

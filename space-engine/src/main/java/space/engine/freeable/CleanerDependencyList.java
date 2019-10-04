@@ -1,4 +1,4 @@
-package space.engine.freeableStorage;
+package space.engine.freeable;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -10,13 +10,13 @@ import java.util.Objects;
 
 import static space.engine.barrier.Barrier.DONE_BARRIER;
 
-public class FreeableList implements Freeable {
+public class CleanerDependencyList implements Freeable {
 	
 	private boolean isFreed = false;
 	private @Nullable Entry first;
 	private @Nullable Barrier freeBarrier;
 	
-	public synchronized FreeableList.Entry insert(@NotNull Freeable storage) {
+	public synchronized CleanerDependencyList.Entry insert(@NotNull Freeable storage) {
 		if (isFreed)
 			throw new FreedException(this);
 		
@@ -59,7 +59,7 @@ public class FreeableList implements Freeable {
 	}
 	
 	@Override
-	public @NotNull FreeableList getSubList() {
+	public @NotNull CleanerDependencyList getSubList() {
 		return this;
 	}
 	
@@ -77,7 +77,7 @@ public class FreeableList implements Freeable {
 		 * removes an Entry from the List
 		 */
 		public void remove() {
-			synchronized (FreeableList.this) {
+			synchronized (CleanerDependencyList.this) {
 				if (isFreed || (prev == null && next == null))
 					return;
 				

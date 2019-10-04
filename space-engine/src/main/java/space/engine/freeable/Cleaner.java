@@ -1,24 +1,24 @@
-package space.engine.freeableStorage;
+package space.engine.freeable;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import space.engine.barrier.Barrier;
 import space.engine.baseobject.exceptions.FreedException;
-import space.engine.freeableStorage.FreeableList.Entry;
+import space.engine.freeable.CleanerDependencyList.Entry;
 
 import java.lang.ref.PhantomReference;
 import java.util.Arrays;
 import java.util.Objects;
 
-public abstract class FreeableStorage extends PhantomReference<Object> implements Freeable {
+public abstract class Cleaner extends PhantomReference<Object> implements Freeable {
 	
 	private volatile boolean isFreed = false;
-	private final FreeableList.Entry[] entries;
-	private volatile @Nullable FreeableList subList;
+	private final CleanerDependencyList.Entry[] entries;
+	private volatile @Nullable CleanerDependencyList subList;
 	private @Nullable Barrier freeBarrier;
 	
-	public FreeableStorage(@Nullable Object referent, @NotNull Object[] parents) {
-		super(referent, parents.length == 0 ? null : FreeableStorageCleaner.QUEUE);
+	public Cleaner(@Nullable Object referent, @NotNull Object[] parents) {
+		super(referent, parents.length == 0 ? null : CleanerThread.QUEUE);
 		entries = Arrays.stream(parents).map(parent -> Freeable.getFreeable(parent).getSubList().insert(this)).toArray(Entry[]::new);
 	}
 	
@@ -30,7 +30,7 @@ public abstract class FreeableStorage extends PhantomReference<Object> implement
 				return Objects.requireNonNull(freeBarrier);
 			isFreed = true;
 			
-			FreeableList subList = this.subList;
+			CleanerDependencyList subList = this.subList;
 			if (subList != null) {
 				Barrier subListFree = subList.free();
 				if (!subListFree.isDone()) {
@@ -73,15 +73,15 @@ public abstract class FreeableStorage extends PhantomReference<Object> implement
 	//children
 	@NotNull
 	@Override
-	public FreeableList getSubList() {
-		FreeableList subList = this.subList;
+	public CleanerDependencyList getSubList() {
+		CleanerDependencyList subList = this.subList;
 		if (subList != null)
 			return subList;
 		synchronized (this) {
 			subList = this.subList;
 			if (subList != null)
 				return subList;
-			return this.subList = new FreeableList();
+			return this.subList = new CleanerDependencyList();
 		}
 	}
 }

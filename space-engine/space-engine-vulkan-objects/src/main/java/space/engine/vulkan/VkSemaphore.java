@@ -6,14 +6,14 @@ import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.pointer.PointerBufferPointer;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
 
 import java.util.function.BiFunction;
 
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.barrier.Barrier.DONE_BARRIER;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 import static space.engine.vulkan.VkException.assertVk;
 
@@ -66,7 +66,7 @@ public interface VkSemaphore extends Freeable {
 	//address
 	long address();
 	
-	class Default implements VkSemaphore, FreeableWrapper {
+	class Default implements VkSemaphore, CleanerWrapper {
 		
 		//const
 		public Default(long address, @NotNull VkDevice device, @NotNull BiFunction<? super Default, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
@@ -100,7 +100,7 @@ public interface VkSemaphore extends Freeable {
 		}
 	}
 	
-	class DestroyStorage extends FreeableStorage {
+	class DestroyStorage extends Cleaner {
 		
 		private final VkDevice device;
 		private final long address;

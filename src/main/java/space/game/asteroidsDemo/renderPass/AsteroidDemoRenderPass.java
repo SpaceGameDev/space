@@ -3,9 +3,9 @@ package space.game.asteroidsDemo.renderPass;
 import org.jetbrains.annotations.NotNull;
 import org.lwjgl.vulkan.VkRect2D;
 import space.engine.event.Event;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.vulkan.VkImageView;
 import space.engine.vulkan.managed.device.ManagedDevice;
 import space.engine.vulkan.managed.device.ManagedQueue;
@@ -23,7 +23,7 @@ import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.KHRSwapchain.VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 import static org.lwjgl.vulkan.VK10.*;
 
-public class AsteroidDemoRenderPass implements FreeableWrapper {
+public class AsteroidDemoRenderPass implements CleanerWrapper {
 	
 	public AsteroidDemoRenderPass(ManagedDevice device, VkRect2D swapExtend, int outputImageFormat, Object[] parents) {
 		this.device = device;
@@ -128,7 +128,7 @@ public class AsteroidDemoRenderPass implements FreeableWrapper {
 	}
 	
 	public ManagedFrameBuffer<AsteroidDemoInfos> createManagedFrameBuffer(ManagedSwapchain<?> swapchain, ManagedQueue queue, Object[] parents) {
-		FreeableStorage side = Freeable.createDummy(parents);
+		Cleaner side = Freeable.createDummy(parents);
 		
 		VmaImage depthImage = VmaImage.alloc(
 				0,

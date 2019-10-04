@@ -15,9 +15,9 @@ import space.engine.event.Event;
 import space.engine.event.EventEntry;
 import space.engine.event.SequentialEventBuilder;
 import space.engine.event.typehandler.TypeHandlerParallel;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.key.attribute.AbstractAttributeList;
 import space.engine.key.attribute.AttributeList;
 import space.engine.key.attribute.AttributeListModify;
@@ -45,7 +45,7 @@ import static space.engine.window.extensions.VideoModeDesktopExtension.*;
 import static space.engine.window.extensions.VideoModeFullscreenExtension.FULLSCREEN_VIDEO_MODE;
 import static space.engine.window.glfw.GLFWUtil.toGLFWBoolean;
 
-public class GLFWWindow implements Window, FreeableWrapper {
+public class GLFWWindow implements Window, CleanerWrapper {
 	
 	private static final AtomicInteger WINDOW_THREAD_COUNTER = new AtomicInteger();
 	
@@ -77,7 +77,7 @@ public class GLFWWindow implements Window, FreeableWrapper {
 		return storage;
 	}
 	
-	public static class Storage extends FreeableStorage implements Executor {
+	public static class Storage extends Cleaner implements Executor {
 		
 		protected volatile long windowPointer;
 		protected SimpleThreadPool exec = new SimpleThreadPool(1, r -> new Thread(r, "GLFWWindowThread-" + WINDOW_THREAD_COUNTER.getAndIncrement()));

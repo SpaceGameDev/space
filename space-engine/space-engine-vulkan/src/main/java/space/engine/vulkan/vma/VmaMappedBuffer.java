@@ -8,9 +8,9 @@ import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.Buffer;
 import space.engine.buffer.pointer.PointerBufferPointer;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.FreeableStorage;
-import space.engine.freeableStorage.stack.FreeableStack.Frame;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.stack.FreeableStack.Frame;
 import space.engine.vulkan.VkMappedBuffer;
 import space.engine.vulkan.managed.device.ManagedDevice;
 
@@ -19,7 +19,7 @@ import java.util.function.BiFunction;
 import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.barrier.Barrier.DONE_BARRIER;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 import static space.engine.vulkan.VkException.assertVk;
 
@@ -99,7 +99,7 @@ public class VmaMappedBuffer extends VmaBuffer implements VkMappedBuffer {
 		}
 	}
 	
-	public class MappedBuffer extends Buffer implements FreeableWrapper {
+	public class MappedBuffer extends Buffer implements CleanerWrapper {
 		
 		private final long address;
 		
@@ -132,7 +132,7 @@ public class VmaMappedBuffer extends VmaBuffer implements VkMappedBuffer {
 		}
 	}
 	
-	public static class MappedBufferStorage extends FreeableStorage {
+	public static class MappedBufferStorage extends Cleaner {
 		
 		private final VmaMappedBuffer vkBuffer;
 		

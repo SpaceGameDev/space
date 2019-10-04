@@ -7,8 +7,8 @@ import space.engine.barrier.BarrierImpl;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferLong;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
 import space.engine.simpleQueue.SimpleQueue;
 import space.engine.simpleQueue.pool.SimpleMessagePool;
@@ -21,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.vulkan.VkException.assertVk;
 
-public class EventAwaiter implements FreeableWrapper {
+public class EventAwaiter implements CleanerWrapper {
 	
 	public static final long TIMEOUT_NANOS = 20_000_000L;
 	

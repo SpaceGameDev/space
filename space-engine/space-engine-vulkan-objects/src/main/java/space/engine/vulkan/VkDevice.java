@@ -10,9 +10,9 @@ import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferFloat;
 import space.engine.buffer.pointer.PointerBufferPointer;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.indexmap.IndexMap;
 import space.engine.indexmap.IndexMapArray;
 
@@ -25,11 +25,11 @@ import java.util.function.Supplier;
 import static org.lwjgl.system.JNI.callPPV;
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocBuffer;
 import static space.engine.vulkan.VkException.assertVk;
 
-public class VkDevice extends org.lwjgl.vulkan.VkDevice implements FreeableWrapper {
+public class VkDevice extends org.lwjgl.vulkan.VkDevice implements CleanerWrapper {
 	
 	/**
 	 * The {@link QueueRequestHandler} handles the querying of queues for a {@link VkDevice}.
@@ -170,7 +170,7 @@ public class VkDevice extends org.lwjgl.vulkan.VkDevice implements FreeableWrapp
 	//storage
 	private final @NotNull Freeable storage;
 	
-	public static class Storage extends FreeableStorage {
+	public static class Storage extends Cleaner {
 		
 		private final long function_vkDestroyDevice;
 		private final long device;

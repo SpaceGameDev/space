@@ -3,8 +3,8 @@ package space.engine.simpleQueue.pool;
 import org.jetbrains.annotations.NotNull;
 import space.engine.barrier.Barrier;
 import space.engine.barrier.BarrierImpl;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
 import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
 import space.engine.simpleQueue.SimpleQueue;
 import space.engine.simpleQueue.pool.ThreadBound.Entry;
@@ -264,7 +264,7 @@ public abstract class SimpleMessagePool<MSG> {
 	
 	public Freeable createStopFreeable(Object[] parents) {
 		//will be strongly referenced by out thread anyway
-		return new FreeableStorage(null, parents) {
+		return new Cleaner(null, parents) {
 			@Override
 			protected @NotNull Barrier handleFree() {
 				return stop();

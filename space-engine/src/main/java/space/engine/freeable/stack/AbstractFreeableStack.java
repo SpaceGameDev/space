@@ -1,10 +1,10 @@
-package space.engine.freeableStorage.stack;
+package space.engine.freeable.stack;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import space.engine.barrier.Barrier;
-import space.engine.freeableStorage.FreeableList;
-import space.engine.freeableStorage.stack.AbstractFreeableStack.Frame;
+import space.engine.freeable.CleanerDependencyList;
+import space.engine.freeable.stack.AbstractFreeableStack.Frame;
 
 public abstract class AbstractFreeableStack<FRAME extends Frame> implements FreeableStack {
 	
@@ -20,7 +20,7 @@ public abstract class AbstractFreeableStack<FRAME extends Frame> implements Free
 	public class Frame implements FreeableStack.Frame {
 		
 		protected @Nullable FRAME prev;
-		private @Nullable FreeableList subList;
+		private @Nullable CleanerDependencyList subList;
 		
 		public Frame(@Nullable FRAME prev) {
 			this.prev = prev;
@@ -46,11 +46,11 @@ public abstract class AbstractFreeableStack<FRAME extends Frame> implements Free
 		}
 		
 		@Override
-		public @NotNull FreeableList getSubList() {
-			FreeableList subList = this.subList;
+		public @NotNull CleanerDependencyList getSubList() {
+			CleanerDependencyList subList = this.subList;
 			if (subList != null)
 				return subList;
-			return this.subList = new FreeableList();
+			return this.subList = new CleanerDependencyList();
 		}
 	}
 }

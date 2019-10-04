@@ -1,6 +1,6 @@
 package space.engine.recourcePool;
 
-import space.engine.freeableStorage.Freeable;
+import space.engine.freeable.Freeable;
 
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
 

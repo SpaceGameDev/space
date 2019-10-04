@@ -5,8 +5,8 @@ import space.engine.barrier.future.Future;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferFloat;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.indexmap.IndexMap;
 import space.engine.indexmap.IndexMap.Entry;
 import space.engine.indexmap.IndexMapArray;
@@ -32,10 +32,10 @@ import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
 import static space.engine.barrier.Barrier.*;
 import static space.engine.buffer.Allocator.heap;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 import static space.engine.primitive.Primitives.FP32;
 
-public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoInfos> {
+public class AsteroidRenderer implements CleanerWrapper, Callback<AsteroidDemoInfos> {
 	
 	private final AsteroidDemoRenderPass renderPass;
 	private final AsteroidPipeline asteroidPipeline;

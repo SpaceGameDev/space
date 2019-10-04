@@ -11,7 +11,7 @@ import space.engine.buffer.array.ArrayBufferInt;
 import space.engine.buffer.array.ArrayBufferLong;
 import space.engine.buffer.array.ArrayBufferPointer;
 import space.engine.buffer.pointer.PointerBufferPointer;
-import space.engine.freeableStorage.Freeable;
+import space.engine.freeable.Freeable;
 import space.engine.simpleQueue.pool.SimpleThreadPool;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;

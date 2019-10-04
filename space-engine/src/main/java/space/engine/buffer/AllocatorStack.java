@@ -1,7 +1,7 @@
 package space.engine.buffer;
 
 import org.jetbrains.annotations.NotNull;
-import space.engine.freeableStorage.stack.FreeableStack;
+import space.engine.freeable.stack.FreeableStack;
 
 public interface AllocatorStack extends FreeableStack {
 	

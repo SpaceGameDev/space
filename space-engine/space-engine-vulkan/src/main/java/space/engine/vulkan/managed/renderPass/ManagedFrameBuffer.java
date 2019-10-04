@@ -13,8 +13,8 @@ import space.engine.barrier.future.Future;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferLong;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.orderingGuarantee.SequentialOrderingGuarantee;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
@@ -36,10 +36,10 @@ import java.util.stream.Stream;
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.barrier.Barrier.*;
 import static space.engine.buffer.Allocator.heap;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 
-public class ManagedFrameBuffer<INFOS extends Infos> implements FreeableWrapper {
+public class ManagedFrameBuffer<INFOS extends Infos> implements CleanerWrapper {
 	
 	public ManagedFrameBuffer(@NotNull ManagedRenderPass<INFOS> renderPass, @NotNull ManagedQueue queue, @NotNull Object[] images, int width, int height, int layers, Object[] parents) {
 		this.renderPass = renderPass;
@@ -59,6 +59,7 @@ public class ManagedFrameBuffer<INFOS extends Infos> implements FreeableWrapper 
 									throw new IllegalArgumentException();
 								})
 								.toArray(VkImageView[]::new);
+		//noinspection RedundantCast
 		this.storage = Freeable.createDummy(this, addIfNotContained(addIfNotContained(parents, renderPass), (Object[]) imagesFlat));
 		this.width = width;
 		this.height = height;

@@ -1,7 +1,7 @@
-package space.engine.freeableStorage.stack;
+package space.engine.freeable.stack;
 
 import org.jetbrains.annotations.NotNull;
-import space.engine.freeableStorage.Freeable;
+import space.engine.freeable.Freeable;
 
 public interface FreeableStack {
 	

@@ -3,8 +3,8 @@ package space.engine.recourcePool;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import space.engine.barrier.Barrier;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
 
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 import static space.engine.barrier.Barrier.DONE_BARRIER;
 
 /**
- * {@link FreeableWrappedResourcePool} uses a ResourcePool and wraps allocated resources in another {@link space.engine.freeableStorage.Freeable} for easy releasing by calling {@link Freeable#free()}
+ * {@link FreeableWrappedResourcePool} uses a ResourcePool and wraps allocated resources in another {@link space.engine.freeable.Freeable} for easy releasing by calling {@link Freeable#free()}
  */
 public abstract class FreeableWrappedResourcePool<I, O extends Freeable> implements FreeableResourcePool<O> {
 	
@@ -70,7 +70,7 @@ public abstract class FreeableWrappedResourcePool<I, O extends Freeable> impleme
 		return (outer, objects) -> new OuterStorage(outer, inner, objects);
 	}
 	
-	private class OuterStorage extends FreeableStorage {
+	private class OuterStorage extends Cleaner {
 		
 		private final @NotNull I inner;
 		

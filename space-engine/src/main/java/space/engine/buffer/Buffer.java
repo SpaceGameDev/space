@@ -2,7 +2,7 @@ package space.engine.buffer;
 
 import org.jetbrains.annotations.NotNull;
 import space.engine.baseobject.Dumpable;
-import space.engine.freeableStorage.Freeable;
+import space.engine.freeable.Freeable;
 import space.engine.math.MathUtils;
 import space.engine.string.String2D;
 import space.engine.string.StringBuilder2D;

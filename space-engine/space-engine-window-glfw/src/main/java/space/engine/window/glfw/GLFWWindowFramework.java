@@ -4,8 +4,8 @@ import org.jetbrains.annotations.NotNull;
 import org.lwjgl.glfw.GLFW;
 import space.engine.barrier.future.Future;
 import space.engine.delegate.collection.ObservableCollection;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.key.attribute.AttributeList;
 import space.engine.window.Monitor;
 import space.engine.window.WindowContext;
@@ -20,9 +20,9 @@ import java.util.Collection;
 import java.util.List;
 
 import static org.lwjgl.glfw.GLFW.glfwGetPrimaryMonitor;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 
-public class GLFWWindowFramework implements WindowFramework, FreeableWrapper {
+public class GLFWWindowFramework implements WindowFramework, CleanerWrapper {
 	
 	/**
 	 * finalization of the object will {@link GLFW#glfwTerminate()}

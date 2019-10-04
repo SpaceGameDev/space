@@ -23,8 +23,8 @@ import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.StringConverter;
 import space.engine.buffer.array.ArrayBufferFloat;
 import space.engine.buffer.pointer.PointerBufferLong;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkGraphicsPipeline;
 import space.engine.vulkan.VkPipelineLayout;
@@ -43,7 +43,7 @@ import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.engine.primitive.Primitives.FP32;
 
-public class AsteroidPipeline implements FreeableWrapper {
+public class AsteroidPipeline implements CleanerWrapper {
 	
 	public AsteroidPipeline(@NotNull AsteroidDemoRenderPass renderPass, @NotNull Object[] parents) {
 		this.renderPass = renderPass;

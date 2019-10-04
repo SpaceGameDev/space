@@ -1,4 +1,4 @@
-package space.engine.freeableStorage.stack;
+package space.engine.freeable.stack;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

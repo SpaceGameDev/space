@@ -12,9 +12,9 @@ import space.engine.barrier.future.Future;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferFloat;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.FreeableStorageCleaner;
-import space.engine.freeableStorage.stack.FreeableStack.Frame;
+import space.engine.freeable.CleanerThread;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.stack.FreeableStack.Frame;
 import space.engine.key.attribute.AttributeList;
 import space.engine.key.attribute.AttributeListModify;
 import space.engine.logger.BaseLogger;
@@ -85,7 +85,7 @@ import static space.engine.window.extensions.VideoModeExtension.*;
 public class AsteroidsDemo implements Runnable {
 	
 	public static void main(String[] args) {
-		FreeableStorageCleaner.setCleanupLogger(baseLogger);
+		CleanerThread.setCleanupLogger(baseLogger);
 		new AsteroidsDemo().run();
 	}
 	

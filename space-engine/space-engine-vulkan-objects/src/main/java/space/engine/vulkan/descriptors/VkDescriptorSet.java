@@ -2,18 +2,18 @@ package space.engine.vulkan.descriptors;
 
 import org.jetbrains.annotations.NotNull;
 import space.engine.barrier.Barrier;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.vulkan.VkDevice;
 import space.engine.vulkan.VkInstance;
 
 import java.util.function.BiFunction;
 
 import static org.lwjgl.vulkan.VK10.vkFreeDescriptorSets;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 
-public class VkDescriptorSet implements FreeableWrapper {
+public class VkDescriptorSet implements CleanerWrapper {
 	
 	//create
 	public static @NotNull VkDescriptorSet create(long address, @NotNull VkDescriptorPool pool, @NotNull Object[] parents) {
@@ -61,7 +61,7 @@ public class VkDescriptorSet implements FreeableWrapper {
 		return storage;
 	}
 	
-	public static class Storage extends FreeableStorage {
+	public static class Storage extends Cleaner {
 		
 		private final @NotNull VkDescriptorPool pool;
 		private final long address;

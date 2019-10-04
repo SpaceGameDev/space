@@ -7,15 +7,15 @@ import org.lwjgl.vulkan.VkCommandBufferInheritanceInfo;
 import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
 
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.barrier.Barrier.DONE_BARRIER;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 import static space.engine.vulkan.VkException.assertVk;
 
@@ -114,7 +114,7 @@ public abstract class VkCommandBuffer extends org.lwjgl.vulkan.VkCommandBuffer i
 		recordingDependencies = null;
 	}
 	
-	public static class Default extends VkCommandBuffer implements FreeableWrapper {
+	public static class Default extends VkCommandBuffer implements CleanerWrapper {
 		
 		//const
 		public Default(long address, @NotNull VkCommandPool commandPool, @NotNull BiFunction<? super Default, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
@@ -149,7 +149,7 @@ public abstract class VkCommandBuffer extends org.lwjgl.vulkan.VkCommandBuffer i
 		}
 	}
 	
-	public static class DestroyStorage extends FreeableStorage {
+	public static class DestroyStorage extends Cleaner {
 		
 		private final @NotNull VkCommandPool commandPool;
 		private final long address;

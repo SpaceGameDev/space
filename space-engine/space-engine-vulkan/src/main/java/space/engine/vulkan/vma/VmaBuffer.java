@@ -9,9 +9,9 @@ import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.Buffer;
 import space.engine.buffer.pointer.PointerBufferPointer;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.vulkan.VkBuffer;
 import space.engine.vulkan.managed.device.ManagedDevice;
 import space.engine.vulkan.managed.device.ManagedQueue;
@@ -21,12 +21,12 @@ import java.util.function.BiFunction;
 import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.engine.vulkan.VkException.assertVk;
 import static space.engine.vulkan.managed.device.ManagedDevice.QUEUE_TYPE_TRANSFER;
 
-public class VmaBuffer implements VkBuffer, FreeableWrapper {
+public class VmaBuffer implements VkBuffer, CleanerWrapper {
 	
 	//alloc
 	public static @NotNull VmaBuffer alloc(int flags, long sizeOf, int usage, int memFlags, int memUsage, @NotNull ManagedDevice device, @NotNull Object[] parents) {
@@ -118,7 +118,7 @@ public class VmaBuffer implements VkBuffer, FreeableWrapper {
 		return storage;
 	}
 	
-	public static class Storage extends FreeableStorage {
+	public static class Storage extends Cleaner {
 		
 		private final @NotNull VmaAllocator allocator;
 		private final long address;

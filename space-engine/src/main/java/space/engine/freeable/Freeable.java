@@ -1,4 +1,4 @@
-package space.engine.freeableStorage;
+package space.engine.freeable;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -6,9 +6,9 @@ import space.engine.barrier.Barrier;
 import space.engine.baseobject.exceptions.FreedException;
 import space.engine.event.SequentialEventBuilder;
 import space.engine.event.typehandler.TypeHandlerFirstFunction;
-import space.engine.freeableStorage.stack.FreeableStack;
-import space.engine.freeableStorage.stack.FreeableStack.Frame;
-import space.engine.freeableStorage.stack.FreeableStackImpl;
+import space.engine.freeable.stack.FreeableStack;
+import space.engine.freeable.stack.FreeableStack.Frame;
+import space.engine.freeable.stack.FreeableStackImpl;
 
 import java.util.Arrays;
 import java.util.function.Function;
@@ -17,17 +17,17 @@ import java.util.stream.Stream.Builder;
 
 /**
  * {@link Freeable} is an advanced native or other resource free-ing system.
- * To use it you need a front-end Object and (mostly as a STATIC inner class) a Storage-Object (this class) for values required for eg. deallocation.
+ * To use it you need a front-end Object and (mostly as a STATIC inner class) a Cleaner-Object (this class) for values required for eg. deallocation.
  * When creating a Storage you have to extend one of the three types of {@link Freeable}:
  * <ul>
- * <li>{@link FreeableStorage} - Phantom - {@link java.lang.ref.PhantomReference#get()} always returns null &emsp;&emsp;<b><- use this for native resource deallocation</b></li>
- * <li>{@link FreeableStorageWeak} - Weak - {@link java.lang.ref.WeakReference#get()} returns the front-end Object if not already deallocated &emsp;&emsp;<b><- use this for java cleanup stuff</b></li>
- * <li>{@link FreeableStorageSoft} - Soft - {@link java.lang.ref.SoftReference#get()} always returns the front-end object &emsp;&emsp;<b><- use this for out-of-memory / cache setups (in java)</b></li>
+ * <li>{@link Cleaner} - Phantom - {@link java.lang.ref.PhantomReference#get()} always returns null &emsp;&emsp;<b><- use this for native resource deallocation</b></li>
+ * <li>{@link CleanerWeak} - Weak - {@link java.lang.ref.WeakReference#get()} returns the front-end Object if not already deallocated &emsp;&emsp;<b><- use this for java cleanup stuff</b></li>
+ * <li>{@link CleanerSoft} - Soft - {@link java.lang.ref.SoftReference#get()} always returns the front-end object &emsp;&emsp;<b><- use this for out-of-memory / cache setups (in java)</b></li>
  * <li>See the different java.lang.ref Classes and the Package-Summary for more info.</li>
  * </ul>
  * <p>
  * They handle everything for you, from cleaning up hooks at your parents, freeing children first (explained later) and even the detection of already being freed.
- * You only have to implement the {@link FreeableStorage#handleFree()} Method and actually free your resources (eg. {@link sun.misc.Unsafe#freeMemory(long) Unsafe.freeMemory(long)}).
+ * You only have to implement the {@link Cleaner#handleFree()} Method and actually free your resources (eg. {@link sun.misc.Unsafe#freeMemory(long) Unsafe.freeMemory(long)}).
  * Creating the Storage-Object requires you to give it the front-end Object.
  * Note that <b>having any Reference from the Storage to the front-end Object will cause it not to get cleaned up!</b>
  * So make sure that if you are using Storage as an inner class it is a static class.
@@ -36,14 +36,14 @@ import java.util.stream.Stream.Builder;
  * When a parent is freed, their children are being freed first, then the parent. This allows for eg. Instance having multiple Buffers setups to free the Buffers first and then the instance.
  * Everything should be rooted sometime into the global {@link Freeable#ROOT_LIST}, which will be cleaned up automatically then the JVM starts the Shutdown threads.<br>
  * If your are using the SpaceEngine you should root it into your Side first. (which is then rooted into {@link Freeable#ROOT_LIST}).
- * You can also get the {@link FreeableList} containing all children of a Storage-Object with {@link Freeable#getFreeable(Object)}
+ * You can also get the {@link CleanerDependencyList} containing all children of a Storage-Object with {@link Freeable#getFreeable(Object)}
  * <p>
  * If you want an {@link Freeable} Object in between without any free-ing capabilities, you can use {@link Freeable#createDummy(Object...)} to do so.
- * Have a look into {@link FreeableStorageCleaner} to setup a {@link space.engine.logger.Logger} for cleanup information or other things cleanup related.
+ * Have a look into {@link CleanerThread} to setup a {@link space.engine.logger.Logger} for cleanup information or other things cleanup related.
  */
 public interface Freeable {
 	
-	FreeableList ROOT_LIST = new FreeableList();
+	CleanerDependencyList ROOT_LIST = new CleanerDependencyList();
 	SequentialEventBuilder<Function<Object, Freeable>> GET_SUBLIST_EVENT = new SequentialEventBuilder<>();
 	
 	/**
@@ -75,9 +75,9 @@ public interface Freeable {
 	/**
 	 * Gets the subList of this {@link Freeable}
 	 *
-	 * @return a {@link FreeableList} to hook into
+	 * @return a {@link CleanerDependencyList} to hook into
 	 */
-	@NotNull FreeableList getSubList();
+	@NotNull CleanerDependencyList getSubList();
 	
 	//static
 	static Barrier freeObject(@NotNull Object object) {
@@ -103,26 +103,26 @@ public interface Freeable {
 	}
 	
 	/**
-	 * Creates a new {@link FreeableStorage} which won't free anything by itself, but still frees it's Children. <br>
-	 * It can be used as an in between Layer to other {@link FreeableStorage} Objects.
+	 * Creates a new {@link Cleaner} which won't free anything by itself, but still frees it's Children. <br>
+	 * It can be used as an in between Layer to other {@link Cleaner} Objects.
 	 *
 	 * @param parents the parents it should have
 	 * @return a new dummy {@link Freeable}
 	 */
-	static @NotNull FreeableStorage createDummy(@NotNull Object[] parents) {
+	static @NotNull Cleaner createDummy(@NotNull Object[] parents) {
 		return createDummy(null, parents);
 	}
 	
 	/**
-	 * Creates a new {@link FreeableStorage} which won't free anything by itself, but still frees it's Children. <br>
-	 * It can be used as an in between Layer to other {@link FreeableStorage} Objects.
+	 * Creates a new {@link Cleaner} which won't free anything by itself, but still frees it's Children. <br>
+	 * It can be used as an in between Layer to other {@link Cleaner} Objects.
 	 *
 	 * @param referent the referent of the FreeableStorage or null
 	 * @param parents  the parents it should have
 	 * @return a new dummy {@link Freeable}
 	 */
-	static @NotNull FreeableStorage createDummy(@Nullable Object referent, @NotNull Object[] parents) {
-		return new FreeableStorage(referent, parents) {
+	static @NotNull Cleaner createDummy(@Nullable Object referent, @NotNull Object[] parents) {
+		return new Cleaner(referent, parents) {
 			@Override
 			protected @NotNull Barrier handleFree() {
 				return Barrier.DONE_BARRIER;
@@ -163,8 +163,8 @@ public interface Freeable {
 	static boolean isContained(Object[] parents, Object check) {
 		Builder<Object> b = Stream.builder();
 		b.add(check);
-		while (check instanceof FreeableWrapper) {
-			check = ((FreeableWrapper) check).getStorage();
+		while (check instanceof CleanerWrapper) {
+			check = ((CleanerWrapper) check).getStorage();
 			b.add(check);
 		}
 		Object[] requiredArray = b.build().toArray();
@@ -186,7 +186,7 @@ public interface Freeable {
 	/**
 	 * A Simple implementation if a call is using a backend {@link Freeable} for releasing resources.
 	 */
-	interface FreeableWrapper extends Freeable {
+	interface CleanerWrapper extends Freeable {
 		
 		@NotNull Freeable getStorage();
 		
@@ -202,7 +202,7 @@ public interface Freeable {
 		
 		@NotNull
 		@Override
-		default FreeableList getSubList() {
+		default CleanerDependencyList getSubList() {
 			return getStorage().getSubList();
 		}
 	}

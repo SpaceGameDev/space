@@ -1,4 +1,4 @@
-package space.engine.freeableStorage;
+package space.engine.freeable;
 
 import org.jetbrains.annotations.Nullable;
 import space.engine.Side;
@@ -16,7 +16,7 @@ import java.util.Objects;
 
 import static space.engine.logger.LogLevel.INFO;
 
-public final class FreeableStorageCleaner {
+public final class CleanerThread {
 	
 	//the QUEUE
 	public static final ReferenceQueue<Object> QUEUE = new ReferenceQueue<>();
@@ -43,8 +43,8 @@ public final class FreeableStorageCleaner {
 	}
 	
 	public static void setCleanupLogger(Logger baseLogger, boolean debug) {
-		FreeableStorageCleaner.cleanupLogger = baseLogger.subLogger("Cleanup");
-		FreeableStorageCleaner.cleanupLoggerDebug = debug;
+		CleanerThread.cleanupLogger = baseLogger.subLogger("Cleanup");
+		CleanerThread.cleanupLoggerDebug = debug;
 	}
 	
 	//static init
@@ -150,8 +150,8 @@ public final class FreeableStorageCleaner {
 	
 	public static boolean stopAndJoinCleanupThread() throws InterruptedException {
 		Thread thread;
-		synchronized (FreeableStorageCleaner.class) {
-			ThreadInfo cleanupThreadInfo = FreeableStorageCleaner.cleanupThreadInfo;
+		synchronized (CleanerThread.class) {
+			ThreadInfo cleanupThreadInfo = CleanerThread.cleanupThreadInfo;
 			if (!stopCleanupThread())
 				return false;
 			thread = Objects.requireNonNull(cleanupThreadInfo).thread;
