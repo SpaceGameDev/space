@@ -8,6 +8,8 @@ import org.lwjgl.vulkan.VkRect2D;
 import space.engine.Side;
 import space.engine.barrier.Barrier;
 import space.engine.barrier.BarrierImpl;
+import space.engine.barrier.DelayTask;
+import space.engine.barrier.functions.RunnableWithDelay;
 import space.engine.barrier.future.Future;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
@@ -70,6 +72,7 @@ import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
+import static space.engine.barrier.Barrier.nowRun;
 import static space.engine.buffer.Allocator.heap;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 import static space.engine.primitive.Primitives.FP32;
@@ -82,20 +85,20 @@ import static space.engine.window.extensions.MouseInputMode.MOUSE_MODE;
 import static space.engine.window.extensions.VideoModeExtension.*;
 
 @SuppressWarnings("FieldCanBeLocal")
-public class AsteroidsDemo implements Runnable {
+public class AsteroidsDemo implements RunnableWithDelay {
 	
 	public static void main(String[] args) {
 		CleanerThread.setCleanupLogger(baseLogger);
-		new AsteroidsDemo().run();
+		nowRun(new AsteroidsDemo()).awaitUninterrupted();
 	}
 	
 	public static BaseLogger baseLogger = BaseLogger.defaultPrinter(BaseLogger.defaultHandler(new BaseLogger()));
 	
-	public boolean VK_LAYER_LUNARG_standard_validation = false;
+	public boolean VK_LAYER_LUNARG_standard_validation = true;
 	public boolean VK_LAYER_RENDERDOC_Capture = false;
 	private Logger logger = baseLogger.subLogger("asteroidsDemo");
 	
-	public void run() {
+	public void run() throws DelayTask {
 		try (Frame side = Freeable.frame()) {
 			
 			//log extensions / layers
@@ -358,7 +361,8 @@ public class AsteroidsDemo implements Runnable {
 			
 			logger.log(LogLevel.INFO, "Exit!");
 		} finally {
-			Side.exit();
+			//noinspection ThrowFromFinallyBlock
+			throw new DelayTask(Side.exit());
 		}
 	}
 	

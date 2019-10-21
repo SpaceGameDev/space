@@ -4,8 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import org.lwjgl.vulkan.VkDeviceCreateInfo;
 import space.engine.recourcePool.BlockResourcePool;
 import space.engine.recourcePool.FreeableWrappedResourcePool;
-import space.engine.vulkan.VkCommandBuffer;
-import space.engine.vulkan.VkCommandPool;
 import space.engine.vulkan.VkDevice;
 import space.engine.vulkan.VkEvent;
 import space.engine.vulkan.VkFence;
@@ -14,7 +12,6 @@ import space.engine.vulkan.VkQueueFamilyProperties;
 import space.engine.vulkan.VkSemaphore;
 import space.engine.vulkan.vma.VmaAllocator;
 
-import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
 
 /**
@@ -33,8 +30,6 @@ public abstract class ManagedDevice extends VkDevice {
 		this.vkFencePool = createVkFencePool();
 		this.vkSemaphorePool = createVkSemaphorePool();
 		this.vkEventPool = createVkEventPool();
-		this.vkCommandBufferPoolPrimary = createVkCommandBufferPool(VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-		this.vkCommandBufferPoolSecondary = createVkCommandBufferPool(VK_COMMAND_BUFFER_LEVEL_SECONDARY);
 	}
 	
 	//queue
@@ -93,8 +88,6 @@ public abstract class ManagedDevice extends VkDevice {
 	private FreeableWrappedResourcePool<VkFence, VkFence> vkFencePool;
 	private FreeableWrappedResourcePool<VkSemaphore, VkSemaphore> vkSemaphorePool;
 	private FreeableWrappedResourcePool<VkEvent, VkEvent> vkEventPool;
-	private ThreadLocal<FreeableWrappedResourcePool<VkCommandBuffer, VkCommandBuffer>> vkCommandBufferPoolPrimary;
-	private ThreadLocal<FreeableWrappedResourcePool<VkCommandBuffer, VkCommandBuffer>> vkCommandBufferPoolSecondary;
 	
 	private FreeableWrappedResourcePool<VkFence, VkFence> createVkFencePool() {
 		return FreeableWrappedResourcePool.withLamdba(
@@ -120,17 +113,6 @@ public abstract class ManagedDevice extends VkDevice {
 		);
 	}
 	
-	private ThreadLocal<FreeableWrappedResourcePool<VkCommandBuffer, VkCommandBuffer>> createVkCommandBufferPool(int level) {
-		return ThreadLocal.withInitial(() -> {
-			VkCommandPool commandPool = VkCommandPool.alloc(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, getQueueFamily(QUEUE_TYPE_GRAPHICS), this, EMPTY_OBJECT_ARRAY);
-			return FreeableWrappedResourcePool.withLamdba(
-					BlockResourcePool.withLambda(16, count -> commandPool.allocCommandBuffers(level, count, EMPTY_OBJECT_ARRAY)),
-					(inner, storageCreator, parents) -> new VkCommandBuffer.Default(inner.address(), inner.commandPool(), storageCreator, parents),
-					VkCommandBuffer::reset
-			);
-		});
-	}
-	
 	public FreeableWrappedResourcePool<VkFence, VkFence> vkFencePool() {
 		return vkFencePool;
 	}
@@ -141,13 +123,5 @@ public abstract class ManagedDevice extends VkDevice {
 	
 	public FreeableWrappedResourcePool<VkEvent, VkEvent> vkEventPool() {
 		return vkEventPool;
-	}
-	
-	public FreeableWrappedResourcePool<VkCommandBuffer, VkCommandBuffer> vkCommandBufferPoolPrimary() {
-		return vkCommandBufferPoolPrimary.get();
-	}
-	
-	public FreeableWrappedResourcePool<VkCommandBuffer, VkCommandBuffer> vkCommandBufferPoolSecondary() {
-		return vkCommandBufferPoolSecondary.get();
 	}
 }

@@ -43,7 +43,7 @@ public class ThreadBound {
 	public static Executor getQueue(Thread thread) {
 		@NotNull Entry exec = map.get(thread);
 		if (exec == null)
-			throw new IllegalStateException("No queue present");
+			throw new IllegalStateException("No queue present for Thread " + thread);
 		return exec.executor;
 	}
 	
@@ -58,7 +58,7 @@ public class ThreadBound {
 	public static void addShutdownHook(Thread thread, EventEntry<Starter> entry) {
 		@NotNull Entry exec = map.get(thread);
 		if (exec == null)
-			throw new IllegalStateException("No queue present");
+			throw new IllegalStateException("No queue present for Thread " + thread);
 		exec.onShutdown.addHook(entry);
 	}
 }

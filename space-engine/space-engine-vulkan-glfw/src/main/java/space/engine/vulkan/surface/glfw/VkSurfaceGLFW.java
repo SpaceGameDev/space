@@ -38,7 +38,7 @@ public class VkSurfaceGLFW {
 	}
 	
 	//extensions
-	public static @NotNull Collection<String> getRequiredInstanceExtensions(GLFWWindowFramework windowFramework) {
+	public static @NotNull Collection<String> getRequiredInstanceExtensions(@SuppressWarnings("unused") GLFWWindowFramework windowFramework) {
 		PointerBuffer pointerBuffer = GLFWVulkan.glfwGetRequiredInstanceExtensions();
 		if (pointerBuffer == null)
 			throw new RuntimeException("Required extensions unavailable!");
