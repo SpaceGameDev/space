@@ -40,6 +40,9 @@ public class AsteroidRenderer implements CleanerWrapper, Callback<AsteroidDemoIn
 	private final AsteroidDemoRenderPass renderPass;
 	private final AsteroidPipeline asteroidPipeline;
 	private final AsteroidModel[] asteroidModels;
+	private final int[] asteroidModelsOffset;
+	@SuppressWarnings("FieldCanBeLocal")
+	private final int asteroidModelsCount;
 	private final IndexMap<Collection<Asteroid>> asteroids = new IndexMapArray<>();
 	
 	private final ManagedDescriptorSetPool descriptorSetPool;
@@ -49,9 +52,16 @@ public class AsteroidRenderer implements CleanerWrapper, Callback<AsteroidDemoIn
 		this.asteroidPipeline = asteroidPipeline;
 		this.asteroidModels = asteroidModels;
 		
-		this.storage = Freeable.createDummy(this, addIfNotContained(parents, renderPass, asteroidPipeline));
+		this.asteroidModelsOffset = new int[asteroidModels.length];
+		int modelCount = 0;
+		for (int i = 0; i < asteroidModels.length; i++) {
+			asteroidModelsOffset[i] = modelCount;
+			modelCount += asteroidModels[i].minDistance.length;
+		}
+		this.asteroidModelsCount = modelCount;
 		
-		this.descriptorSetPool = new ManagedDescriptorSetPool(renderPass.device(), asteroidPipeline.descriptorSetLayout(), asteroidModels.length, new Object[] {this});
+		this.storage = Freeable.createDummy(this, addIfNotContained(parents, renderPass, asteroidPipeline));
+		this.descriptorSetPool = new ManagedDescriptorSetPool(renderPass.device(), asteroidPipeline.descriptorSetLayout(), asteroidModelsCount, new Object[] {this});
 	}
 	
 	public void addAsteroid(Asteroid asteroid) {
@@ -65,8 +75,8 @@ public class AsteroidRenderer implements CleanerWrapper, Callback<AsteroidDemoIn
 	@Override
 	public @NotNull List<Future<VkCommandBuffer[]>> getCmdBuffers(@NotNull ManagedFrameBuffer<AsteroidDemoInfos> render, AsteroidDemoInfos infos) {
 		List<? extends Future<ArrayList<VkCommandBuffer>>> futures = asteroids.entrySet().stream().filter(entry -> entry.getValue() != null).map(entry -> nowFuture(() -> {
-			int index = entry.getIndex();
-			AsteroidModel model = asteroidModels[index];
+			int indexAsteroid = entry.getIndex();
+			AsteroidModel model = asteroidModels[indexAsteroid];
 			
 			IndexMap<Collection<Translation>> sorted = new IndexMapArray<>();
 			for (Asteroid asteroid : entry.getValue()) {
@@ -88,6 +98,7 @@ public class AsteroidRenderer implements CleanerWrapper, Callback<AsteroidDemoIn
 				Collection<Translation> translations = entry2.getValue();
 				if (translations == null)
 					continue;
+				int indexModel = entry2.getIndex();
 				
 				VkCommandBuffer cmd0 = render.queue().poolShortLived().allocAndRecordCommandBuffer(
 						VK_COMMAND_BUFFER_LEVEL_SECONDARY,
@@ -108,8 +119,8 @@ public class AsteroidRenderer implements CleanerWrapper, Callback<AsteroidDemoIn
 								instanceBuffer.uploadData(ArrayBufferFloat.alloc(heap(), instanceData, new Object[] {frame}));
 							}
 							
-							asteroidPipeline.bindPipeline(cmd, descriptorSetPool.sets()[index], infos);
-							VkBuffer vertexBuffer = model.models[entry2.getIndex()];
+							asteroidPipeline.bindPipeline(cmd, descriptorSetPool.sets()[asteroidModelsOffset[indexAsteroid] + indexModel], infos);
+							VkBuffer vertexBuffer = model.models[indexModel];
 							vkCmdBindVertexBuffers(cmd, 0, new long[] {
 									vertexBuffer.address(),
 									instanceBuffer.address()
