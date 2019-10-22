@@ -70,7 +70,7 @@ public abstract class ObservableReference<T> {
 	protected final GeneratingOrderingGuarantee ordering = new GeneratingOrderingGuarantee();
 	protected final SequentialEventBuilder<ConsumerWithDelay<? super T>> changeEvent = new SequentialEventBuilder<>();
 	
-	private final @NotNull Barrier initialBarrier;
+	private final @NotNull Future<T> initialBarrier;
 	private volatile T t;
 	
 	@SuppressWarnings("ConstantConditions")
@@ -98,7 +98,7 @@ public abstract class ObservableReference<T> {
 	 * Calling this function outside of a callback may cause it to suddenly return a different value.
 	 * When using this method query the value once and use it over your entire lifespan so it won't change on the fly.
 	 * <p>
-	 * Calling this is the same as calling {@link #getFuture()}.{@link Future#assertGet() assertGet()}
+	 * Calling this is the same as calling {@link #future()}.{@link Future#assertGet() assertGet()}
 	 *
 	 * @return the current T
 	 * @throws FutureNotFinishedException if the initial calculation of t has not yet completed
@@ -116,8 +116,8 @@ public abstract class ObservableReference<T> {
 	 *
 	 * @return a Future which is finished when the initial value is calculated
 	 */
-	public @NotNull Future<T> getFuture() {
-		return initialBarrier.toFuture(() -> this.t);
+	public @NotNull Future<T> future() {
+		return initialBarrier;
 	}
 	
 	//setInternalMayCancel

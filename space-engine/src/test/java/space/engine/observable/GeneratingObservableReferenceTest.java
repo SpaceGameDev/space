@@ -39,7 +39,7 @@ public class GeneratingObservableReferenceTest {
 		for (int i = 0; i < 10; i++) {
 			start.set(i);
 			assertEquals(Thread.currentThread(), callee[0]);
-			assertEquals(((Integer) (i + CHAIN_SIZE)), g.getFuture().awaitGet());
+			assertEquals(((Integer) (i + CHAIN_SIZE)), g.future().awaitGet());
 		}
 	}
 	
