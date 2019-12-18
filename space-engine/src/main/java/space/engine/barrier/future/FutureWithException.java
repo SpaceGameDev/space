@@ -130,11 +130,6 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 			}
 			
 			@Override
-			public void removeHook(@NotNull Runnable run) {
-				FutureWithException.this.removeHook(run);
-			}
-			
-			@Override
 			public void await() throws InterruptedException {
 				FutureWithException.this.await();
 			}
@@ -175,11 +170,6 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 			}
 			
 			@Override
-			public void removeHook(@NotNull Runnable run) {
-				run.run();
-			}
-			
-			@Override
 			public void await() {
 			
 			}
@@ -215,11 +205,6 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 			
 			@Override
 			public void addHook(@NotNull Runnable run) {
-				run.run();
-			}
-			
-			@Override
-			public void removeHook(@NotNull Runnable run) {
 				run.run();
 			}
 			
@@ -358,11 +343,6 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 				}
 				
 				@Override
-				public void removeHook(@NotNull Runnable run) {
-					FutureWith2Exception.this.removeHook(run);
-				}
-				
-				@Override
 				public void await() throws InterruptedException {
 					FutureWith2Exception.this.await();
 				}
@@ -399,11 +379,6 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 				
 				@Override
 				public void addHook(@NotNull Runnable run) {
-					run.run();
-				}
-				
-				@Override
-				public void removeHook(@NotNull Runnable run) {
 					run.run();
 				}
 				
@@ -543,11 +518,6 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 				}
 				
 				@Override
-				public void removeHook(@NotNull Runnable run) {
-					FutureWith3Exception.this.removeHook(run);
-				}
-				
-				@Override
 				public void await() throws InterruptedException {
 					FutureWith3Exception.this.await();
 				}
@@ -584,11 +554,6 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 				
 				@Override
 				public void addHook(@NotNull Runnable run) {
-					run.run();
-				}
-				
-				@Override
-				public void removeHook(@NotNull Runnable run) {
 					run.run();
 				}
 				
@@ -728,11 +693,6 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 				}
 				
 				@Override
-				public void removeHook(@NotNull Runnable run) {
-					FutureWith4Exception.this.removeHook(run);
-				}
-				
-				@Override
 				public void await() throws InterruptedException {
 					FutureWith4Exception.this.await();
 				}
@@ -769,11 +729,6 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 				
 				@Override
 				public void addHook(@NotNull Runnable run) {
-					run.run();
-				}
-				
-				@Override
-				public void removeHook(@NotNull Runnable run) {
 					run.run();
 				}
 				
@@ -913,11 +868,6 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 				}
 				
 				@Override
-				public void removeHook(@NotNull Runnable run) {
-					FutureWith5Exception.this.removeHook(run);
-				}
-				
-				@Override
 				public void await() throws InterruptedException {
 					FutureWith5Exception.this.await();
 				}
@@ -954,11 +904,6 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 				
 				@Override
 				public void addHook(@NotNull Runnable run) {
-					run.run();
-				}
-				
-				@Override
-				public void removeHook(@NotNull Runnable run) {
 					run.run();
 				}
 				

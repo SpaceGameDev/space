@@ -63,11 +63,6 @@ public interface Barrier {
 		}
 		
 		@Override
-		public void removeHook(@NotNull Runnable run) {
-		
-		}
-		
-		@Override
 		public void await() {
 		
 		}
@@ -98,14 +93,6 @@ public interface Barrier {
 	 * @param run the hook as a {@link Runnable}
 	 */
 	void addHook(@NotNull Runnable run);
-	
-	/**
-	 * Removes a previously added hook. This Method is not expected to be called very often.
-	 *
-	 * @param run a previously added hook to remove
-	 * @implNote The removal algorithm can be slow, as it is not expected to be called very often.
-	 */
-	void removeHook(@NotNull Runnable run);
 	
 	//await
 	
@@ -202,11 +189,6 @@ public interface Barrier {
 			@Override
 			public void addHook(@NotNull Runnable run) {
 				Barrier.this.addHook(run);
-			}
-			
-			@Override
-			public void removeHook(@NotNull Runnable run) {
-				Barrier.this.removeHook(run);
 			}
 			
 			@Override

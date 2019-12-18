@@ -79,13 +79,6 @@ public class BarrierImpl implements Barrier {
 	}
 	
 	@Override
-	public synchronized void removeHook(@NotNull Runnable run) {
-		List<Runnable> hookList = this.hookList;
-		if (hookList != null)
-			hookList.remove(run);
-	}
-	
-	@Override
 	public synchronized void await() throws InterruptedException {
 		while (hookList != null)
 			this.wait();
