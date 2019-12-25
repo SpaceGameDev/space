@@ -6,15 +6,14 @@ import space.engine.barrier.Barrier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-@SuppressWarnings("unused")
-public interface FutureWithException<R, EX extends Throwable> extends BaseFuture<R>, Barrier {
+public interface FutureWith2Exception<R, EX1 extends Throwable, EX2 extends Throwable> extends BaseFuture<R>, Barrier {
 	
 	//abstract
-	R awaitGet() throws InterruptedException, EX;
+	R awaitGet() throws InterruptedException, EX1, EX2;
 	
-	R awaitGet(long time, TimeUnit unit) throws InterruptedException, TimeoutException, EX;
+	R awaitGet(long time, TimeUnit unit) throws InterruptedException, TimeoutException, EX1, EX2;
 	
-	R assertGet() throws FutureNotFinishedException, EX;
+	R assertGet() throws FutureNotFinishedException, EX1, EX2;
 	
 	//awaitGetUninterrupted
 	
@@ -22,7 +21,7 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 	 * Waits until event is triggered and doesn't return when interrupted.
 	 * The interrupt status of this {@link Thread} will be restored.
 	 */
-	default R awaitGetUninterrupted() throws EX {
+	default R awaitGetUninterrupted() throws EX1, EX2 {
 		boolean interrupted = false;
 		try {
 			while (true) {
@@ -44,7 +43,7 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 	 *
 	 * @throws TimeoutException thrown if waiting takes longer than the specified timeout
 	 */
-	default R awaitGetUninterrupted(long time, TimeUnit unit) throws TimeoutException, EX {
+	default R awaitGetUninterrupted(long time, TimeUnit unit) throws TimeoutException, EX1, EX2 {
 		boolean interrupted = false;
 		try {
 			while (true) {
@@ -90,9 +89,9 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 		return new Future<>() {
 			@Override
 			public R awaitGet() throws InterruptedException {
-				FutureWithException.this.await();
+				FutureWith2Exception.this.await();
 				try {
-					return FutureWithException.this.assertGet();
+					return FutureWith2Exception.this.assertGet();
 				} catch (Throwable ex) {
 					throw new RuntimeException(ex);
 				}
@@ -100,9 +99,9 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 			
 			@Override
 			public R awaitGet(long time, TimeUnit unit) throws InterruptedException, TimeoutException {
-				FutureWithException.this.await(time, unit);
+				FutureWith2Exception.this.await(time, unit);
 				try {
-					return FutureWithException.this.assertGet();
+					return FutureWith2Exception.this.assertGet();
 				} catch (Throwable ex) {
 					throw new RuntimeException(ex);
 				}
@@ -111,7 +110,7 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 			@Override
 			public R assertGet() throws FutureNotFinishedException {
 				try {
-					return FutureWithException.this.assertGet();
+					return FutureWith2Exception.this.assertGet();
 				} catch (FutureNotFinishedException ex) {
 					throw ex;
 				} catch (Throwable ex) {
@@ -121,29 +120,29 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 			
 			@Override
 			public boolean isDone() {
-				return FutureWithException.this.isDone();
+				return FutureWith2Exception.this.isDone();
 			}
 			
 			@Override
 			public void addHook(@NotNull Runnable run) {
-				FutureWithException.this.addHook(run);
+				FutureWith2Exception.this.addHook(run);
 			}
 			
 			@Override
 			public void await() throws InterruptedException {
-				FutureWithException.this.await();
+				FutureWith2Exception.this.await();
 			}
 			
 			@Override
 			public void await(long time, TimeUnit unit) throws InterruptedException, TimeoutException {
-				FutureWithException.this.await(time, unit);
+				FutureWith2Exception.this.await(time, unit);
 			}
 		};
 	}
 	
 	//static
-	static <R, EX extends Throwable> FutureWithException<R, EX> finished(R get) {
-		return new FutureWithException<>() {
+	static <R, EX1 extends Throwable, EX2 extends Throwable> FutureWith2Exception<R, EX1, EX2> finished(R get) {
+		return new FutureWith2Exception<>() {
 			@Override
 			public R awaitGet() {
 				return get;
@@ -157,45 +156,6 @@ public interface FutureWithException<R, EX extends Throwable> extends BaseFuture
 			@Override
 			public R assertGet() throws FutureNotFinishedException {
 				return get;
-			}
-			
-			@Override
-			public boolean isDone() {
-				return true;
-			}
-			
-			@Override
-			public void addHook(@NotNull Runnable run) {
-				run.run();
-			}
-			
-			@Override
-			public void await() {
-			
-			}
-			
-			@Override
-			public void await(long time, TimeUnit unit) {
-			
-			}
-		};
-	}
-	
-	static <R, EX extends Throwable> FutureWithException<R, EX> finishedException(EX ex) {
-		return new FutureWithException<>() {
-			@Override
-			public R awaitGet() throws EX {
-				throw ex;
-			}
-			
-			@Override
-			public R awaitGet(long time, TimeUnit unit) throws EX {
-				throw ex;
-			}
-			
-			@Override
-			public R assertGet() throws FutureNotFinishedException, EX {
-				throw ex;
 			}
 			
 			@Override
