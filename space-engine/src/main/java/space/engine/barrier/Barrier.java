@@ -573,7 +573,7 @@ public interface Barrier {
 		addHook(() -> SyncLock.acquireLocks(locks, () -> {
 			Barrier barrier = runnable.startNoException();
 			
-			//prevents StackOVerflow from too many Barrier.addHook() calling the Runnable immediately in combination with SyncLock.unlockLocks()
+			//prevents StackOverflow from too many Barrier.addHook() calling the Runnable immediately in combination with SyncLock.unlockLocks()
 			//if it is run immediately -> ThenLockUnlockRunnable.immediatelyRun will be false
 			ThenLockUnlockRunnable run = new ThenLockUnlockRunnable(locks, ret);
 			barrier.addHook(run);

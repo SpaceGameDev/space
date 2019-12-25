@@ -53,7 +53,7 @@ public interface SyncLock {
 			callback.run();
 			return true;
 		}
-			
+		
 		int i;
 		boolean success = true;
 		for (i = 0; i < locks.length; i++) {
