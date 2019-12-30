@@ -7,7 +7,7 @@ import space.engine.barrier.functions.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class CompletableFutureWith2Exception<R, EX1 extends Throwable, EX2 extends Throwable> extends BarrierImpl implements FutureWith2Exception<R, EX1, EX2> {
+public class CompletableFutureWith2Exception<R, EX1 extends Throwable, EX2 extends Throwable> extends BarrierImpl implements FutureWith2Exception<R, EX1, EX2>, GenericCompletable<R> {
 	
 	public final Class<EX1> exceptionClass1;
 	public final Class<EX2> exceptionClass2;
@@ -22,18 +22,12 @@ public class CompletableFutureWith2Exception<R, EX1 extends Throwable, EX2 exten
 	}
 	
 	//complete
+	@Override
 	public void completeCallable(Callable<R> callable) throws DelayTask {
 		try {
 			complete(callable.call());
 		} catch (DelayTask delayTask) {
 			throw delayTask;
-		} catch (RuntimeException | Error e) {
-			if (exceptionClass1.isInstance(e))
-				completeExceptional1((EX1) e);
-			else if (exceptionClass2.isInstance(e))
-				completeExceptional2((EX2) e);
-			else
-				throw e;
 		} catch (Throwable e) {
 			if (exceptionClass1.isInstance(e))
 				//noinspection unchecked
@@ -42,10 +36,12 @@ public class CompletableFutureWith2Exception<R, EX1 extends Throwable, EX2 exten
 				//noinspection unchecked
 				completeExceptional2((EX2) e);
 			else
-				throw new RuntimeException("Exception caught that cannot have been thrown", e);
+				throw GenericFuture.newUnexpectedException(e);
 		}
 	}
 	
+	//no synchronized -> deadlocks in triggerNow() callback handling
+	@Override
 	public void complete(R result) {
 		this.result = result;
 		super.triggerNow();
@@ -59,6 +55,15 @@ public class CompletableFutureWith2Exception<R, EX1 extends Throwable, EX2 exten
 	public void completeExceptional2(EX2 exception) {
 		this.exception2 = exception;
 		super.triggerNow();
+	}
+	
+	/**
+	 * Use {@link #complete(Object)}
+	 */
+	@Override
+	@Deprecated
+	public void triggerNow() {
+		throw new UnsupportedOperationException("Use #compete(Object)");
 	}
 	
 	//get

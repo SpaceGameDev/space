@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 @SuppressWarnings("unused")
-public interface FutureWithException<R, EX extends Throwable> extends BaseFuture<R>, Barrier {
+public interface FutureWithException<R, EX extends Throwable> extends GenericFuture<R>, Barrier {
 	
 	//abstract
 	R awaitGet() throws InterruptedException, EX;

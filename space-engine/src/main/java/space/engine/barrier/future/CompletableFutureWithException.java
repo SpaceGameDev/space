@@ -7,7 +7,7 @@ import space.engine.barrier.functions.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class CompletableFutureWithException<R, EX extends Throwable> extends BarrierImpl implements FutureWithException<R, EX> {
+public class CompletableFutureWithException<R, EX extends Throwable> extends BarrierImpl implements FutureWithException<R, EX>, GenericCompletable<R> {
 	
 	public final Class<EX> exceptionClass;
 	
@@ -19,25 +19,23 @@ public class CompletableFutureWithException<R, EX extends Throwable> extends Bar
 	}
 	
 	//complete
+	@Override
 	public void completeCallable(Callable<R> callable) throws DelayTask {
 		try {
 			complete(callable.call());
 		} catch (DelayTask delayTask) {
 			throw delayTask;
-		} catch (RuntimeException | Error e) {
-			if (exceptionClass.isInstance(e))
-				completeExceptional((EX) e);
-			else
-				throw e;
 		} catch (Throwable e) {
 			if (exceptionClass.isInstance(e))
 				//noinspection unchecked
 				completeExceptional((EX) e);
 			else
-				throw new RuntimeException("Exception caught that cannot have been thrown", e);
+				throw GenericFuture.newUnexpectedException(e);
 		}
 	}
 	
+	//no synchronized -> deadlocks in triggerNow() callback handling
+	@Override
 	public void complete(R result) {
 		this.result = result;
 		super.triggerNow();
@@ -46,6 +44,15 @@ public class CompletableFutureWithException<R, EX extends Throwable> extends Bar
 	public void completeExceptional(EX exception) {
 		this.exception = exception;
 		super.triggerNow();
+	}
+	
+	/**
+	 * Use {@link #complete(Object)}
+	 */
+	@Override
+	@Deprecated
+	public void triggerNow() {
+		throw new UnsupportedOperationException("Use #compete(Object)");
 	}
 	
 	//get

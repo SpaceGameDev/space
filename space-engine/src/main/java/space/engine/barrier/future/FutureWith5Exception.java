@@ -6,7 +6,7 @@ import space.engine.barrier.Barrier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public interface FutureWith5Exception<R, EX1 extends Throwable, EX2 extends Throwable, EX3 extends Throwable, EX4 extends Throwable, EX5 extends Throwable> extends BaseFuture<R>, Barrier {
+public interface FutureWith5Exception<R, EX1 extends Throwable, EX2 extends Throwable, EX3 extends Throwable, EX4 extends Throwable, EX5 extends Throwable> extends GenericFuture<R>, Barrier {
 	
 	//abstract
 	R awaitGet() throws InterruptedException, EX1, EX2, EX3, EX4, EX5;

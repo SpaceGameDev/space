@@ -11,7 +11,6 @@ import space.engine.barrier.functions.SupplierWithDelayAnd3Exception;
 import space.engine.barrier.functions.SupplierWithDelayAnd4Exception;
 import space.engine.barrier.functions.SupplierWithDelayAnd5Exception;
 import space.engine.barrier.functions.SupplierWithDelayAndException;
-import space.engine.barrier.future.BaseFuture;
 import space.engine.barrier.future.CompletableFuture;
 import space.engine.barrier.future.CompletableFutureWith2Exception;
 import space.engine.barrier.future.CompletableFutureWith3Exception;
@@ -25,6 +24,7 @@ import space.engine.barrier.future.FutureWith3Exception;
 import space.engine.barrier.future.FutureWith4Exception;
 import space.engine.barrier.future.FutureWith5Exception;
 import space.engine.barrier.future.FutureWithException;
+import space.engine.barrier.future.GenericFuture;
 import space.engine.barrier.lock.SyncLock;
 import space.engine.simpleQueue.pool.Executor;
 
@@ -45,6 +45,7 @@ import static space.engine.Side.pool;
  */
 public interface Barrier {
 	
+	//static
 	boolean BARRIER_DEBUG = false;
 	
 	class DoneBarrier implements Barrier {
@@ -366,11 +367,11 @@ public interface Barrier {
 			try {
 				ret.completeCallable(runnable::get);
 			} catch (DelayTask delayTask) {
-				if (BARRIER_DEBUG && !(delayTask.barrier instanceof BaseFuture))
+				if (BARRIER_DEBUG && !(delayTask.barrier instanceof GenericFuture))
 					throw new IllegalArgumentException("DelayTask.barrier is not a Future<?>!", delayTask);
 				
 				//noinspection unchecked
-				BaseFuture<T> future = (BaseFuture<T>) delayTask.barrier;
+				GenericFuture<T> future = (GenericFuture<T>) delayTask.barrier;
 				future.addHook(() -> {
 					try {
 						ret.completeCallable(future::assertGetAnyException);
@@ -410,11 +411,11 @@ public interface Barrier {
 			try {
 				ret.completeCallable(runnable::get);
 			} catch (DelayTask delayTask) {
-				if (BARRIER_DEBUG && !(delayTask.barrier instanceof BaseFuture))
+				if (BARRIER_DEBUG && !(delayTask.barrier instanceof GenericFuture))
 					throw new IllegalArgumentException("DelayTask.barrier is not a Future<?>!", delayTask);
 				
 				//noinspection unchecked
-				BaseFuture<T> future = (BaseFuture<T>) delayTask.barrier;
+				GenericFuture<T> future = (GenericFuture<T>) delayTask.barrier;
 				future.addHook(() -> {
 					try {
 						ret.completeCallable(future::assertGetAnyException);
@@ -454,11 +455,11 @@ public interface Barrier {
 			try {
 				ret.completeCallable(runnable::get);
 			} catch (DelayTask delayTask) {
-				if (BARRIER_DEBUG && !(delayTask.barrier instanceof BaseFuture))
+				if (BARRIER_DEBUG && !(delayTask.barrier instanceof GenericFuture))
 					throw new IllegalArgumentException("DelayTask.barrier is not a Future<?>!", delayTask);
 				
 				//noinspection unchecked
-				BaseFuture<T> future = (BaseFuture<T>) delayTask.barrier;
+				GenericFuture<T> future = (GenericFuture<T>) delayTask.barrier;
 				future.addHook(() -> {
 					try {
 						ret.completeCallable(future::assertGetAnyException);
@@ -498,11 +499,11 @@ public interface Barrier {
 			try {
 				ret.completeCallable(runnable::get);
 			} catch (DelayTask delayTask) {
-				if (BARRIER_DEBUG && !(delayTask.barrier instanceof BaseFuture))
+				if (BARRIER_DEBUG && !(delayTask.barrier instanceof GenericFuture))
 					throw new IllegalArgumentException("DelayTask.barrier is not a Future<?>!", delayTask);
 				
 				//noinspection unchecked
-				BaseFuture<T> future = (BaseFuture<T>) delayTask.barrier;
+				GenericFuture<T> future = (GenericFuture<T>) delayTask.barrier;
 				future.addHook(() -> {
 					try {
 						ret.completeCallable(future::assertGetAnyException);
@@ -542,11 +543,11 @@ public interface Barrier {
 			try {
 				ret.completeCallable(runnable::get);
 			} catch (DelayTask delayTask) {
-				if (BARRIER_DEBUG && !(delayTask.barrier instanceof BaseFuture))
+				if (BARRIER_DEBUG && !(delayTask.barrier instanceof GenericFuture))
 					throw new IllegalArgumentException("DelayTask.barrier is not a Future<?>!", delayTask);
 				
 				//noinspection unchecked
-				BaseFuture<T> future = (BaseFuture<T>) delayTask.barrier;
+				GenericFuture<T> future = (GenericFuture<T>) delayTask.barrier;
 				future.addHook(() -> {
 					try {
 						ret.completeCallable(future::assertGetAnyException);

@@ -7,7 +7,7 @@ import space.engine.barrier.functions.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class CompletableFutureWith5Exception<R, EX1 extends Throwable, EX2 extends Throwable, EX3 extends Throwable, EX4 extends Throwable, EX5 extends Throwable> extends BarrierImpl implements FutureWith5Exception<R, EX1, EX2, EX3, EX4, EX5> {
+public class CompletableFutureWith5Exception<R, EX1 extends Throwable, EX2 extends Throwable, EX3 extends Throwable, EX4 extends Throwable, EX5 extends Throwable> extends BarrierImpl implements FutureWith5Exception<R, EX1, EX2, EX3, EX4, EX5>, GenericCompletable<R> {
 	
 	public final Class<EX1> exceptionClass1;
 	public final Class<EX2> exceptionClass2;
@@ -31,24 +31,12 @@ public class CompletableFutureWith5Exception<R, EX1 extends Throwable, EX2 exten
 	}
 	
 	//complete
+	@Override
 	public void completeCallable(Callable<R> callable) throws DelayTask {
 		try {
 			complete(callable.call());
 		} catch (DelayTask delayTask) {
 			throw delayTask;
-		} catch (RuntimeException | Error e) {
-			if (exceptionClass1.isInstance(e))
-				completeExceptional1((EX1) e);
-			else if (exceptionClass2.isInstance(e))
-				completeExceptional2((EX2) e);
-			else if (exceptionClass3.isInstance(e))
-				completeExceptional3((EX3) e);
-			else if (exceptionClass4.isInstance(e))
-				completeExceptional4((EX4) e);
-			else if (exceptionClass5.isInstance(e))
-				completeExceptional5((EX5) e);
-			else
-				throw e;
 		} catch (Throwable e) {
 			if (exceptionClass1.isInstance(e))
 				//noinspection unchecked
@@ -66,10 +54,12 @@ public class CompletableFutureWith5Exception<R, EX1 extends Throwable, EX2 exten
 				//noinspection unchecked
 				completeExceptional5((EX5) e);
 			else
-				throw new RuntimeException("Exception caught that cannot have been thrown", e);
+				throw GenericFuture.newUnexpectedException(e);
 		}
 	}
 	
+	//no synchronized -> deadlocks in triggerNow() callback handling
+	@Override
 	public void complete(R result) {
 		this.result = result;
 		super.triggerNow();
@@ -98,6 +88,15 @@ public class CompletableFutureWith5Exception<R, EX1 extends Throwable, EX2 exten
 	public void completeExceptional5(EX5 exception) {
 		this.exception5 = exception;
 		super.triggerNow();
+	}
+	
+	/**
+	 * Use {@link #complete(Object)}
+	 */
+	@Override
+	@Deprecated
+	public void triggerNow() {
+		throw new UnsupportedOperationException("Use #compete(Object)");
 	}
 	
 	//get

@@ -4,9 +4,9 @@ import org.jetbrains.annotations.NotNull;
 import space.engine.barrier.Barrier;
 import space.engine.barrier.DelayTask;
 import space.engine.barrier.functions.ConsumerWithDelay;
-import space.engine.barrier.future.BaseFuture;
 import space.engine.barrier.future.Future;
 import space.engine.barrier.future.FutureNotFinishedException;
+import space.engine.barrier.future.GenericFuture;
 import space.engine.baseobject.CanceledCheck;
 import space.engine.event.Event;
 import space.engine.event.EventEntry;
@@ -147,20 +147,20 @@ public abstract class ObservableReference<T> {
 			if (canceledCheck.isCanceled())
 				return done();
 			return setInternalAlways(t);
-		} catch (DelayTask e) {
+		} catch (DelayTask delay) {
 			if (canceledCheck.isCanceled())
 				return done();
-			return e.barrier.thenStart(() -> {
+			return delay.barrier.thenStart(() -> {
 				if (canceledCheck.isCanceled())
 					return done();
 				return setInternalMayCancel(previous -> {
 					try {
 						//noinspection unchecked
-						return ((BaseFuture<T>) e.barrier).assertGetAnyException();
-					} catch (NoUpdate | RuntimeException | Error ex) {
-						throw ex;
-					} catch (Throwable ex) {
-						throw new RuntimeException("Exception caught that cannot have been thrown", ex);
+						return ((GenericFuture<T>) delay.barrier).assertGetAnyException();
+					} catch (NoUpdate e) {
+						throw e;
+					} catch (Throwable e) {
+						throw GenericFuture.newUnexpectedException(e);
 					}
 				}, canceledCheck);
 			});
@@ -180,17 +180,17 @@ public abstract class ObservableReference<T> {
 		try {
 			T t = supplier.get(this.t, canceledCheck);
 			return setInternalAlways(t);
-		} catch (DelayTask e) {
-			return e.barrier.thenStart(() -> {
+		} catch (DelayTask delay) {
+			return delay.barrier.thenStart(() -> {
 				//noinspection CodeBlock2Expr
 				return setInternalAlways((previous, canceledCheck1) -> {
 					try {
 						//noinspection unchecked
-						return ((BaseFuture<T>) e.barrier).assertGetAnyException();
-					} catch (NoUpdate | RuntimeException | Error ex) {
-						throw ex;
-					} catch (Throwable ex) {
-						throw new RuntimeException("Exception caught that cannot have been thrown", ex);
+						return ((GenericFuture<T>) delay.barrier).assertGetAnyException();
+					} catch (NoUpdate e) {
+						throw e;
+					} catch (Throwable e) {
+						throw GenericFuture.newUnexpectedException(e);
 					}
 				}, canceledCheck);
 			});

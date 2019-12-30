@@ -5,7 +5,7 @@ import space.engine.barrier.Barrier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public interface Future<R> extends BaseFuture<R>, Barrier {
+public interface Future<R> extends GenericFuture<R>, Barrier {
 	
 	//abstract get
 	R awaitGet() throws InterruptedException;
