@@ -19,7 +19,7 @@ public class ThreadBound {
 	public static class Entry {
 		
 		private final @NotNull Executor executor;
-		private final @NotNull SequentialEventBuilder<Starter> onShutdown = new SequentialEventBuilder<>();
+		private final @NotNull SequentialEventBuilder<Starter<?>> onShutdown = new SequentialEventBuilder<>();
 		
 		public Entry(@NotNull Executor executor) {
 			this.executor = executor;
@@ -27,7 +27,7 @@ public class ThreadBound {
 		
 		public Barrier free() {
 			Builder<Barrier> b = Stream.builder();
-			onShutdown.runImmediatelyThrowIfWait(starter -> b.add(starter.startNoException()));
+			onShutdown.runImmediatelyThrowIfWait(starter -> b.add(starter.startInlineException()));
 			return when(b.build());
 		}
 	}
@@ -51,11 +51,11 @@ public class ThreadBound {
 		getQueue(thread).execute(run);
 	}
 	
-	public static void addShutdownHook(Thread thread, Starter entry) {
+	public static void addShutdownHook(Thread thread, Starter<?> entry) {
 		addShutdownHook(thread, new EventEntry<>(entry));
 	}
 	
-	public static void addShutdownHook(Thread thread, EventEntry<Starter> entry) {
+	public static void addShutdownHook(Thread thread, EventEntry<Starter<?>> entry) {
 		@NotNull Entry exec = map.get(thread);
 		if (exec == null)
 			throw new IllegalStateException("No queue present for Thread " + thread);

@@ -1,11 +1,26 @@
 package space.engine.barrier.future;
 
 import space.engine.barrier.Barrier;
+import space.engine.barrier.Delegate;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public interface Future<R> extends GenericFuture<R>, Barrier {
+	
+	static <T> Delegate<Future<T>, CompletableFuture<T>> delegate() {
+		return new Delegate<>() {
+			@Override
+			public CompletableFuture<T> createCompletable() {
+				return new CompletableFuture<>();
+			}
+			
+			@Override
+			public void complete(CompletableFuture<T> ret, Future<T> delegate) {
+				ret.complete(delegate.assertGet());
+			}
+		};
+	}
 	
 	//abstract get
 	R awaitGet() throws InterruptedException;

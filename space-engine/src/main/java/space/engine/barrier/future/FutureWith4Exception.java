@@ -2,11 +2,26 @@ package space.engine.barrier.future;
 
 import org.jetbrains.annotations.NotNull;
 import space.engine.barrier.Barrier;
+import space.engine.barrier.Delegate;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public interface FutureWith4Exception<R, EX1 extends Throwable, EX2 extends Throwable, EX3 extends Throwable, EX4 extends Throwable> extends GenericFuture<R>, Barrier {
+	
+	static <T, EX1 extends Throwable, EX2 extends Throwable, EX3 extends Throwable, EX4 extends Throwable> Delegate<FutureWith4Exception<T, EX1, EX2, EX3, EX4>, CompletableFutureWith4Exception<T, EX1, EX2, EX3, EX4>> delegate(Class<EX1> exceptionClass1, Class<EX2> exceptionClass2, Class<EX3> exceptionClass3, Class<EX4> exceptionClass4) {
+		return new Delegate<>() {
+			@Override
+			public CompletableFutureWith4Exception<T, EX1, EX2, EX3, EX4> createCompletable() {
+				return new CompletableFutureWith4Exception<>(exceptionClass1, exceptionClass2, exceptionClass3, exceptionClass4);
+			}
+			
+			@Override
+			public void complete(CompletableFutureWith4Exception<T, EX1, EX2, EX3, EX4> ret, FutureWith4Exception<T, EX1, EX2, EX3, EX4> delegate) {
+				ret.completeCallableNoDelay(delegate::assertGetAnyException);
+			}
+		};
+	}
 	
 	//abstract
 	R awaitGet() throws InterruptedException, EX1, EX2, EX3, EX4;

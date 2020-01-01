@@ -2,6 +2,7 @@ package space.engine.freeable;
 
 import org.jetbrains.annotations.Nullable;
 import space.engine.Side;
+import space.engine.barrier.Barrier;
 import space.engine.barrier.BarrierImpl;
 import space.engine.barrier.functions.Starter;
 import space.engine.event.EventEntry;
@@ -22,7 +23,7 @@ public final class CleanerThread {
 	public static final ReferenceQueue<Object> QUEUE = new ReferenceQueue<>();
 	
 	//exit event entry
-	public static final EventEntry<Starter> EXIT_EVENT_ENTRY_FREEABLE_ROOT_LIST_FREE;
+	public static final EventEntry<Starter<Barrier>> EXIT_EVENT_ENTRY_FREEABLE_ROOT_LIST_FREE;
 	
 	//instance management
 	@Nullable

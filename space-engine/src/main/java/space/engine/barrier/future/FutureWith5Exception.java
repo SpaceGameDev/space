@@ -2,11 +2,26 @@ package space.engine.barrier.future;
 
 import org.jetbrains.annotations.NotNull;
 import space.engine.barrier.Barrier;
+import space.engine.barrier.Delegate;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public interface FutureWith5Exception<R, EX1 extends Throwable, EX2 extends Throwable, EX3 extends Throwable, EX4 extends Throwable, EX5 extends Throwable> extends GenericFuture<R>, Barrier {
+	
+	static <T, EX1 extends Throwable, EX2 extends Throwable, EX3 extends Throwable, EX4 extends Throwable, EX5 extends Throwable> Delegate<FutureWith5Exception<T, EX1, EX2, EX3, EX4, EX5>, CompletableFutureWith5Exception<T, EX1, EX2, EX3, EX4, EX5>> delegate(Class<EX1> exceptionClass1, Class<EX2> exceptionClass2, Class<EX3> exceptionClass3, Class<EX4> exceptionClass4, Class<EX5> exceptionClass5) {
+		return new Delegate<>() {
+			@Override
+			public CompletableFutureWith5Exception<T, EX1, EX2, EX3, EX4, EX5> createCompletable() {
+				return new CompletableFutureWith5Exception<>(exceptionClass1, exceptionClass2, exceptionClass3, exceptionClass4, exceptionClass5);
+			}
+			
+			@Override
+			public void complete(CompletableFutureWith5Exception<T, EX1, EX2, EX3, EX4, EX5> ret, FutureWith5Exception<T, EX1, EX2, EX3, EX4, EX5> delegate) {
+				ret.completeCallableNoDelay(delegate::assertGetAnyException);
+			}
+		};
+	}
 	
 	//abstract
 	R awaitGet() throws InterruptedException, EX1, EX2, EX3, EX4, EX5;

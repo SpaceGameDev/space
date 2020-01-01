@@ -2,12 +2,27 @@ package space.engine.barrier.future;
 
 import org.jetbrains.annotations.NotNull;
 import space.engine.barrier.Barrier;
+import space.engine.barrier.Delegate;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 @SuppressWarnings("unused")
 public interface FutureWithException<R, EX extends Throwable> extends GenericFuture<R>, Barrier {
+	
+	static <T, EX extends Throwable> Delegate<FutureWithException<T, EX>, CompletableFutureWithException<T, EX>> delegate(Class<EX> exceptionClass) {
+		return new Delegate<>() {
+			@Override
+			public CompletableFutureWithException<T, EX> createCompletable() {
+				return new CompletableFutureWithException<>(exceptionClass);
+			}
+			
+			@Override
+			public void complete(CompletableFutureWithException<T, EX> ret, FutureWithException<T, EX> delegate) {
+				ret.completeCallableNoDelay(delegate::assertGetAnyException);
+			}
+		};
+	}
 	
 	//abstract
 	R awaitGet() throws InterruptedException, EX;
