@@ -1,13 +1,11 @@
 package space.engine.barrier;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -16,39 +14,43 @@ import java.util.concurrent.TimeoutException;
  */
 public class BarrierImpl implements Barrier {
 	
-	private static final VarHandle HOOKLIST;
+	private static final VarHandle TRIGGERED;
 	
 	static {
 		try {
 			Lookup lookup = MethodHandles.lookup();
-			HOOKLIST = lookup.findVarHandle(BarrierImpl.class, "hookList", List.class);
+			TRIGGERED = lookup.findVarHandle(BarrierImpl.class, "finished", boolean.class);
 		} catch (IllegalAccessException | NoSuchFieldException e) {
 			throw new ExceptionInInitializerError(e);
 		}
 	}
 	
-	private volatile @Nullable List<Runnable> hookList;
+	private volatile boolean finished;
+	private @NotNull ArrayList<Runnable> hookList;
 	
 	public BarrierImpl() {
-		this(false);
+		this.hookList = new ArrayList<>();
 	}
 	
 	public BarrierImpl(boolean initialTriggerState) {
-		hookList = initialTriggerState ? null : new ArrayList<>(0);
+		this();
+		this.finished = initialTriggerState;
 	}
 	
 	//trigger
 	public void triggerNow() {
-		List<Runnable> hookList;
 		synchronized (this) {
-			//noinspection unchecked
-			hookList = (List<Runnable>) HOOKLIST.getAndSet(this, null);
-			if (hookList == null)
+			if (!TRIGGERED.compareAndSet(this, false, true))
 				throw exceptionBarrierAlreadyTriggered();
 			
 			//trigger this Barrier
 			this.notifyAll();
 		}
+		
+		//run all hooks
+		ArrayList<Runnable> hookList = this.hookList;
+		//noinspection ConstantConditions
+		this.hookList = null;
 		hookList.forEach(Runnable::run);
 	}
 	
@@ -59,16 +61,14 @@ public class BarrierImpl implements Barrier {
 	//impl
 	@Override
 	public boolean isDone() {
-		return hookList == null;
+		return finished;
 	}
 	
 	@Override
 	public void addHook(@NotNull Runnable run) {
-		List<Runnable> hookList = this.hookList;
-		if (hookList != null) {
+		if (!finished) {
 			synchronized (this) {
-				hookList = this.hookList;
-				if (hookList != null) {
+				if (!finished) {
 					hookList.add(run);
 					return;
 				}
@@ -80,7 +80,7 @@ public class BarrierImpl implements Barrier {
 	
 	@Override
 	public synchronized void await() throws InterruptedException {
-		while (hookList != null)
+		while (!finished)
 			this.wait();
 	}
 	
@@ -89,7 +89,7 @@ public class BarrierImpl implements Barrier {
 		long sleepTime = unit.toNanos(time);
 		long deadline = System.nanoTime() + sleepTime;
 		
-		while (hookList != null) {
+		while (!finished) {
 			this.wait(sleepTime / 1000000, (int) (sleepTime % 1000000));
 			sleepTime = deadline - System.nanoTime();
 			if (sleepTime <= 0)
@@ -99,6 +99,6 @@ public class BarrierImpl implements Barrier {
 	
 	@Override
 	public String toString() {
-		return isDone() ? "finished" : "waiting";
+		return finished ? "finished" : "waiting";
 	}
 }
