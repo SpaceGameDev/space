@@ -21,7 +21,6 @@ import space.engine.freeableStorage.FreeableStorage;
 import space.engine.key.attribute.AbstractAttributeList;
 import space.engine.key.attribute.AttributeList;
 import space.engine.key.attribute.AttributeListModify;
-import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
 import space.engine.simpleQueue.pool.Executor;
 import space.engine.simpleQueue.pool.SimpleThreadPool;
 import space.engine.window.Monitor;
@@ -81,7 +80,7 @@ public class GLFWWindow implements Window, FreeableWrapper {
 	public static class Storage extends FreeableStorage implements Executor {
 		
 		protected volatile long windowPointer;
-		protected SimpleThreadPool exec = new SimpleThreadPool(1, new ConcurrentLinkedSimpleQueue<>(), r -> new Thread(r, "GLFWWindowThread-" + WINDOW_THREAD_COUNTER.getAndIncrement()));
+		protected SimpleThreadPool exec = new SimpleThreadPool(1, r -> new Thread(r, "GLFWWindowThread-" + WINDOW_THREAD_COUNTER.getAndIncrement()));
 		
 		public Storage(Object referent, Object[] parents) {
 			super(referent, parents);

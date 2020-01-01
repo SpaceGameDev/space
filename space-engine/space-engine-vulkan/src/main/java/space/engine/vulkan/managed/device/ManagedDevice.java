@@ -4,7 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import org.lwjgl.vulkan.VkDeviceCreateInfo;
 import space.engine.recourcePool.FreeableWrappedResourcePool;
 import space.engine.recourcePool.ResourcePool;
-import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
 import space.engine.vulkan.VkDevice;
@@ -29,7 +28,7 @@ public abstract class ManagedDevice extends VkDevice {
 	}
 	
 	public void init() {
-		this.eventAwaiter = new EventAwaiter(this, new ConcurrentLinkedSimpleQueue<>(), new Object[] {this});
+		this.eventAwaiter = new EventAwaiter(this, new Object[] {this});
 		this.vmaAllocator = VmaAllocator.alloc(this, new Object[] {this});
 		this.vkFencePool = createVkFencePool();
 		this.vkSemaphorePool = createVkSemaphorePool();

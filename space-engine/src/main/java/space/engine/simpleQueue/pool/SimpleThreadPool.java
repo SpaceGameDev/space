@@ -8,12 +8,21 @@ import java.util.concurrent.ThreadFactory;
 
 public class SimpleThreadPool extends SimpleMessagePool<Runnable> implements Executor {
 	
-	public SimpleThreadPool(int threadCnt, @NotNull SimpleQueue<Runnable> queue) {
-		super(threadCnt, queue);
+	public SimpleThreadPool(int threadCnt) {
+		super(threadCnt);
 	}
 	
-	public SimpleThreadPool(int threadCnt, @NotNull SimpleQueue<Runnable> queue, ThreadFactory threadFactory) {
-		super(threadCnt, queue, threadFactory);
+	public SimpleThreadPool(int threadCnt, ThreadFactory threadFactory) {
+		super(threadCnt, threadFactory);
+	}
+	
+	public SimpleThreadPool(int threadCnt, ThreadFactory threadFactory, @NotNull SimpleQueue<Runnable> queue, int pauseCountdown) {
+		super(threadCnt, threadFactory, queue, pauseCountdown);
+	}
+	
+	@SuppressWarnings("unused")
+	protected SimpleThreadPool(int threadCnt, ThreadFactory threadFactory, @NotNull SimpleQueue<Runnable> queue, int pauseCountdown, boolean callinit) {
+		super(threadCnt, threadFactory, queue, pauseCountdown, callinit);
 	}
 	
 	//handle

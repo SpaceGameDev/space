@@ -5,7 +5,9 @@ import space.engine.barrier.Barrier;
 import space.engine.barrier.BarrierImpl;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.FreeableStorage;
+import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
 import space.engine.simpleQueue.SimpleQueue;
+import space.engine.simpleQueue.pool.ThreadBound.Entry;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
@@ -19,6 +21,7 @@ import java.util.stream.IntStream;
 
 public abstract class SimpleMessagePool<MSG> {
 	
+	public static final int DEFAULT_PAUSE_COUNTDOWN = 1000;
 	private static final VarHandle SOMETHREADSLEEPING;
 	
 	static {
@@ -33,77 +36,139 @@ public abstract class SimpleMessagePool<MSG> {
 	protected final Thread[] threads;
 	private volatile boolean someThreadSleeping = false;
 	
+	//shutdown
 	private volatile boolean isRunning = true;
 	private final AtomicInteger exitCountdown;
 	private final BarrierImpl stopBarrier;
 	
-	public SimpleMessagePool(int threadCnt, @NotNull SimpleQueue<MSG> queue) {
-		this(threadCnt, queue, Executors.defaultThreadFactory(), true);
+	/**
+	 * @see SimpleMessagePool#SimpleMessagePool(int, ThreadFactory, SimpleQueue, int, boolean)
+	 */
+	public SimpleMessagePool(int threadCnt) {
+		this(threadCnt, Executors.defaultThreadFactory(), new ConcurrentLinkedSimpleQueue<>(), DEFAULT_PAUSE_COUNTDOWN);
 	}
 	
-	public SimpleMessagePool(int threadCnt, @NotNull SimpleQueue<MSG> queue, ThreadFactory threadFactory) {
-		this(threadCnt, queue, threadFactory, true);
+	/**
+	 * @see SimpleMessagePool#SimpleMessagePool(int, ThreadFactory, SimpleQueue, int, boolean)
+	 */
+	public SimpleMessagePool(int threadCnt, ThreadFactory threadFactory) {
+		this(threadCnt, threadFactory, new ConcurrentLinkedSimpleQueue<>(), DEFAULT_PAUSE_COUNTDOWN);
 	}
 	
-	protected SimpleMessagePool(int threadCnt, @NotNull SimpleQueue<MSG> queue, ThreadFactory threadFactory, boolean callinit) {
+	/**
+	 * Creates a new {@link SimpleThreadPool}
+	 *
+	 * @param threadCnt      the amount of threads in the pool
+	 * @param queue          the {@link SimpleQueue} to use. Recommended: {@link ConcurrentLinkedSimpleQueue}
+	 * @param threadFactory  the {@link ThreadFactory} to construct {@link Thread Threads} from
+	 * @param pauseCountdown the amount of tasks to execute before 'pausing' and handling {@link ThreadBound} tasks
+	 */
+	public SimpleMessagePool(int threadCnt, ThreadFactory threadFactory, @NotNull SimpleQueue<MSG> queue, int pauseCountdown) {
+		this(threadCnt, threadFactory, queue, pauseCountdown, true);
+	}
+	
+	protected SimpleMessagePool(int threadCnt, ThreadFactory threadFactory, @NotNull SimpleQueue<MSG> queue, int pauseCountdown, boolean callinit) {
+		if (pauseCountdown <= 0)
+			throw new IllegalArgumentException("pauseCountdown " + pauseCountdown + " <= 0");
+		
 		this.queue = queue;
 		this.exitCountdown = new AtomicInteger(threadCnt);
 		this.stopBarrier = new BarrierImpl();
 		
-		Runnable poolMain = () -> {
-			while (true) {
-				MSG msg = queue.remove();
-				if (msg != null) {
-					//execute Runnable
-					try {
+		Runnable poolMain = new Runnable() {
+			@Override
+			public void run() {
+				Thread thread = Thread.currentThread();
+				ConcurrentLinkedSimpleQueue<Runnable> threadBoundQueue = new ConcurrentLinkedSimpleQueue<>();
+				Entry threadBoundEntry = ThreadBound.addQueue(thread, command -> {
+					threadBoundQueue.add(command);
+					thread.interrupt();
+				});
+				prepare(thread);
+				
+				while (true) {
+					//poll and execute util dry or pauseCountdown
+					boolean queueDry = false;
+					for (int i = 0; i < pauseCountdown; i++) {
+						MSG msg = queue.remove();
+						if (msg == null) {
+							queueDry = true;
+							break;
+						}
 						handle(msg);
-					} catch (Throwable e) {
-						Thread thread = Thread.currentThread();
-						thread.getUncaughtExceptionHandler().uncaughtException(thread, e);
 					}
-				} else {
+					
+					//poll from ThreadAffine
+					Runnable run;
+					while ((run = threadBoundQueue.remove()) != null)
+						run.run();
 					
 					//no more work -> call #handleDone()
-					try {
-						if (!handleDone())
-							continue;
-					} catch (Throwable e) {
-						Thread thread = Thread.currentThread();
-						thread.getUncaughtExceptionHandler().uncaughtException(thread, e);
-					}
+					if (!(handleDone() && queueDry))
+						continue;
 					
-					//#handleDone() allows sleeping
-					synchronized (this) {
-						SOMETHREADSLEEPING.set(this, true);
+					//sleeping is allowed
+					synchronized (SimpleMessagePool.this) {
+						SOMETHREADSLEEPING.set(SimpleMessagePool.this, true);
 						
-						//check preconditions for sleeping
+						//preconditions for sleeping
 						if (!isRunning)
 							break;
-						msg = queue.remove();
-						if (msg == null) {
-							
-							//actually sleep
-							try {
-								this.wait();
-							} catch (InterruptedException ignored) {
-							
-							}
+						MSG msg = queue.remove();
+						if (msg != null) {
+							handle(msg);
 							continue;
 						}
+						
+						//actually sleep
+						try {
+							SimpleMessagePool.this.wait();
+						} catch (InterruptedException ignored) {
+						
+						}
 					}
+				}
+				
+				//shutdown ThreadBound
+				Barrier threadBoundShutdownBarrier = threadBoundEntry.free();
+				threadBoundShutdownBarrier.addHook(thread::interrupt);
+				while (true) {
+					Runnable run;
+					while ((run = threadBoundQueue.remove()) != null)
+						run.run();
 					
-					//new work was submitted while thread wanted to go sleeping
+					if (threadBoundShutdownBarrier.isDone())
+						break;
+					
 					try {
-						handle(msg);
-					} catch (Throwable e) {
-						Thread thread = Thread.currentThread();
-						thread.getUncaughtExceptionHandler().uncaughtException(thread, e);
+						Thread.sleep(500);
+					} catch (InterruptedException ignored) {
+					
 					}
+				}
+				
+				if (exitCountdown.decrementAndGet() == 0)
+					stopBarrier.triggerNow();
+			}
+			
+			public void handle(MSG msg) {
+				try {
+					SimpleMessagePool.this.handle(msg);
+				} catch (Throwable e) {
+					Thread thread = Thread.currentThread();
+					thread.getUncaughtExceptionHandler().uncaughtException(thread, e);
 				}
 			}
 			
-			if (exitCountdown.decrementAndGet() == 0)
-				stopBarrier.triggerNow();
+			public boolean handleDone() {
+				try {
+					return SimpleMessagePool.this.handleDone();
+				} catch (Throwable e) {
+					Thread thread = Thread.currentThread();
+					thread.getUncaughtExceptionHandler().uncaughtException(thread, e);
+					return true;
+				}
+			}
 		};
 		
 		this.threads = IntStream.range(0, threadCnt)
@@ -119,6 +184,15 @@ public abstract class SimpleMessagePool<MSG> {
 	}
 	
 	//handle
+	
+	/**
+	 * Called by each thread once on startup. Default implementation does nothing.
+	 *
+	 * @param thread the thread to initialize (== {@link Thread#currentThread()})
+	 */
+	protected void prepare(Thread thread) {
+	
+	}
 	
 	/**
 	 * handle the messsage

@@ -12,7 +12,6 @@ import space.engine.buffer.array.ArrayBufferLong;
 import space.engine.buffer.array.ArrayBufferPointer;
 import space.engine.buffer.pointer.PointerBufferPointer;
 import space.engine.freeableStorage.Freeable;
-import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
 import space.engine.simpleQueue.pool.SimpleThreadPool;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
@@ -56,7 +55,6 @@ public class ManagedQueue extends VkQueue {
 		//submit
 		this.pool = new SimpleThreadPool(
 				1,
-				new ConcurrentLinkedSimpleQueue<>(),
 				r -> new Thread(r, "ManagedQueue-" + MANAGED_QUEUE_THREAD_COUNTER.getAndIncrement())
 		);
 		this.pool.createStopFreeable(new Object[] {this});

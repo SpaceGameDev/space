@@ -9,6 +9,7 @@ import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferLong;
 import space.engine.freeableStorage.Freeable;
 import space.engine.freeableStorage.Freeable.FreeableWrapper;
+import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
 import space.engine.simpleQueue.SimpleQueue;
 import space.engine.simpleQueue.pool.SimpleMessagePool;
 import space.engine.vulkan.VkFence;
@@ -33,16 +34,20 @@ public class EventAwaiter implements FreeableWrapper {
 		}
 	};
 	
-	public EventAwaiter(@NotNull ManagedDevice device, @NotNull SimpleQueue<Entry> queue, Object[] parents) {
-		this(device, queue, DEFAULT_THREAD_FACTORY, parents);
+	public EventAwaiter(@NotNull ManagedDevice device, Object[] parents) {
+		this(device, DEFAULT_THREAD_FACTORY, parents);
 	}
 	
-	public EventAwaiter(@NotNull ManagedDevice device, @NotNull SimpleQueue<Entry> queue, ThreadFactory threadFactory, Object[] parents) {
+	public EventAwaiter(@NotNull ManagedDevice device, @NotNull ThreadFactory threadFactory, Object[] parents) {
+		this(device, threadFactory, new ConcurrentLinkedSimpleQueue<>(), SimpleMessagePool.DEFAULT_PAUSE_COUNTDOWN, parents);
+	}
+	
+	public EventAwaiter(@NotNull ManagedDevice device, @NotNull ThreadFactory threadFactory, @NotNull SimpleQueue<Entry> queue, int pauseCountdown, Object[] parents) {
 		this.device = device;
 		this.storage = Freeable.createDummy(this, parents);
 		
 		//pool
-		this.pool = new SimpleMessagePool<>(1, queue, threadFactory) {
+		this.pool = new SimpleMessagePool<>(1, threadFactory, queue, pauseCountdown) {
 			
 			private ArrayList<Entry> accumulator = new ArrayList<>();
 			
