@@ -3,7 +3,7 @@ package space.engine.vulkan;
 import org.jetbrains.annotations.NotNull;
 import space.engine.barrier.Barrier;
 import space.engine.buffer.Buffer;
-import space.engine.freeableStorage.Freeable;
+import space.engine.freeable.Freeable;
 
 import java.util.function.BiFunction;
 
@@ -40,7 +40,7 @@ public interface VkImage extends Freeable {
 	
 	@NotNull Barrier uploadData(@NotNull Buffer data, int bufferRowLength, int bufferImageHeight, int dstImageLayout, int aspectMask, int mipLevel, int baseArrayLayer, int layerCount);
 	
-	class Default implements VkImage, FreeableWrapper {
+	class Default implements VkImage, CleanerWrapper {
 		
 		//const
 		public Default(long address, int imageType, int imageFormat, int width, int height, int depth, int mipLevels, int arrayLayers, int samples, int tiling, @NotNull VkDevice device, @NotNull BiFunction<? super Default, Object[], Freeable> storageCreator, @NotNull Object[] parents) {

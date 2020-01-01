@@ -37,7 +37,7 @@ public class DelegatingEntry<K, V> implements Map.Entry<K, V> {
 			return true;
 		if (!(obj instanceof Map.Entry))
 			return false;
-		Map.Entry other = (Map.Entry) obj;
+		Map.Entry<?, ?> other = (Map.Entry<?, ?>) obj;
 		return Objects.equals(getKey(), other.getKey()) && Objects.equals(getValue(), other.getValue());
 	}
 }

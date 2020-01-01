@@ -1,10 +1,11 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+#include "translation.glsl"
+
 layout(binding = 0) uniform UniformGlobal {
 	mat4 projection;
-	mat3 cameraRotation;
-	vec3 cameraOffset;
+	Translation cameraTranslation;
 } uniformGlobal;
 
 layout(location = 0) in vec3 inPosScreenspace;
@@ -31,9 +32,9 @@ void main() {
 	if (!(gasgiantShadowPlaneDistanceToFrag > 0 && gasgiantShadowPlaneRadius < gasgiantRadius)) {
 
 		//diffuse
-		vec3 viewDir = normalize(uniformGlobal.cameraOffset - inPosWorldspace);
+		vec3 viewDir = normalize(uniformGlobal.cameraTranslation.offset - inPosWorldspace);
 		float diff = max(dot(inNormal, lightDir), 0);
-		light += diff * 2;
+		light += diff;
 
 		//specular
 		vec3 reflectDir = reflect(-lightDir, inNormal);
@@ -41,10 +42,6 @@ void main() {
 		light += specularStrength * spec;
 	}
 
-	//effect
-	float effect = 1 - (fragVertexDistance.x*fragVertexDistance.x + fragVertexDistance.y*fragVertexDistance.y + fragVertexDistance.z*fragVertexDistance.z);
-	effect = effect * 0.3 + 0.7;
-
 	//outColor
-	outColor = vec4(light * lightColor * effect, 1.0);
+	outColor = vec4(light * lightColor, 1.0);
 }

@@ -17,34 +17,29 @@ public interface Event<FUNCTION> {
 	 * adds the hook to this event
 	 *
 	 * @param hook the hook to add
+	 * @return the hook supplied
 	 */
-	void addHook(@NotNull EventEntry<? extends FUNCTION> hook);
+	<T extends FUNCTION> EventEntry<T> addHook(@NotNull EventEntry<T> hook);
 	
 	/**
 	 * creates a {@link EventEntry} and adds it as a hook.
 	 */
-	default EventEntry<FUNCTION> addHook(FUNCTION function) {
-		EventEntry<FUNCTION> entry = new EventEntry<>(function);
-		addHook(entry);
-		return entry;
+	default <T extends FUNCTION> EventEntry<T> addHook(T function) {
+		return addHook(new EventEntry<>(function));
 	}
 	
 	/**
 	 * creates a {@link EventEntry} and adds it as a hook.
 	 */
 	default EventEntry<FUNCTION> addHook(FUNCTION function, @NotNull EventEntry<?>... requires) {
-		EventEntry<FUNCTION> entry = new EventEntry<>(function, requires);
-		addHook(entry);
-		return entry;
+		return addHook(new EventEntry<>(function, requires));
 	}
 	
 	/**
 	 * creates a {@link EventEntry} and adds it as a hook.
 	 */
 	default EventEntry<FUNCTION> addHook(FUNCTION function, @NotNull EventEntry<?>[] requiredBy, @NotNull EventEntry<?>... requires) {
-		EventEntry<FUNCTION> entry = new EventEntry<>(function, requiredBy, requires);
-		addHook(entry);
-		return entry;
+		return addHook(new EventEntry<>(function, requiredBy, requires));
 	}
 	
 	/**
@@ -66,8 +61,8 @@ public interface Event<FUNCTION> {
 	static <FUNCTION> Event<FUNCTION> voidEvent() {
 		return new Event<>() {
 			@Override
-			public void addHook(@NotNull EventEntry<? extends FUNCTION> hook) {
-			
+			public <T extends FUNCTION> EventEntry<T> addHook(@NotNull EventEntry<T> hook) {
+				return hook;
 			}
 			
 			@Override

@@ -4,19 +4,20 @@ import space.engine.barrier.Barrier;
 import space.engine.barrier.DelayTask;
 
 @FunctionalInterface
-public interface Starter {
+public interface Starter<B extends Barrier> {
 	
-	Barrier start() throws DelayTask;
+	B start() throws DelayTask;
 	
-	default Barrier startNoException() {
+	default B startInlineException() {
 		try {
 			return start();
 		} catch (DelayTask delayTask) {
-			return delayTask.barrier;
+			//noinspection unchecked
+			return (B) delayTask.barrier;
 		}
 	}
 	
-	static Starter noop() {
+	static Starter<Barrier> noop() {
 		return Barrier::done;
 	}
 }

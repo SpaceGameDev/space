@@ -11,8 +11,7 @@ import space.engine.buffer.array.ArrayBufferInt;
 import space.engine.buffer.array.ArrayBufferLong;
 import space.engine.buffer.array.ArrayBufferPointer;
 import space.engine.buffer.pointer.PointerBufferPointer;
-import space.engine.freeableStorage.Freeable;
-import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
+import space.engine.freeable.Freeable;
 import space.engine.simpleQueue.pool.SimpleThreadPool;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkCommandPool;
@@ -50,13 +49,14 @@ public class ManagedQueue extends VkQueue {
 		super(address, device, queueFamily);
 		this.device = device;
 		init(Freeable::createDummy, parents);
-		this.commandPool = ThreadLocal.withInitial(() -> VkCommandPool.alloc(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, queueFamily, device, new Object[] {this}));
-		this.commandPoolShortLived = ThreadLocal.withInitial(() -> VkCommandPool.alloc(VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, queueFamily, device, new Object[] {this}));
+		this.commandPools = ThreadLocal.withInitial(() -> new SharedCmdPool(
+				VkCommandPool.alloc(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, queueFamily, device, new Object[] {this}),
+				VkCommandPool.alloc(VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, queueFamily, device, new Object[] {this})
+		));
 		
 		//submit
 		this.pool = new SimpleThreadPool(
 				1,
-				new ConcurrentLinkedSimpleQueue<>(),
 				r -> new Thread(r, "ManagedQueue-" + MANAGED_QUEUE_THREAD_COUNTER.getAndIncrement())
 		);
 		this.pool.createStopFreeable(new Object[] {this});
@@ -124,7 +124,7 @@ public class ManagedQueue extends VkQueue {
 		@Override
 		public Barrier run(ManagedQueue queue) {
 			try (AllocatorFrame frame = Allocator.frame()) {
-				VkFence fence = queue.device().vkFencePool().allocate(EMPTY_OBJECT_ARRAY);
+				VkFence fence = queue.device().vkFencePool().allocate();
 				nvkQueueSubmit(queue, 1, mallocStruct(frame, VkSubmitInfo::create, VkSubmitInfo.SIZEOF).set(
 						VK_STRUCTURE_TYPE_SUBMIT_INFO,
 						0,
@@ -142,24 +142,20 @@ public class ManagedQueue extends VkQueue {
 	}
 	
 	//commandPool
-	private final ThreadLocal<VkCommandPool> commandPool;
-	private final ThreadLocal<VkCommandPool> commandPoolShortLived;
+	private final ThreadLocal<SharedCmdPool> commandPools;
 	
-	/**
-	 * {@link VkCommandPool} for long holding allocations
-	 */
-	public VkCommandPool commandPool() {
-		return commandPool.get();
+	public SharedCmdPool poolShared() {
+		return commandPools.get();
 	}
 	
-	/**
-	 * {@link VkCommandPool} for short-lived allocations
-	 */
-	public VkCommandPool commandPoolShortLived() {
-		return commandPoolShortLived.get();
+	public VkCommandPool poolShortLived() {
+		return commandPools.get().shortLived;
 	}
 	
-	//recordAndSubmit
+	public VkCommandPool poolLongTerm() {
+		return commandPools.get().shortLived;
+	}
+	
 	public Barrier recordAndSubmit(Consumer<VkCommandBuffer> function) {
 		return recordAndSubmit(cmd -> {
 			function.accept(cmd);
@@ -168,14 +164,20 @@ public class ManagedQueue extends VkQueue {
 	}
 	
 	public Barrier recordAndSubmit(Function<VkCommandBuffer, Object> function) {
-		VkCommandBuffer cmd = commandPoolShortLived().allocCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, EMPTY_OBJECT_ARRAY);
+		VkCommandBuffer cmd = poolShortLived().allocAndRecordCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, EMPTY_OBJECT_ARRAY, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, function);
+		Barrier ret = inner(submit(cmd));
+		ret.addHook(cmd::free);
+		return ret;
+	}
+	
+	public static class SharedCmdPool {
 		
-		cmd.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-		Object recordingDependencies = function.apply(cmd);
-		cmd.end(recordingDependencies);
+		public final VkCommandPool longTerm;
+		public final VkCommandPool shortLived;
 		
-		Barrier executionDone = inner(submit(cmd));
-		executionDone.addHook(cmd::free);
-		return executionDone;
+		public SharedCmdPool(VkCommandPool longTerm, VkCommandPool shortLived) {
+			this.longTerm = longTerm;
+			this.shortLived = shortLived;
+		}
 	}
 }

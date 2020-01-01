@@ -4,13 +4,13 @@ import org.jetbrains.annotations.NotNull;
 import org.lwjgl.system.CustomBuffer;
 import org.lwjgl.system.Struct;
 import space.engine.event.EventEntry;
-import space.engine.freeableStorage.Freeable;
+import space.engine.freeable.Freeable;
 import space.engine.unsafe.UnsafeInstance;
 import sun.misc.Unsafe;
 
 import java.util.function.Function;
 
-import static space.engine.freeableStorage.Freeable.GET_SUBLIST_EVENT;
+import static space.engine.freeable.Freeable.GET_SUBLIST_EVENT;
 
 class Attachment {
 	

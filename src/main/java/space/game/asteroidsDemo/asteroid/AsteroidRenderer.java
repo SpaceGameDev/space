@@ -5,13 +5,13 @@ import space.engine.barrier.future.Future;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferFloat;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.indexmap.IndexMap;
 import space.engine.indexmap.IndexMap.Entry;
 import space.engine.indexmap.IndexMapArray;
 import space.engine.vector.Translation;
-import space.engine.vector.Vector3f;
+import space.engine.vector.Vector3;
 import space.engine.vulkan.VkBuffer;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.managed.descriptorSet.ManagedDescriptorSetPool;
@@ -32,14 +32,17 @@ import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
 import static space.engine.barrier.Barrier.*;
 import static space.engine.buffer.Allocator.heap;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 import static space.engine.primitive.Primitives.FP32;
 
-public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoInfos> {
+public class AsteroidRenderer implements CleanerWrapper, Callback<AsteroidDemoInfos> {
 	
 	private final AsteroidDemoRenderPass renderPass;
 	private final AsteroidPipeline asteroidPipeline;
 	private final AsteroidModel[] asteroidModels;
+	private final int[] asteroidModelsOffset;
+	@SuppressWarnings("FieldCanBeLocal")
+	private final int asteroidModelsCount;
 	private final IndexMap<Collection<Asteroid>> asteroids = new IndexMapArray<>();
 	
 	private final ManagedDescriptorSetPool descriptorSetPool;
@@ -49,9 +52,16 @@ public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoI
 		this.asteroidPipeline = asteroidPipeline;
 		this.asteroidModels = asteroidModels;
 		
-		this.storage = Freeable.createDummy(this, addIfNotContained(parents, renderPass, asteroidPipeline));
+		this.asteroidModelsOffset = new int[asteroidModels.length];
+		int modelCount = 0;
+		for (int i = 0; i < asteroidModels.length; i++) {
+			asteroidModelsOffset[i] = modelCount;
+			modelCount += asteroidModels[i].minDistance.length;
+		}
+		this.asteroidModelsCount = modelCount;
 		
-		this.descriptorSetPool = new ManagedDescriptorSetPool(renderPass.device(), asteroidPipeline.descriptorSetLayout(), asteroidModels.length, new Object[] {this});
+		this.storage = Freeable.createDummy(this, addIfNotContained(parents, renderPass, asteroidPipeline));
+		this.descriptorSetPool = new ManagedDescriptorSetPool(renderPass.device(), asteroidPipeline.descriptorSetLayout(), asteroidModelsCount, new Object[] {this});
 	}
 	
 	public void addAsteroid(Asteroid asteroid) {
@@ -65,14 +75,14 @@ public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoI
 	@Override
 	public @NotNull List<Future<VkCommandBuffer[]>> getCmdBuffers(@NotNull ManagedFrameBuffer<AsteroidDemoInfos> render, AsteroidDemoInfos infos) {
 		List<? extends Future<ArrayList<VkCommandBuffer>>> futures = asteroids.entrySet().stream().filter(entry -> entry.getValue() != null).map(entry -> nowFuture(() -> {
-			int index = entry.getIndex();
-			AsteroidModel model = asteroidModels[index];
+			int indexAsteroid = entry.getIndex();
+			AsteroidModel model = asteroidModels[indexAsteroid];
 			
 			IndexMap<Collection<Translation>> sorted = new IndexMapArray<>();
 			for (Asteroid asteroid : entry.getValue()) {
-				Translation translation = asteroid.toTranslation(new Translation(), infos.frameTimeSeconds);
+				Translation translation = asteroid.toTranslation(infos.frameTimeSeconds).build();
 				
-				float distanceToCamera = new Vector3f(translation.offset).sub(infos.camera.position).length();
+				float distanceToCamera = Vector3.distance(translation.offset, infos.camera.position);
 				int i = 0;
 				for (; i < model.minDistance.length; i++)
 					if (distanceToCamera < model.minDistance[i])
@@ -88,39 +98,43 @@ public class AsteroidRenderer implements FreeableWrapper, Callback<AsteroidDemoI
 				Collection<Translation> translations = entry2.getValue();
 				if (translations == null)
 					continue;
+				int indexModel = entry2.getIndex();
 				
-				VkCommandBuffer cmd = render.queue().commandPool().allocCommandBuffer(VK_COMMAND_BUFFER_LEVEL_SECONDARY, EMPTY_OBJECT_ARRAY);
-				cmd.record(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT, render.inheritanceInfo(infos, renderPass.subpassRender), () -> {
-							   float[] instanceData = new float[translations.size() * 28];
-							   Iterator<Translation> iter = translations.iterator();
-							   for (int i = 0; iter.hasNext(); i++) {
-								   Translation translation = iter.next();
-								   translation.rotation.write4Aligned(instanceData, i * 28);
-								   translation.rotation.inversePure().write4Aligned(instanceData, i * 28 + 12);
-								   translation.offset.write4Aligned(instanceData, i * 28 + 24);
-							   }
-					
-							   VmaMappedBuffer instanceBuffer = VmaMappedBuffer.alloc(0, instanceData.length * FP32.bytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 0, VMA_MEMORY_USAGE_CPU_TO_GPU, renderPass.device(), new Object[] {infos});
-							   try (AllocatorFrame frame = Allocator.frame()) {
-								   instanceBuffer.uploadData(ArrayBufferFloat.alloc(heap(), instanceData, new Object[] {frame}));
-							   }
-					
-							   asteroidPipeline.bindPipeline(cmd, descriptorSetPool.sets()[index], infos);
-							   VkBuffer vertexBuffer = model.models[entry2.getIndex()];
-							   vkCmdBindVertexBuffers(cmd, 0, new long[] {
-									   vertexBuffer.address(),
-									   instanceBuffer.address()
-							   }, new long[] {
-									   0,
-									   0
-							   });
-							   vkCmdDraw(cmd, (int) (vertexBuffer.sizeOf() / (FP32.bytes * 9)), translations.size(), 0, 0);
-					
-							   return instanceBuffer;
-						   }
+				VkCommandBuffer cmd0 = render.queue().poolShortLived().allocAndRecordCommandBuffer(
+						VK_COMMAND_BUFFER_LEVEL_SECONDARY,
+						EMPTY_OBJECT_ARRAY,
+						VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT | VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT,
+						render.inheritanceInfo(infos, renderPass.subpassRender),
+						cmd -> {
+							float[] instanceData = new float[translations.size() * 16];
+							Iterator<Translation> iter = translations.iterator();
+							for (int i = 0; iter.hasNext(); i++) {
+								Translation translation = iter.next();
+								translation.matrix.write4Aligned(instanceData, i * 16);
+								translation.offset.write4Aligned(instanceData, i * 16 + 12);
+							}
+							
+							VmaMappedBuffer instanceBuffer = VmaMappedBuffer.alloc(0, instanceData.length * FP32.bytes, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, 0, VMA_MEMORY_USAGE_CPU_TO_GPU, renderPass.device(), new Object[] {infos});
+							try (AllocatorFrame frame = Allocator.frame()) {
+								instanceBuffer.uploadData(ArrayBufferFloat.alloc(heap(), instanceData, new Object[] {frame}));
+							}
+							
+							asteroidPipeline.bindPipeline(cmd, descriptorSetPool.sets()[asteroidModelsOffset[indexAsteroid] + indexModel], infos);
+							VkBuffer vertexBuffer = model.models[indexModel];
+							vkCmdBindVertexBuffers(cmd, 0, new long[] {
+									vertexBuffer.address(),
+									instanceBuffer.address()
+							}, new long[] {
+									0,
+									0
+							});
+							vkCmdDraw(cmd, (int) (vertexBuffer.sizeOf() / (FP32.bytes * 6)), translations.size(), 0, 0);
+							
+							return instanceBuffer;
+						}
 				);
-				infos.frameDone.addHook(cmd::free);
-				cmdBuffers.add(cmd);
+				infos.frameDone.addHook(cmd0::free);
+				cmdBuffers.add(cmd0);
 			}
 			return cmdBuffers;
 		})).collect(Collectors.toUnmodifiableList());

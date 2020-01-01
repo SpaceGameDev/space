@@ -315,7 +315,7 @@ public abstract class ConvertingMap<K, F, T> implements Map<K, T>, ToString {
 					return true;
 				if (!(obj instanceof Map.Entry))
 					return false;
-				Map.Entry other = (Map.Entry) obj;
+				Map.Entry<?, ?> other = (Map.Entry<?, ?>) obj;
 				return Objects.equals(getKey(), other.getKey()) && Objects.equals(getValue(), other.getValue());
 			}
 			

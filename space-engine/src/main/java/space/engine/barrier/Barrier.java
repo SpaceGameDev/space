@@ -1,29 +1,40 @@
 package space.engine.barrier;
 
 import org.jetbrains.annotations.NotNull;
+import space.engine.barrier.entity.Entity;
+import space.engine.barrier.entity.EntityAccessKey;
+import space.engine.barrier.entity.EntityRef;
 import space.engine.barrier.functions.CancelableRunnableWithDelay;
+import space.engine.barrier.functions.CancelableStarter;
+import space.engine.barrier.functions.ConsumerWithDelay;
+import space.engine.barrier.functions.FunctionWithDelay;
 import space.engine.barrier.functions.RunnableWithDelay;
 import space.engine.barrier.functions.Starter;
+import space.engine.barrier.functions.StarterWith2Parameter;
+import space.engine.barrier.functions.StarterWith3Parameter;
+import space.engine.barrier.functions.StarterWith4Parameter;
+import space.engine.barrier.functions.StarterWith5Parameter;
+import space.engine.barrier.functions.StarterWithParameter;
 import space.engine.barrier.functions.SupplierWithDelay;
 import space.engine.barrier.functions.SupplierWithDelayAnd2Exception;
 import space.engine.barrier.functions.SupplierWithDelayAnd3Exception;
 import space.engine.barrier.functions.SupplierWithDelayAnd4Exception;
 import space.engine.barrier.functions.SupplierWithDelayAnd5Exception;
 import space.engine.barrier.functions.SupplierWithDelayAndException;
-import space.engine.barrier.future.BaseFuture;
 import space.engine.barrier.future.CompletableFuture;
+import space.engine.barrier.future.CompletableFutureWith2Exception;
+import space.engine.barrier.future.CompletableFutureWith3Exception;
+import space.engine.barrier.future.CompletableFutureWith4Exception;
+import space.engine.barrier.future.CompletableFutureWith5Exception;
 import space.engine.barrier.future.CompletableFutureWithException;
-import space.engine.barrier.future.CompletableFutureWithException.CompletableFutureWith2Exception;
-import space.engine.barrier.future.CompletableFutureWithException.CompletableFutureWith3Exception;
-import space.engine.barrier.future.CompletableFutureWithException.CompletableFutureWith4Exception;
-import space.engine.barrier.future.CompletableFutureWithException.CompletableFutureWith5Exception;
 import space.engine.barrier.future.Future;
 import space.engine.barrier.future.FutureNotFinishedException;
+import space.engine.barrier.future.FutureWith2Exception;
+import space.engine.barrier.future.FutureWith3Exception;
+import space.engine.barrier.future.FutureWith4Exception;
+import space.engine.barrier.future.FutureWith5Exception;
 import space.engine.barrier.future.FutureWithException;
-import space.engine.barrier.future.FutureWithException.FutureWith2Exception;
-import space.engine.barrier.future.FutureWithException.FutureWith3Exception;
-import space.engine.barrier.future.FutureWithException.FutureWith4Exception;
-import space.engine.barrier.future.FutureWithException.FutureWith5Exception;
+import space.engine.barrier.future.GenericFuture;
 import space.engine.barrier.lock.SyncLock;
 import space.engine.simpleQueue.pool.Executor;
 
@@ -44,9 +55,14 @@ import static space.engine.Side.pool;
  */
 public interface Barrier {
 	
+	//static
 	boolean BARRIER_DEBUG = false;
 	
-	Barrier DONE_BARRIER = new Barrier() {
+	class DoneBarrier implements Barrier {
+		
+		protected DoneBarrier() {
+		}
+		
 		@Override
 		public boolean isDone() {
 			return true;
@@ -58,11 +74,6 @@ public interface Barrier {
 		}
 		
 		@Override
-		public void removeHook(@NotNull Runnable run) {
-		
-		}
-		
-		@Override
 		public void await() {
 		
 		}
@@ -71,8 +82,23 @@ public interface Barrier {
 		public void await(long time, TimeUnit unit) {
 		
 		}
-	};
-	Barrier[] EMPTY_BARRIER_ARRAY = new Barrier[0];
+	}
+	
+	Barrier DONE_BARRIER = new DoneBarrier();
+	
+	static Delegate<Barrier, BarrierImpl> delegate() {
+		return new Delegate<>() {
+			@Override
+			public BarrierImpl createCompletable() {
+				return new BarrierImpl();
+			}
+			
+			@Override
+			public void complete(BarrierImpl ret, Barrier delegate) {
+				ret.triggerNow();
+			}
+		};
+	}
 	
 	//getter
 	
@@ -92,14 +118,6 @@ public interface Barrier {
 	 * @param run the hook as a {@link Runnable}
 	 */
 	void addHook(@NotNull Runnable run);
-	
-	/**
-	 * Removes a previously added hook. This Method is not expected to be called very often.
-	 *
-	 * @param run a previously added hook to remove
-	 * @implNote The removal algorithm can be slow, as it is not expected to be called very often.
-	 */
-	void removeHook(@NotNull Runnable run);
 	
 	//await
 	
@@ -199,11 +217,6 @@ public interface Barrier {
 			}
 			
 			@Override
-			public void removeHook(@NotNull Runnable run) {
-				Barrier.this.removeHook(run);
-			}
-			
-			@Override
 			public void await() throws InterruptedException {
 				Barrier.this.await();
 			}
@@ -228,6 +241,7 @@ public interface Barrier {
 		return barrier;
 	}
 	
+	//run
 	default Barrier thenRun(RunnableWithDelay runnable) {
 		return thenRun(pool(), runnable);
 	}
@@ -253,33 +267,56 @@ public interface Barrier {
 		return when().thenRun(executor, runnable);
 	}
 	
-	default Barrier thenStart(Starter runnable) {
+	//start
+	default Barrier thenStart(Starter<?> runnable) {
 		BarrierImpl ret = new BarrierImpl();
-		addHook(() -> runnable.startNoException().addHook(ret::triggerNow));
+		addHook(() -> runnable.startInlineException().addHook(ret::triggerNow));
 		return ret;
 	}
 	
-	default Barrier thenStart(Executor executor, Starter runnable) {
+	default Barrier thenStart(Executor executor, Starter<?> runnable) {
 		BarrierImpl ret = new BarrierImpl();
-		addHook(() -> executor.execute(() -> runnable.startNoException().addHook(ret::triggerNow)));
+		addHook(() -> executor.execute(() -> runnable.startInlineException().addHook(ret::triggerNow)));
 		return ret;
 	}
 	
 	/**
-	 * This method just delegates to {@link Starter#startNoException()}
+	 * This method just delegates to {@link Starter#startInlineException()}
 	 */
-	static Barrier nowStart(Starter runnable) {
-		return runnable.startNoException();
+	static <B extends Barrier> B nowStart(Starter<? extends B> runnable) {
+		return runnable.startInlineException();
 	}
 	
-	static Barrier nowStart(Executor executor, Starter runnable) {
+	static Barrier nowStart(Executor executor, Starter<?> runnable) {
 		return when().thenStart(executor, runnable);
 	}
 	
-	default CancelableBarrier thenStartCancelable(CancelableRunnableWithDelay runnable) {
-		return thenRunCancelable(Runnable::run, runnable);
+	//start with delegate
+	default <B extends Barrier, C extends B> B thenStart(Starter<? extends B> runnable, Delegate<B, C> delegate) {
+		C ret = delegate.createCompletable();
+		addHook(() -> delegate.addHookAndComplete(ret, runnable.startInlineException()));
+		return ret;
 	}
 	
+	default <B extends Barrier, C extends B> B thenStart(Executor executor, Starter<? extends B> runnable, Delegate<B, C> delegate) {
+		C ret = delegate.createCompletable();
+		addHook(() -> executor.execute(() -> delegate.addHookAndComplete(ret, runnable.startInlineException())));
+		return ret;
+	}
+	
+	/**
+	 * Call {@link #nowStart(Starter)} instead, without the #delegate param.
+	 */
+	@Deprecated
+	static <B extends Barrier, C extends B> B nowStart(Starter<? extends B> runnable, @SuppressWarnings("unused") Delegate<B, C> delegate) {
+		return runnable.startInlineException();
+	}
+	
+	default <B extends Barrier, C extends B> B nowStart(Executor executor, Starter<? extends B> runnable, Delegate<B, C> delegate) {
+		return when().thenStart(executor, runnable, delegate);
+	}
+	
+	//runCancelable
 	default CancelableBarrier thenRunCancelable(CancelableRunnableWithDelay runnable) {
 		return thenRunCancelable(pool(), runnable);
 	}
@@ -288,7 +325,8 @@ public interface Barrier {
 		CancelableBarrierImpl ret = new CancelableBarrierImpl();
 		addHook(() -> executor.execute(() -> {
 			try {
-				runnable.run(ret).addHook(ret::triggerNow);
+				runnable.run(ret);
+				ret.triggerNow();
 			} catch (DelayTask delayTask) {
 				delayTask.barrier.addHook(ret::triggerNow);
 			}
@@ -304,6 +342,28 @@ public interface Barrier {
 		return when().thenRunCancelable(executor, runnable);
 	}
 	
+	//startCancelable
+	default CancelableBarrier thenStartCancelable(CancelableStarter runnable) {
+		CancelableBarrierImpl ret = new CancelableBarrierImpl();
+		addHook(() -> runnable.startNoException(ret).addHook(ret::triggerNow));
+		return ret;
+	}
+	
+	default CancelableBarrier thenStartCancelable(Executor executor, CancelableStarter runnable) {
+		CancelableBarrierImpl ret = new CancelableBarrierImpl();
+		addHook(() -> executor.execute(() -> runnable.startNoException(ret).addHook(ret::triggerNow)));
+		return ret;
+	}
+	
+	static CancelableBarrier nowStartCancelable(CancelableStarter runnable) {
+		return when().thenStartCancelable(runnable);
+	}
+	
+	static CancelableBarrier nowStartCancelable(Executor executor, CancelableStarter runnable) {
+		return when().thenStartCancelable(executor, runnable);
+	}
+	
+	//Future
 	default <T> Future<T> thenStartFuture(SupplierWithDelay<T> runnable) {
 		return thenFuture(Runnable::run, runnable);
 	}
@@ -337,6 +397,7 @@ public interface Barrier {
 		return when().thenFuture(executor, runnable);
 	}
 	
+	//FutureWithException
 	default <T, EX extends Throwable> FutureWithException<T, EX> thenStartFutureWithException(Class<EX> exceptionClass, SupplierWithDelayAndException<T, EX> runnable) {
 		return thenFutureWithException(exceptionClass, Runnable::run, runnable);
 	}
@@ -355,11 +416,11 @@ public interface Barrier {
 			try {
 				ret.completeCallable(runnable::get);
 			} catch (DelayTask delayTask) {
-				if (BARRIER_DEBUG && !(delayTask.barrier instanceof BaseFuture))
+				if (BARRIER_DEBUG && !(delayTask.barrier instanceof GenericFuture))
 					throw new IllegalArgumentException("DelayTask.barrier is not a Future<?>!", delayTask);
 				
 				//noinspection unchecked
-				BaseFuture<T> future = (BaseFuture<T>) delayTask.barrier;
+				GenericFuture<T> future = (GenericFuture<T>) delayTask.barrier;
 				future.addHook(() -> {
 					try {
 						ret.completeCallable(future::assertGetAnyException);
@@ -380,6 +441,7 @@ public interface Barrier {
 		return when().thenFutureWithException(exceptionClass, executor, runnable);
 	}
 	
+	//FutureWith2Exception
 	default <T, EX1 extends Throwable, EX2 extends Throwable> FutureWith2Exception<T, EX1, EX2> thenStartFutureWith2Exception(Class<EX1> exceptionClass1, Class<EX2> exceptionClass2, SupplierWithDelayAnd2Exception<T, EX1, EX2> runnable) {
 		return thenFutureWith2Exception(exceptionClass1, exceptionClass2, Runnable::run, runnable);
 	}
@@ -398,11 +460,11 @@ public interface Barrier {
 			try {
 				ret.completeCallable(runnable::get);
 			} catch (DelayTask delayTask) {
-				if (BARRIER_DEBUG && !(delayTask.barrier instanceof BaseFuture))
+				if (BARRIER_DEBUG && !(delayTask.barrier instanceof GenericFuture))
 					throw new IllegalArgumentException("DelayTask.barrier is not a Future<?>!", delayTask);
 				
 				//noinspection unchecked
-				BaseFuture<T> future = (BaseFuture<T>) delayTask.barrier;
+				GenericFuture<T> future = (GenericFuture<T>) delayTask.barrier;
 				future.addHook(() -> {
 					try {
 						ret.completeCallable(future::assertGetAnyException);
@@ -423,6 +485,7 @@ public interface Barrier {
 		return when().thenFutureWith2Exception(exceptionClass1, exceptionClass2, executor, runnable);
 	}
 	
+	//FutureWith3Exception
 	default <T, EX1 extends Throwable, EX2 extends Throwable, EX3 extends Throwable> FutureWith3Exception<T, EX1, EX2, EX3> thenStartFutureWith3Exception(Class<EX1> exceptionClass1, Class<EX2> exceptionClass2, Class<EX3> exceptionClass3, SupplierWithDelayAnd3Exception<T, EX1, EX2, EX3> runnable) {
 		return thenFutureWith3Exception(exceptionClass1, exceptionClass2, exceptionClass3, Runnable::run, runnable);
 	}
@@ -441,11 +504,11 @@ public interface Barrier {
 			try {
 				ret.completeCallable(runnable::get);
 			} catch (DelayTask delayTask) {
-				if (BARRIER_DEBUG && !(delayTask.barrier instanceof BaseFuture))
+				if (BARRIER_DEBUG && !(delayTask.barrier instanceof GenericFuture))
 					throw new IllegalArgumentException("DelayTask.barrier is not a Future<?>!", delayTask);
 				
 				//noinspection unchecked
-				BaseFuture<T> future = (BaseFuture<T>) delayTask.barrier;
+				GenericFuture<T> future = (GenericFuture<T>) delayTask.barrier;
 				future.addHook(() -> {
 					try {
 						ret.completeCallable(future::assertGetAnyException);
@@ -466,6 +529,7 @@ public interface Barrier {
 		return when().thenFutureWith3Exception(exceptionClass1, exceptionClass2, exceptionClass3, executor, runnable);
 	}
 	
+	//FutureWith4Exception
 	default <T, EX1 extends Throwable, EX2 extends Throwable, EX3 extends Throwable, EX4 extends Throwable> FutureWith4Exception<T, EX1, EX2, EX3, EX4> thenStartFutureWith4Exception(Class<EX1> exceptionClass1, Class<EX2> exceptionClass2, Class<EX3> exceptionClass3, Class<EX4> exceptionClass4, SupplierWithDelayAnd4Exception<T, EX1, EX2, EX3, EX4> runnable) {
 		return thenFutureWith4Exception(exceptionClass1, exceptionClass2, exceptionClass3, exceptionClass4, Runnable::run, runnable);
 	}
@@ -484,11 +548,11 @@ public interface Barrier {
 			try {
 				ret.completeCallable(runnable::get);
 			} catch (DelayTask delayTask) {
-				if (BARRIER_DEBUG && !(delayTask.barrier instanceof BaseFuture))
+				if (BARRIER_DEBUG && !(delayTask.barrier instanceof GenericFuture))
 					throw new IllegalArgumentException("DelayTask.barrier is not a Future<?>!", delayTask);
 				
 				//noinspection unchecked
-				BaseFuture<T> future = (BaseFuture<T>) delayTask.barrier;
+				GenericFuture<T> future = (GenericFuture<T>) delayTask.barrier;
 				future.addHook(() -> {
 					try {
 						ret.completeCallable(future::assertGetAnyException);
@@ -509,6 +573,7 @@ public interface Barrier {
 		return when().thenFutureWith4Exception(exceptionClass1, exceptionClass2, exceptionClass3, exceptionClass4, executor, runnable);
 	}
 	
+	//FutureWith5Exception
 	default <T, EX1 extends Throwable, EX2 extends Throwable, EX3 extends Throwable, EX4 extends Throwable, EX5 extends Throwable> FutureWith5Exception<T, EX1, EX2, EX3, EX4, EX5> thenStartFutureWith5Exception(Class<EX1> exceptionClass1, Class<EX2> exceptionClass2, Class<EX3> exceptionClass3, Class<EX4> exceptionClass4, Class<EX5> exceptionClass5, SupplierWithDelayAnd5Exception<T, EX1, EX2, EX3, EX4, EX5> runnable) {
 		return thenFutureWith5Exception(exceptionClass1, exceptionClass2, exceptionClass3, exceptionClass4, exceptionClass5, Runnable::run, runnable);
 	}
@@ -527,11 +592,11 @@ public interface Barrier {
 			try {
 				ret.completeCallable(runnable::get);
 			} catch (DelayTask delayTask) {
-				if (BARRIER_DEBUG && !(delayTask.barrier instanceof BaseFuture))
+				if (BARRIER_DEBUG && !(delayTask.barrier instanceof GenericFuture))
 					throw new IllegalArgumentException("DelayTask.barrier is not a Future<?>!", delayTask);
 				
 				//noinspection unchecked
-				BaseFuture<T> future = (BaseFuture<T>) delayTask.barrier;
+				GenericFuture<T> future = (GenericFuture<T>) delayTask.barrier;
 				future.addHook(() -> {
 					try {
 						ret.completeCallable(future::assertGetAnyException);
@@ -552,15 +617,19 @@ public interface Barrier {
 		return when().thenFutureWith5Exception(exceptionClass1, exceptionClass2, exceptionClass3, exceptionClass4, exceptionClass5, executor, runnable);
 	}
 	
-	//locks
-	default Barrier thenLock(SyncLock[] locks, Starter runnable) {
-		BarrierImpl ret = new BarrierImpl();
+	//lock
+	default Barrier thenLock(SyncLock[] locks, Starter<?> runnable) {
+		return thenLock(locks, runnable, Barrier.delegate());
+	}
+	
+	default <B extends Barrier, C extends B> B thenLock(SyncLock[] locks, Starter<? extends B> runnable, Delegate<B, C> delegate) {
+		C ret = delegate.createCompletable();
 		addHook(() -> SyncLock.acquireLocks(locks, () -> {
-			Barrier barrier = runnable.startNoException();
+			B barrier = runnable.startInlineException();
 			
-			//prevents StackOVerflow from too many Barrier.addHook() calling the Runnable immediately in combination with SyncLock.unlockLocks()
+			//prevents StackOverflow from too many Barrier.addHook() calling the Runnable immediately in combination with SyncLock.unlockLocks()
 			//if it is run immediately -> ThenLockUnlockRunnable.immediatelyRun will be false
-			ThenLockUnlockRunnable run = new ThenLockUnlockRunnable(locks, ret);
+			ThenLockUnlockRunnable<B, C> run = new ThenLockUnlockRunnable<>(locks, delegate, ret, barrier);
 			barrier.addHook(run);
 			//if it wasn't run immediately allow it to do so
 			run.immediateCAS();
@@ -568,7 +637,7 @@ public interface Barrier {
 		return ret;
 	}
 	
-	class ThenLockUnlockRunnable implements Runnable {
+	class ThenLockUnlockRunnable<B extends Barrier, C extends B> implements Runnable {
 		
 		private static final VarHandle IMMEDIATE;
 		
@@ -581,14 +650,18 @@ public interface Barrier {
 		}
 		
 		private final SyncLock[] locks;
-		private final BarrierImpl ret;
+		private final Delegate<B, C> delegate;
+		private final C ret;
+		private final B barrier;
 		
 		@SuppressWarnings("unused")
 		private volatile boolean immediatelyRun = true;
 		
-		private ThenLockUnlockRunnable(SyncLock[] locks, BarrierImpl ret) {
+		public ThenLockUnlockRunnable(SyncLock[] locks, Delegate<B, C> delegate, C ret, B barrier) {
 			this.locks = locks;
+			this.delegate = delegate;
 			this.ret = ret;
+			this.barrier = barrier;
 		}
 		
 		private boolean immediateCAS() {
@@ -602,12 +675,156 @@ public interface Barrier {
 				return;
 			}
 			SyncLock.unlockLocks(locks);
-			ret.triggerNow();
+			delegate.complete(ret, barrier);
 		}
 	}
 	
-	static Barrier nowLock(SyncLock[] locks, Starter runnable) {
+	static Barrier nowLock(SyncLock[] locks, Starter<?> runnable) {
 		return when().thenLock(locks, runnable);
+	}
+	
+	static <B extends Barrier, C extends B> B nowLock(SyncLock[] locks, Starter<? extends B> runnable, Delegate<B, C> delegate) {
+		return when().thenLock(locks, runnable, delegate);
+	}
+	
+	//lock entity 1
+	default <E extends Entity> Barrier thenLockEntity(EntityRef<E> entityRef, StarterWithParameter<?, EntityAccessKey<E>> runnable) {
+		return thenLockEntity(entityRef, runnable, Barrier.delegate());
+	}
+	
+	default <B extends Barrier, C extends B, E extends Entity> B thenLockEntity(EntityRef<E> entityRef, StarterWithParameter<? extends B, EntityAccessKey<E>> runnable, Delegate<B, C> delegate) {
+		return thenLock(
+				new SyncLock[] {entityRef},
+				() -> runnable.startInlineException(entityRef.getAccessKey()),
+				delegate
+		);
+	}
+	
+	static <E extends Entity> Barrier nowLockEntity(EntityRef<E> entityRef, StarterWithParameter<?, EntityAccessKey<E>> runnable) {
+		return when().thenLockEntity(entityRef, runnable);
+	}
+	
+	static <B extends Barrier, C extends B, E extends Entity> B nowLockEntity(EntityRef<E> entityRef, StarterWithParameter<? extends B, EntityAccessKey<E>> runnable, Delegate<B, C> delegate) {
+		return when().thenLockEntity(entityRef, runnable, delegate);
+	}
+	
+	//lock entity 1 and startOn
+	default <E extends Entity> Barrier thenLockEntityAndStartOn(EntityRef<E> entityRef, StarterWithParameter<?, E> runnable) {
+		return thenLockEntity(entityRef, ea -> ea.startOn(runnable));
+	}
+	
+	static <E extends Entity> Barrier nowLockEntityAndStartOn(EntityRef<E> entityRef, StarterWithParameter<?, E> runnable) {
+		return nowLockEntity(entityRef, ea -> ea.startOn(runnable));
+	}
+	
+	default <B extends Barrier, C extends B, E extends Entity> B thenLockEntityAndStartOn(EntityRef<E> entityRef, StarterWithParameter<? extends B, E> runnable, Delegate<B, C> delegate) {
+		return thenLockEntity(entityRef, ea -> ea.startOn(runnable, delegate), delegate);
+	}
+	
+	static <B extends Barrier, C extends B, E extends Entity> B nowLockEntityAndStartOn(EntityRef<E> entityRef, StarterWithParameter<? extends B, E> runnable, Delegate<B, C> delegate) {
+		return nowLockEntity(entityRef, ea -> ea.startOn(runnable, delegate), delegate);
+	}
+	
+	//lock entity 1 and runOn
+	default <E extends Entity> Barrier thenLockEntityAndRunOn(EntityRef<E> entityRef, ConsumerWithDelay<E> runnable) {
+		return thenLockEntity(entityRef, ea -> ea.runOn(runnable));
+	}
+	
+	static <E extends Entity> Barrier nowLockEntityAndRunOn(EntityRef<E> entityRef, ConsumerWithDelay<E> runnable) {
+		return nowLockEntity(entityRef, ea -> ea.runOn(runnable));
+	}
+	
+	//lock entity 1 and futureOn
+	default <E extends Entity, R> Future<R> thenLockEntityAndFutureOn(EntityRef<E> entityRef, FunctionWithDelay<E, R> runnable) {
+		return thenLockEntity(entityRef, ea -> ea.futureOn(runnable), Future.delegate());
+	}
+	
+	static <E extends Entity, R> Future<R> nowLockEntityAndFutureOn(EntityRef<E> entityRef, FunctionWithDelay<E, R> runnable) {
+		return nowLockEntity(entityRef, ea -> ea.futureOn(runnable), Future.delegate());
+	}
+	
+	//lock entity 2
+	default <E1 extends Entity, E2 extends Entity> Barrier thenLockEntity(EntityRef<E1> entityRef1, EntityRef<E2> entityRef2, StarterWith2Parameter<?, EntityAccessKey<E1>, EntityAccessKey<E2>> runnable) {
+		return thenLockEntity(entityRef1, entityRef2, runnable, Barrier.delegate());
+	}
+	
+	default <B extends Barrier, C extends B, E1 extends Entity, E2 extends Entity> B thenLockEntity(EntityRef<E1> entityRef1, EntityRef<E2> entityRef2, StarterWith2Parameter<? extends B, EntityAccessKey<E1>, EntityAccessKey<E2>> runnable, Delegate<B, C> delegate) {
+		return thenLock(
+				new SyncLock[] {entityRef1, entityRef2},
+				() -> runnable.startInlineException(entityRef1.getAccessKey(), entityRef2.getAccessKey()),
+				delegate
+		);
+	}
+	
+	static <E1 extends Entity, E2 extends Entity> Barrier nowLockEntity(EntityRef<E1> entityRef1, EntityRef<E2> entityRef2, StarterWith2Parameter<?, EntityAccessKey<E1>, EntityAccessKey<E2>> runnable) {
+		return when().thenLockEntity(entityRef1, entityRef2, runnable);
+	}
+	
+	static <B extends Barrier, C extends B, E1 extends Entity, E2 extends Entity> B nowLockEntity(EntityRef<E1> entityRef1, EntityRef<E2> entityRef2, StarterWith2Parameter<? extends B, EntityAccessKey<E1>, EntityAccessKey<E2>> runnable, Delegate<B, C> delegate) {
+		return when().thenLockEntity(entityRef1, entityRef2, runnable, delegate);
+	}
+	
+	//lock entity 3
+	default <E1 extends Entity, E2 extends Entity, E3 extends Entity> Barrier thenLockEntity(EntityRef<E1> entityRef1, EntityRef<E2> entityRef2, EntityRef<E3> entityRef3, StarterWith3Parameter<?, EntityAccessKey<E1>, EntityAccessKey<E2>, EntityAccessKey<E3>> runnable) {
+		return thenLockEntity(entityRef1, entityRef2, entityRef3, runnable, Barrier.delegate());
+	}
+	
+	default <B extends Barrier, C extends B, E1 extends Entity, E2 extends Entity, E3 extends Entity> B thenLockEntity(EntityRef<E1> entityRef1, EntityRef<E2> entityRef2, EntityRef<E3> entityRef3, StarterWith3Parameter<? extends B, EntityAccessKey<E1>, EntityAccessKey<E2>, EntityAccessKey<E3>> runnable, Delegate<B, C> delegate) {
+		return thenLock(
+				new SyncLock[] {entityRef1, entityRef3},
+				() -> runnable.startInlineException(entityRef1.getAccessKey(), entityRef2.getAccessKey(), entityRef3.getAccessKey()),
+				delegate
+		);
+	}
+	
+	static <E1 extends Entity, E2 extends Entity, E3 extends Entity> Barrier nowLockEntity(EntityRef<E1> entityRef1, EntityRef<E2> entityRef2, EntityRef<E3> entityRef3, StarterWith3Parameter<?, EntityAccessKey<E1>, EntityAccessKey<E2>, EntityAccessKey<E3>> runnable) {
+		return when().thenLockEntity(entityRef1, entityRef2, entityRef3, runnable);
+	}
+	
+	static <B extends Barrier, C extends B, E1 extends Entity, E2 extends Entity, E3 extends Entity> B nowLockEntity(EntityRef<E1> entityRef1, EntityRef<E2> entityRef2, EntityRef<E3> entityRef3, StarterWith3Parameter<? extends B, EntityAccessKey<E1>, EntityAccessKey<E2>, EntityAccessKey<E3>> runnable, Delegate<B, C> delegate) {
+		return when().thenLockEntity(entityRef1, entityRef2, entityRef3, runnable, delegate);
+	}
+	
+	//lock entity 4
+	default <E1 extends Entity, E2 extends Entity, E3 extends Entity, E4 extends Entity> Barrier thenLockEntity(EntityRef<E1> entityRef1, EntityRef<E2> entityRef2, EntityRef<E3> entityRef3, EntityRef<E4> entityRef4, StarterWith4Parameter<?, EntityAccessKey<E1>, EntityAccessKey<E2>, EntityAccessKey<E3>, EntityAccessKey<E4>> runnable) {
+		return thenLockEntity(entityRef1, entityRef2, entityRef3, entityRef4, runnable, Barrier.delegate());
+	}
+	
+	default <B extends Barrier, C extends B, E1 extends Entity, E2 extends Entity, E3 extends Entity, E4 extends Entity> B thenLockEntity(EntityRef<E1> entityRef1, EntityRef<E2> entityRef2, EntityRef<E3> entityRef3, EntityRef<E4> entityRef4, StarterWith4Parameter<? extends B, EntityAccessKey<E1>, EntityAccessKey<E2>, EntityAccessKey<E3>, EntityAccessKey<E4>> runnable, Delegate<B, C> delegate) {
+		return thenLock(
+				new SyncLock[] {entityRef1, entityRef4},
+				() -> runnable.startInlineException(entityRef1.getAccessKey(), entityRef2.getAccessKey(), entityRef3.getAccessKey(), entityRef4.getAccessKey()),
+				delegate
+		);
+	}
+	
+	static <E1 extends Entity, E2 extends Entity, E3 extends Entity, E4 extends Entity> Barrier nowLockEntity(EntityRef<E1> entityRef1, EntityRef<E2> entityRef2, EntityRef<E3> entityRef3, EntityRef<E4> entityRef4, StarterWith4Parameter<?, EntityAccessKey<E1>, EntityAccessKey<E2>, EntityAccessKey<E3>, EntityAccessKey<E4>> runnable) {
+		return when().thenLockEntity(entityRef1, entityRef2, entityRef3, entityRef4, runnable);
+	}
+	
+	static <B extends Barrier, C extends B, E1 extends Entity, E2 extends Entity, E3 extends Entity, E4 extends Entity> B nowLockEntity(EntityRef<E1> entityRef1, EntityRef<E2> entityRef2, EntityRef<E3> entityRef3, EntityRef<E4> entityRef4, StarterWith4Parameter<? extends B, EntityAccessKey<E1>, EntityAccessKey<E2>, EntityAccessKey<E3>, EntityAccessKey<E4>> runnable, Delegate<B, C> delegate) {
+		return when().thenLockEntity(entityRef1, entityRef2, entityRef3, entityRef4, runnable, delegate);
+	}
+	
+	//lock entity 5
+	default <E1 extends Entity, E2 extends Entity, E3 extends Entity, E4 extends Entity, E5 extends Entity> Barrier thenLockEntity(EntityRef<E1> entityRef1, EntityRef<E2> entityRef2, EntityRef<E3> entityRef3, EntityRef<E4> entityRef4, EntityRef<E5> entityRef5, StarterWith5Parameter<?, EntityAccessKey<E1>, EntityAccessKey<E2>, EntityAccessKey<E3>, EntityAccessKey<E4>, EntityAccessKey<E5>> runnable) {
+		return thenLockEntity(entityRef1, entityRef2, entityRef3, entityRef4, entityRef5, runnable, Barrier.delegate());
+	}
+	
+	default <B extends Barrier, C extends B, E1 extends Entity, E2 extends Entity, E3 extends Entity, E4 extends Entity, E5 extends Entity> B thenLockEntity(EntityRef<E1> entityRef1, EntityRef<E2> entityRef2, EntityRef<E3> entityRef3, EntityRef<E4> entityRef4, EntityRef<E5> entityRef5, StarterWith5Parameter<? extends B, EntityAccessKey<E1>, EntityAccessKey<E2>, EntityAccessKey<E3>, EntityAccessKey<E4>, EntityAccessKey<E5>> runnable, Delegate<B, C> delegate) {
+		return thenLock(
+				new SyncLock[] {entityRef1, entityRef5},
+				() -> runnable.startInlineException(entityRef1.getAccessKey(), entityRef2.getAccessKey(), entityRef3.getAccessKey(), entityRef4.getAccessKey(), entityRef5.getAccessKey()),
+				delegate
+		);
+	}
+	
+	static <E1 extends Entity, E2 extends Entity, E3 extends Entity, E4 extends Entity, E5 extends Entity> Barrier nowLockEntity(EntityRef<E1> entityRef1, EntityRef<E2> entityRef2, EntityRef<E3> entityRef3, EntityRef<E4> entityRef4, EntityRef<E5> entityRef5, StarterWith5Parameter<?, EntityAccessKey<E1>, EntityAccessKey<E2>, EntityAccessKey<E3>, EntityAccessKey<E4>, EntityAccessKey<E5>> runnable) {
+		return when().thenLockEntity(entityRef1, entityRef2, entityRef3, entityRef4, entityRef5, runnable);
+	}
+	
+	static <B extends Barrier, C extends B, E1 extends Entity, E2 extends Entity, E3 extends Entity, E4 extends Entity, E5 extends Entity> B nowLockEntity(EntityRef<E1> entityRef1, EntityRef<E2> entityRef2, EntityRef<E3> entityRef3, EntityRef<E4> entityRef4, EntityRef<E5> entityRef5, StarterWith5Parameter<? extends B, EntityAccessKey<E1>, EntityAccessKey<E2>, EntityAccessKey<E3>, EntityAccessKey<E4>, EntityAccessKey<E5>> runnable, Delegate<B, C> delegate) {
+		return when().thenLockEntity(entityRef1, entityRef2, entityRef3, entityRef4, entityRef5, runnable, delegate);
 	}
 	
 	//static
@@ -638,7 +855,7 @@ public interface Barrier {
 	 * @return A {@link Barrier} which is triggered when all supplied {@link Barrier Barriers} have.
 	 * @implNote this specific method just returns the supplied barrier
 	 */
-	static Barrier when(Barrier barrier) {
+	static <B extends Barrier> B when(B barrier) {
 		return barrier;
 	}
 	

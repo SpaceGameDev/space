@@ -10,9 +10,9 @@ import space.engine.buffer.array.ArrayBufferLong;
 import space.engine.buffer.array.ArrayBufferPointer;
 import space.engine.buffer.pointer.PointerBufferLong;
 import space.engine.buffer.pointer.PointerBufferPointer;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.vulkan.VkDevice;
 import space.engine.vulkan.VkInstance;
 
@@ -20,11 +20,11 @@ import java.util.Arrays;
 import java.util.function.BiFunction;
 
 import static org.lwjgl.vulkan.VK10.*;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 import static space.engine.vulkan.VkException.assertVk;
 
-public class VkDescriptorPool implements FreeableWrapper {
+public class VkDescriptorPool implements CleanerWrapper {
 	
 	//alloc
 	public static @NotNull VkDescriptorPool alloc(VkDescriptorPoolCreateInfo info, @NotNull VkDevice device, @NotNull Object[] parents) {
@@ -77,7 +77,7 @@ public class VkDescriptorPool implements FreeableWrapper {
 		return storage;
 	}
 	
-	public static class Storage extends FreeableStorage {
+	public static class Storage extends Cleaner {
 		
 		private final @NotNull VkDevice device;
 		private final long address;

@@ -328,7 +328,7 @@ public abstract class ConvertingIndexMap<F, T> implements IndexMap<T>, ToString 
 					return true;
 				if (!(obj instanceof IndexMap.Entry))
 					return false;
-				IndexMap.Entry other = (IndexMap.Entry) obj;
+				IndexMap.Entry<?> other = (IndexMap.Entry<?>) obj;
 				return this.getIndex() == other.getIndex() && Objects.equals(this.getValue(), other.getValue());
 			}
 			

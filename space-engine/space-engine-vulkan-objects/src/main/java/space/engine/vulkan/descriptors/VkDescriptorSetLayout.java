@@ -8,9 +8,9 @@ import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferLong;
 import space.engine.buffer.pointer.PointerBufferPointer;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.vulkan.VkDevice;
 import space.engine.vulkan.VkInstance;
 
@@ -20,11 +20,11 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import static org.lwjgl.vulkan.VK10.*;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.engine.vulkan.VkException.assertVk;
 
-public class VkDescriptorSetLayout implements FreeableWrapper {
+public class VkDescriptorSetLayout implements CleanerWrapper {
 	
 	//alloc
 	public static @NotNull VkDescriptorSetLayout alloc(@NotNull VkDevice device, int flags, @NotNull VkDescriptorSetBinding[] bindings, @NotNull Object[] parents) {
@@ -104,7 +104,7 @@ public class VkDescriptorSetLayout implements FreeableWrapper {
 		return storage;
 	}
 	
-	public static class Storage extends FreeableStorage {
+	public static class Storage extends Cleaner {
 		
 		private final @NotNull VkDevice device;
 		private final long address;

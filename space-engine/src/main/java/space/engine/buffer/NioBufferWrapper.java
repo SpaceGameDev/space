@@ -1,7 +1,7 @@
 package space.engine.buffer;
 
 import org.jetbrains.annotations.NotNull;
-import space.engine.freeableStorage.Freeable;
+import space.engine.freeable.Freeable;
 import space.engine.primitive.JavaPrimitives;
 import space.engine.unsafe.UnsafeInstance;
 import sun.misc.Unsafe;

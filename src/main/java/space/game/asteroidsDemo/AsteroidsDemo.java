@@ -8,25 +8,26 @@ import org.lwjgl.vulkan.VkRect2D;
 import space.engine.Side;
 import space.engine.barrier.Barrier;
 import space.engine.barrier.BarrierImpl;
+import space.engine.barrier.DelayTask;
+import space.engine.barrier.functions.RunnableWithDelay;
 import space.engine.barrier.future.Future;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferFloat;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.FreeableStorageCleaner;
-import space.engine.freeableStorage.stack.FreeableStack.Frame;
+import space.engine.freeable.CleanerThread;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.stack.FreeableStack.Frame;
 import space.engine.key.attribute.AttributeList;
 import space.engine.key.attribute.AttributeListModify;
 import space.engine.logger.BaseLogger;
 import space.engine.logger.LogLevel;
 import space.engine.logger.Logger;
-import space.engine.observable.ObservableReference;
-import space.engine.vector.AxisAndAnglef;
-import space.engine.vector.Matrix4f;
+import space.engine.observable.MutableObservableReference;
+import space.engine.vector.AxisAngle;
+import space.engine.vector.Matrix4;
 import space.engine.vector.ProjectionMatrix;
-import space.engine.vector.Quaternionf;
-import space.engine.vector.Translation;
-import space.engine.vector.Vector3f;
+import space.engine.vector.Quaternion;
+import space.engine.vector.Vector3;
 import space.engine.vulkan.VkInstance;
 import space.engine.vulkan.VkInstanceExtensions;
 import space.engine.vulkan.VkInstanceValidationLayers;
@@ -55,7 +56,8 @@ import space.game.asteroidsDemo.asteroid.AsteroidPlacer;
 import space.game.asteroidsDemo.asteroid.AsteroidRenderer;
 import space.game.asteroidsDemo.asteroid.AsteroidRenderer.AsteroidModel;
 import space.game.asteroidsDemo.entity.Camera;
-import space.game.asteroidsDemo.model.ModelCube;
+import space.game.asteroidsDemo.model.ModelAsteroids;
+import space.game.asteroidsDemo.model.ModelAsteroids.Result;
 import space.game.asteroidsDemo.renderPass.AsteroidDemoInfos;
 import space.game.asteroidsDemo.renderPass.AsteroidDemoRenderPass;
 
@@ -70,10 +72,11 @@ import static org.lwjgl.util.vma.Vma.*;
 import static org.lwjgl.vulkan.KHRSwapchain.VK_KHR_SWAPCHAIN_EXTENSION_NAME;
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
+import static space.engine.barrier.Barrier.nowRun;
 import static space.engine.buffer.Allocator.heap;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 import static space.engine.primitive.Primitives.FP32;
-import static space.engine.vector.AxisAndAnglef.toRadians;
+import static space.engine.vector.AxisAngle.toRadians;
 import static space.engine.vulkan.managed.device.ManagedDevice.*;
 import static space.engine.window.Keycode.*;
 import static space.engine.window.Window.*;
@@ -82,20 +85,20 @@ import static space.engine.window.extensions.MouseInputMode.MOUSE_MODE;
 import static space.engine.window.extensions.VideoModeExtension.*;
 
 @SuppressWarnings("FieldCanBeLocal")
-public class AsteroidsDemo implements Runnable {
+public class AsteroidsDemo implements RunnableWithDelay {
 	
 	public static void main(String[] args) {
-		FreeableStorageCleaner.setCleanupLogger(baseLogger);
-		new AsteroidsDemo().run();
+		CleanerThread.setCleanupLogger(baseLogger);
+		nowRun(new AsteroidsDemo()).awaitUninterrupted();
 	}
 	
 	public static BaseLogger baseLogger = BaseLogger.defaultPrinter(BaseLogger.defaultHandler(new BaseLogger()));
 	
-	public boolean VK_LAYER_LUNARG_standard_validation = false;
+	public boolean VK_LAYER_LUNARG_standard_validation = true;
 	public boolean VK_LAYER_RENDERDOC_Capture = false;
 	private Logger logger = baseLogger.subLogger("asteroidsDemo");
 	
-	public void run() {
+	public void run() throws DelayTask {
 		try (Frame side = Freeable.frame()) {
 			
 			//log extensions / layers
@@ -208,45 +211,72 @@ public class AsteroidsDemo implements Runnable {
 			AsteroidPipeline asteroidPipeline = new AsteroidPipeline(asteroidDemoRenderPass, new Object[] {side});
 			ManagedFrameBuffer<AsteroidDemoInfos> frameBuffer = asteroidDemoRenderPass.createManagedFrameBuffer(swapchain, device.getQueue(QUEUE_TYPE_GRAPHICS, QUEUE_FLAG_REALTIME_BIT), new Object[] {side});
 			
+			float[][] config = new float[][] {
+					new float[] {0.5f},
+					new float[] {0.5f, 0.3f},
+					new float[] {0.5f, 0.3f, 0.2f},
+					new float[] {0.5f, 0.3f, 0.2f, 0.1f},
+			};
+			
 			//renderer
-			VmaBuffer[] asteroid_r2 = uploadModel(device, new Object[] {side},
-												  ModelCube.CUBE,
-												  ModelCube.CUBE,
-												  ModelCube.CUBE
+			VmaBuffer[] asteroid_r2 = uploadAsteroids(device, new Object[] {side},
+													  ModelAsteroids.generateAsteroid(2, config[2], 1),
+													  ModelAsteroids.generateAsteroid(2, config[1], 1),
+													  ModelAsteroids.generateAsteroid(2, config[0], 1)
 			).awaitGetUninterrupted();
-			VmaBuffer[] asteroid_r4 = uploadModel(device, new Object[] {side},
-												  ModelCube.CUBE,
-												  ModelCube.CUBE,
-												  ModelCube.CUBE
+			VmaBuffer[] asteroid_r4 = uploadAsteroids(device, new Object[] {side},
+													  ModelAsteroids.generateAsteroid(4, config[2], 2),
+													  ModelAsteroids.generateAsteroid(4, config[1], 2),
+													  ModelAsteroids.generateAsteroid(4, config[0], 2)
 			).awaitGetUninterrupted();
-			VmaBuffer[] asteroid_r6 = uploadModel(device, new Object[] {side},
-												  ModelCube.CUBE,
-												  ModelCube.CUBE,
-												  ModelCube.CUBE
+			VmaBuffer[] asteroid_r6 = uploadAsteroids(device, new Object[] {side},
+													  ModelAsteroids.generateAsteroid(6, config[2], 3),
+													  ModelAsteroids.generateAsteroid(6, config[1], 3),
+													  ModelAsteroids.generateAsteroid(6, config[0], 3)
 			).awaitGetUninterrupted();
-			VmaBuffer[] asteroid_r8 = uploadModel(device, new Object[] {side},
-												  ModelCube.CUBE,
-												  ModelCube.CUBE,
-												  ModelCube.CUBE
+			VmaBuffer[] asteroid_r8 = uploadAsteroids(device, new Object[] {side},
+													  ModelAsteroids.generateAsteroid(8, config[3], 4),
+													  ModelAsteroids.generateAsteroid(8, config[2], 4),
+													  ModelAsteroids.generateAsteroid(8, config[1], 4),
+													  ModelAsteroids.generateAsteroid(8, config[0], 4)
 			).awaitGetUninterrupted();
-			VmaBuffer[] asteroid_r10 = uploadModel(device, new Object[] {side},
-												   ModelCube.CUBE,
-												   ModelCube.CUBE,
-												   ModelCube.CUBE,
-												   ModelCube.CUBE
+			VmaBuffer[] asteroid_r10 = uploadAsteroids(device, new Object[] {side},
+													   ModelAsteroids.generateAsteroid(10, config[3], 5),
+													   ModelAsteroids.generateAsteroid(10, config[2], 5),
+													   ModelAsteroids.generateAsteroid(10, config[1], 5),
+													   ModelAsteroids.generateAsteroid(10, config[0], 5)
 			).awaitGetUninterrupted();
-			VmaBuffer[] asteroid_r12 = uploadModel(device, new Object[] {side},
-												   ModelCube.CUBE,
-												   ModelCube.CUBE,
-												   ModelCube.CUBE,
-												   ModelCube.CUBE
+			VmaBuffer[] asteroid_r12 = uploadAsteroids(device, new Object[] {side},
+													   ModelAsteroids.generateAsteroid(12, config[3], 6),
+													   ModelAsteroids.generateAsteroid(12, config[2], 6),
+													   ModelAsteroids.generateAsteroid(12, config[1], 6),
+													   ModelAsteroids.generateAsteroid(12, config[0], 6)
 			).awaitGetUninterrupted();
 			
 			AsteroidRenderer asteroidRenderer = new AsteroidRenderer(
 					asteroidDemoRenderPass,
 					asteroidPipeline,
 					Stream.of(asteroid_r2, asteroid_r4, asteroid_r6, asteroid_r8, asteroid_r10, asteroid_r12)
-						  .map(models -> new AsteroidModel(models, models.length == 3 ? new float[] {300, 1000, Float.POSITIVE_INFINITY} : new float[] {150, 300, 1000, Float.POSITIVE_INFINITY}))
+						  .map(models -> {
+							  float[] minDistance;
+							  switch (models.length) {
+								  case 1:
+									  minDistance = new float[] {Float.POSITIVE_INFINITY};
+									  break;
+								  case 2:
+									  minDistance = new float[] {3500, Float.POSITIVE_INFINITY};
+									  break;
+								  case 3:
+									  minDistance = new float[] {2000, 3500, Float.POSITIVE_INFINITY};
+									  break;
+								  case 4:
+									  minDistance = new float[] {1000, 2000, 3500, Float.POSITIVE_INFINITY};
+									  break;
+								  default:
+									  throw new RuntimeException();
+							  }
+							  return new AsteroidModel(models, minDistance);
+						  })
 						  .toArray(AsteroidModel[]::new),
 					new Object[] {side}
 			);
@@ -270,24 +300,23 @@ public class AsteroidsDemo implements Runnable {
 			List<Keyboard> keyboards = windowContext.getInputDevices().stream().filter(dev -> dev instanceof Keyboard).map(Keyboard.class::cast).collect(Collectors.toUnmodifiableList());
 			List<Mouse> mouses = windowContext.getInputDevices().stream().filter(dev -> dev instanceof Mouse).map(Mouse.class::cast).collect(Collectors.toUnmodifiableList());
 			
-			Matrix4f matrixPerspective = ProjectionMatrix.projection(new Matrix4f(), 90, (float) swapExtend.extent().width() / swapExtend.extent().height(), 0.1f, 100000f);
+			Matrix4 matrixPerspective = ProjectionMatrix.projection(90, (float) swapExtend.extent().width() / swapExtend.extent().height(), 0.1f, 100000f);
 			Camera camera = new Camera();
 			
 			float speedMouse = 0.008f;
 			float speedMovement = 0.05f;
-			ObservableReference<@NotNull Float> speedMovementMultiplier = new ObservableReference<>(1f);
+			MutableObservableReference<@NotNull Float> speedMovementMultiplier = new MutableObservableReference<>(1f);
 			mouses.forEach(mouse -> {
 				mouse.getMouseMovementEvent().addHook((absolute, relative) -> {
 					Objects.requireNonNull(relative);
-					Quaternionf rotation = new Quaternionf();
+					Quaternion rotation = Quaternion.identity();
 					if (relative[0] != 0)
-						rotation.multiply(new AxisAndAnglef(0, -1, 0, (float) relative[0] * speedMouse));
+						rotation = rotation.multiply(new AxisAngle(0, 1, 0, (float) relative[0] * speedMouse));
 					if (relative[1] != 0)
-						rotation.multiply(new AxisAndAnglef(1, 0, 0, (float) relative[1] * speedMouse));
+						rotation = rotation.multiply(new AxisAngle(-1, 0, 0, (float) relative[1] * speedMouse));
 					camera.rotateRelative(rotation);
 				});
-				mouse.getScrollEvent().addHook(relative -> speedMovementMultiplier.set(() -> {
-					float curr = speedMovementMultiplier.assertGet();
+				mouse.getScrollEvent().addHook(relative -> speedMovementMultiplier.set(curr -> {
 					float newV = curr + (float) relative[1];
 					return newV < 1 ? 1 : newV;
 				}));
@@ -298,30 +327,30 @@ public class AsteroidsDemo implements Runnable {
 				fpsRenderer = new FpsRenderer<>(device, swapchain, frameBuffer, (imageIndex, frameEventTime) -> {
 					
 					keyboards.forEach(keyboard -> {
-						Vector3f translation = new Vector3f();
-						Quaternionf rotation = new Quaternionf();
+						Vector3 translation = Vector3.zero();
+						Quaternion rotation = Quaternion.identity();
 						if (keyboard.isKeyDown(KEY_A))
-							translation.add(new Vector3f(-speedMovement, 0, 0));
+							translation = translation.add(new Vector3(-speedMovement, 0, 0));
 						if (keyboard.isKeyDown(KEY_D))
-							translation.add(new Vector3f(speedMovement, 0, 0));
+							translation = translation.add(new Vector3(speedMovement, 0, 0));
 						if (keyboard.isKeyDown(KEY_R) || keyboard.isKeyDown(KEY_SPACE))
-							translation.add(new Vector3f(0, -speedMovement, 0));
+							translation = translation.add(new Vector3(0, -speedMovement, 0));
 						if (keyboard.isKeyDown(KEY_F) || keyboard.isKeyDown(KEY_LEFT_SHIFT))
-							translation.add(new Vector3f(0, speedMovement, 0));
+							translation = translation.add(new Vector3(0, speedMovement, 0));
 						if (keyboard.isKeyDown(KEY_W))
-							translation.add(new Vector3f(0, 0, -speedMovement));
+							translation = translation.add(new Vector3(0, 0, -speedMovement));
 						if (keyboard.isKeyDown(KEY_S))
-							translation.add(new Vector3f(0, 0, speedMovement));
+							translation = translation.add(new Vector3(0, 0, speedMovement));
 						if (keyboard.isKeyDown(KEY_Q))
-							rotation.multiply(new AxisAndAnglef(0, 0, 1, toRadians(-2)));
+							rotation = rotation.multiply(new AxisAngle(0, 0, 1, toRadians(3)));
 						if (keyboard.isKeyDown(KEY_E))
-							rotation.multiply(new AxisAndAnglef(0, 0, 1, toRadians(2)));
+							rotation = rotation.multiply(new AxisAngle(0, 0, -1, toRadians(3)));
 						camera.rotateRelative(rotation);
 						float multi = speedMovementMultiplier.assertGet();
 						camera.translateRelative(translation.multiply(multi * multi));
 					});
 					
-					AsteroidDemoInfos infos = new AsteroidDemoInfos(imageIndex, matrixPerspective, camera, camera.toTranslation(new Translation()).inverse(), frameEventTime / 60f, uniformBuffer);
+					AsteroidDemoInfos infos = new AsteroidDemoInfos(imageIndex, matrixPerspective, camera, frameEventTime / 60f, uniformBuffer);
 					return window.pollEventsTask().toFuture(() -> infos);
 				}, 60, EMPTY_OBJECT_ARRAY);
 				isRunning.awaitUninterrupted();
@@ -332,8 +361,13 @@ public class AsteroidsDemo implements Runnable {
 			
 			logger.log(LogLevel.INFO, "Exit!");
 		} finally {
-			Side.exit();
+			//noinspection ThrowFromFinallyBlock
+			throw new DelayTask(Side.exit());
 		}
+	}
+	
+	private static Future<VmaBuffer[]> uploadAsteroids(ManagedDevice device, Object[] parents, ModelAsteroids.Result... models) {
+		return uploadModel(device, parents, Arrays.stream(models).map(Result::unpackIndexBuffer).toArray(float[][]::new));
 	}
 	
 	private static Future<VmaBuffer[]> uploadModel(ManagedDevice device, Object[] parents, float[]... models) {

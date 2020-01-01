@@ -7,8 +7,9 @@ import space.engine.barrier.BarrierImpl;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferLong;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
+import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
 import space.engine.simpleQueue.SimpleQueue;
 import space.engine.simpleQueue.pool.SimpleMessagePool;
 import space.engine.vulkan.VkFence;
@@ -20,7 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.vulkan.VkException.assertVk;
 
-public class EventAwaiter implements FreeableWrapper {
+public class EventAwaiter implements CleanerWrapper {
 	
 	public static final long TIMEOUT_NANOS = 20_000_000L;
 	
@@ -33,16 +34,20 @@ public class EventAwaiter implements FreeableWrapper {
 		}
 	};
 	
-	public EventAwaiter(@NotNull ManagedDevice device, @NotNull SimpleQueue<Entry> queue, Object[] parents) {
-		this(device, queue, DEFAULT_THREAD_FACTORY, parents);
+	public EventAwaiter(@NotNull ManagedDevice device, Object[] parents) {
+		this(device, DEFAULT_THREAD_FACTORY, parents);
 	}
 	
-	public EventAwaiter(@NotNull ManagedDevice device, @NotNull SimpleQueue<Entry> queue, ThreadFactory threadFactory, Object[] parents) {
+	public EventAwaiter(@NotNull ManagedDevice device, @NotNull ThreadFactory threadFactory, Object[] parents) {
+		this(device, threadFactory, new ConcurrentLinkedSimpleQueue<>(), SimpleMessagePool.DEFAULT_PAUSE_COUNTDOWN, parents);
+	}
+	
+	public EventAwaiter(@NotNull ManagedDevice device, @NotNull ThreadFactory threadFactory, @NotNull SimpleQueue<Entry> queue, int pauseCountdown, Object[] parents) {
 		this.device = device;
 		this.storage = Freeable.createDummy(this, parents);
 		
 		//pool
-		this.pool = new SimpleMessagePool<>(1, queue, threadFactory) {
+		this.pool = new SimpleMessagePool<>(1, threadFactory, queue, pauseCountdown) {
 			
 			private ArrayList<Entry> accumulator = new ArrayList<>();
 			

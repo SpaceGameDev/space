@@ -6,17 +6,17 @@ import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.pointer.PointerBufferPointer;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 
 import java.util.function.BiFunction;
 
 import static org.lwjgl.vulkan.VK10.*;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 import static space.engine.vulkan.VkException.assertVk;
 
-public class VkRenderPass implements FreeableWrapper {
+public class VkRenderPass implements CleanerWrapper {
 	
 	//alloc
 	public static @NotNull VkRenderPass alloc(VkRenderPassCreateInfo info, @NotNull VkDevice device, @NotNull Object[] parents) {
@@ -69,7 +69,7 @@ public class VkRenderPass implements FreeableWrapper {
 		return storage;
 	}
 	
-	public static class Storage extends FreeableStorage {
+	public static class Storage extends Cleaner {
 		
 		private final long address;
 		private final @NotNull VkDevice device;

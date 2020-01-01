@@ -5,7 +5,7 @@ import space.engine.Side;
 import space.engine.barrier.Barrier;
 import space.engine.barrier.future.Future;
 import space.engine.event.EventEntry;
-import space.engine.freeableStorage.FreeableStorageCleaner;
+import space.engine.freeable.CleanerThread;
 import space.engine.key.attribute.AttributeList;
 import space.engine.key.attribute.AttributeListModify;
 import space.engine.logger.BaseLogger;
@@ -59,8 +59,8 @@ public class GLFWTest {
 		BaseLogger.defaultPrinter(logger);
 		
 		//cleaner
-		FreeableStorageCleaner.setCleanupLogger(logger);
-		FreeableStorageCleaner.startCleanupThread();
+		CleanerThread.setCleanupLogger(logger);
+		CleanerThread.startCleanupThread();
 		
 		//framework
 		WindowFramework windowfw = new GLFWWindowFramework();

@@ -4,9 +4,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import space.engine.barrier.Barrier;
 import space.engine.barrier.BarrierImpl;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.freeableStorage.FreeableStorageWeak;
+import space.engine.freeable.CleanerWeak;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
@@ -16,7 +16,7 @@ import java.util.concurrent.locks.LockSupport;
  * When it actually triggers depends on the implementation.
  * Some standard Implementations include the {@link #createUnmodifiable(long, Object[])} Methods and {@link BarrierTimerWithTimeControl}.
  */
-public abstract class BarrierTimer implements FreeableWrapper {
+public abstract class BarrierTimer implements CleanerWrapper {
 	
 	//static
 	public static BarrierTimer createUnmodifiable(final long offsetNanos, Object[] parents) {
@@ -189,7 +189,7 @@ public abstract class BarrierTimer implements FreeableWrapper {
 		}
 	}
 	
-	private static class Runner extends FreeableStorageWeak<BarrierTimer> implements Runnable {
+	private static class Runner extends CleanerWeak<BarrierTimer> implements Runnable {
 		
 		private static final AtomicInteger TH_COUNTER = new AtomicInteger();
 		

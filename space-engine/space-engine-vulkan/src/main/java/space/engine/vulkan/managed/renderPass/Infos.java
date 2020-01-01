@@ -2,12 +2,12 @@ package space.engine.vulkan.managed.renderPass;
 
 import org.jetbrains.annotations.NotNull;
 import space.engine.barrier.BarrierImpl;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
 
-public abstract class Infos implements FreeableWrapper {
+public abstract class Infos implements CleanerWrapper {
 	
 	public final int frameBufferIndex;
 	public final BarrierImpl frameDone = new BarrierImpl();

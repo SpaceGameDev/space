@@ -13,11 +13,10 @@ import space.engine.barrier.future.Future;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferLong;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.orderingGuarantee.SequentialOrderingGuarantee;
 import space.engine.vulkan.VkCommandBuffer;
-import space.engine.vulkan.VkCommandPool;
 import space.engine.vulkan.VkFramebuffer;
 import space.engine.vulkan.VkImageView;
 import space.engine.vulkan.VkInstance;
@@ -34,12 +33,13 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import static org.lwjgl.vulkan.VK10.*;
+import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
 import static space.engine.barrier.Barrier.*;
 import static space.engine.buffer.Allocator.heap;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 
-public class ManagedFrameBuffer<INFOS extends Infos> implements FreeableWrapper {
+public class ManagedFrameBuffer<INFOS extends Infos> implements CleanerWrapper {
 	
 	public ManagedFrameBuffer(@NotNull ManagedRenderPass<INFOS> renderPass, @NotNull ManagedQueue queue, @NotNull Object[] images, int width, int height, int layers, Object[] parents) {
 		this.renderPass = renderPass;
@@ -59,6 +59,7 @@ public class ManagedFrameBuffer<INFOS extends Infos> implements FreeableWrapper 
 									throw new IllegalArgumentException();
 								})
 								.toArray(VkImageView[]::new);
+		//noinspection RedundantCast
 		this.storage = Freeable.createDummy(this, addIfNotContained(addIfNotContained(parents, renderPass), (Object[]) imagesFlat));
 		this.width = width;
 		this.height = height;
@@ -108,9 +109,6 @@ public class ManagedFrameBuffer<INFOS extends Infos> implements FreeableWrapper 
 					}
 				})
 				.toArray(VkFramebuffer[]::new);
-		
-		VkCommandPool mainBufferPool = VkCommandPool.alloc(VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, queue.queueFamily(), queue.device(), new Object[] {this});
-		this.mainBuffer = mainBufferPool.allocCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, new Object[] {this});
 		
 		this.inheritanceInfos = Arrays
 				.stream(framebuffers)
@@ -197,7 +195,6 @@ public class ManagedFrameBuffer<INFOS extends Infos> implements FreeableWrapper 
 	
 	//render
 	private final @NotNull SequentialOrderingGuarantee orderingGuarantee = new SequentialOrderingGuarantee();
-	private final VkCommandBuffer mainBuffer;
 	
 	public Future<Barrier> render(INFOS infos, VkSemaphore[] waitSemaphores, int[] waitDstStageMasks, VkSemaphore[] signalSemaphores) {
 		return orderingGuarantee.next(prev -> prev.thenFuture(() -> {
@@ -224,51 +221,50 @@ public class ManagedFrameBuffer<INFOS extends Infos> implements FreeableWrapper 
 					.collect(Collectors.toUnmodifiableList());
 			
 			throw new DelayTask(when(cmdBuffersSorted).<Barrier>thenFuture(() -> {
-				Future<Barrier> ret;
+				VkCommandBuffer cmdMain;
 				try (AllocatorFrame frame = Allocator.frame()) {
-					mainBuffer.begin(VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
-					vkCmdBeginRenderPass(mainBuffer, mallocStruct(frame, VkRenderPassBeginInfo::create, VkRenderPassBeginInfo.SIZEOF).set(
-							VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-							0,
-							renderPass.address(),
-							framebuffers[infos.frameBufferIndex].address(),
-							mallocStruct(frame, VkRect2D::create, VkRect2D.SIZEOF).set(
-									mallocStruct(frame, VkOffset2D::create, VkOffset2D.SIZEOF).set(
-											0, 0
-									),
-									mallocStruct(frame, VkExtent2D::create, VkExtent2D.SIZEOF).set(
-											width, height
-									)
-							),
-							renderPass.vkClearValues()
-					), VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
-					
-					for (int i = 0; i < subpasses.length; i++) {
-						VkCommandBuffer[] vkCommandBuffers = cmdBuffersSorted.get(i).assertGet();
-						if (vkCommandBuffers.length > 0) {
-							ArrayBufferLong vkCommandBufferPtrs = ArrayBufferLong.alloc(heap(), Arrays.stream(vkCommandBuffers).mapToLong(VkCommandBuffer::address).toArray(), new Object[] {frame});
-							nvkCmdExecuteCommands(mainBuffer, (int) vkCommandBufferPtrs.length(), vkCommandBufferPtrs.address());
+					cmdMain = queue.poolShortLived().allocAndRecordCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, EMPTY_OBJECT_ARRAY, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, cmd -> {
+						vkCmdBeginRenderPass(cmd, mallocStruct(frame, VkRenderPassBeginInfo::create, VkRenderPassBeginInfo.SIZEOF).set(
+								VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+								0,
+								renderPass.address(),
+								framebuffers[infos.frameBufferIndex].address(),
+								mallocStruct(frame, VkRect2D::create, VkRect2D.SIZEOF).set(
+										mallocStruct(frame, VkOffset2D::create, VkOffset2D.SIZEOF).set(
+												0, 0
+										),
+										mallocStruct(frame, VkExtent2D::create, VkExtent2D.SIZEOF).set(
+												width, height
+										)
+								),
+								renderPass.vkClearValues()
+						), VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+						
+						for (int i = 0; i < subpasses.length; i++) {
+							VkCommandBuffer[] vkCommandBuffers = cmdBuffersSorted.get(i).assertGet();
+							if (vkCommandBuffers.length > 0) {
+								ArrayBufferLong vkCommandBufferPtrs = ArrayBufferLong.alloc(heap(), Arrays.stream(vkCommandBuffers).mapToLong(VkCommandBuffer::address).toArray(), new Object[] {frame});
+								nvkCmdExecuteCommands(cmd, (int) vkCommandBufferPtrs.length(), vkCommandBufferPtrs.address());
+							}
+							
+							if (i != subpasses.length - 1) //all except last
+								vkCmdNextSubpass(cmd, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 						}
 						
-						if (i != subpasses.length - 1) //all except last
-							vkCmdNextSubpass(mainBuffer, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
-					}
-					
-					vkCmdEndRenderPass(mainBuffer);
-					mainBuffer.end();
-					
-					ret = queue.submit(
-							waitSemaphores,
-							waitDstStageMasks,
-							new VkCommandBuffer[] {mainBuffer},
-							signalSemaphores
-					);
+						vkCmdEndRenderPass(cmd);
+						return null;
+					});
 				}
 				
-				inner(ret).addHook(() -> {
-					mainBuffer.reset(0);
-					infos.frameDone.triggerNow();
-				});
+				infos.frameDone.addHook(cmdMain::free);
+				Future<Barrier> ret = queue.submit(
+						waitSemaphores,
+						waitDstStageMasks,
+						new VkCommandBuffer[] {cmdMain},
+						signalSemaphores
+				);
+				
+				inner(ret).addHook(infos.frameDone::triggerNow);
 				throw new DelayTask(ret);
 			}));
 		}));

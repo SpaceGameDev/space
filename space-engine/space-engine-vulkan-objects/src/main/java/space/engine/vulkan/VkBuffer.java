@@ -3,11 +3,11 @@ package space.engine.vulkan;
 import org.jetbrains.annotations.NotNull;
 import space.engine.barrier.Barrier;
 import space.engine.buffer.Buffer;
-import space.engine.freeableStorage.Freeable;
+import space.engine.freeable.Freeable;
 
 import java.util.function.BiFunction;
 
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 
 public interface VkBuffer extends Freeable {
 	
@@ -31,7 +31,7 @@ public interface VkBuffer extends Freeable {
 	
 	@NotNull Barrier uploadData(Buffer src, long srcOffset, long dstOffset, long length);
 	
-	class Default implements VkBuffer, FreeableWrapper {
+	class Default implements VkBuffer, CleanerWrapper {
 		
 		//const
 		public Default(long address, long sizeOf, @NotNull VkDevice device, @NotNull BiFunction<? super Default, Object[], Freeable> storageCreator, @NotNull Object[] parents) {

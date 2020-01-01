@@ -7,8 +7,8 @@ import org.lwjgl.vulkan.VkDescriptorSetAllocateInfo;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferLong;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.lwjgl.LwjglStructAllocator;
 import space.engine.vulkan.VkInstance;
 import space.engine.vulkan.descriptors.VkDescriptorPool;
@@ -25,7 +25,7 @@ import java.util.stream.IntStream;
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 
-public class ManagedDescriptorSetPool implements FreeableWrapper {
+public class ManagedDescriptorSetPool implements CleanerWrapper {
 	
 	public ManagedDescriptorSetPool(ManagedDevice device, VkDescriptorSetLayout layout, int setCount, Object[] parents) {
 		this.device = device;

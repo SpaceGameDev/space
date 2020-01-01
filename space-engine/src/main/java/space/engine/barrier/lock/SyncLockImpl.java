@@ -27,7 +27,9 @@ public class SyncLockImpl implements SyncLock {
 		}
 	}
 	
+	@SuppressWarnings("unused")
 	private volatile boolean locked;
+	@SuppressWarnings("unused")
 	private volatile int modId;
 	private @NotNull ConcurrentLinkedSimpleQueue<BooleanSupplier> notifyUnlock = new ConcurrentLinkedSimpleQueue<>();
 	

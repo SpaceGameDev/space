@@ -1,7 +1,9 @@
 package space.engine.vulkan;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.vulkan.VkCommandBufferAllocateInfo;
+import org.lwjgl.vulkan.VkCommandBufferInheritanceInfo;
 import org.lwjgl.vulkan.VkCommandPoolCreateInfo;
 import space.engine.barrier.Barrier;
 import space.engine.buffer.Allocator;
@@ -10,21 +12,23 @@ import space.engine.buffer.array.ArrayBufferLong;
 import space.engine.buffer.array.ArrayBufferPointer;
 import space.engine.buffer.pointer.PointerBufferLong;
 import space.engine.buffer.pointer.PointerBufferPointer;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
+import space.engine.simpleQueue.pool.ThreadBound;
 import space.engine.vulkan.VkCommandBuffer.Default;
 import space.engine.vulkan.VkCommandBuffer.DestroyStorage;
 
 import java.util.Arrays;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static org.lwjgl.vulkan.VK10.*;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 import static space.engine.vulkan.VkException.assertVk;
 
-public class VkCommandPool implements FreeableWrapper {
+public class VkCommandPool implements CleanerWrapper {
 	
 	//alloc
 	public static @NotNull VkCommandPool alloc(int flags, VkQueueFamilyProperties queueFamily, @NotNull VkDevice device, @NotNull Object[] parents) {
@@ -59,6 +63,7 @@ public class VkCommandPool implements FreeableWrapper {
 	public VkCommandPool(long address, @NotNull VkDevice device, boolean allowReset, @NotNull BiFunction<VkCommandPool, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
 		this.address = address;
 		this.device = device;
+		this.owner = Thread.currentThread();
 		this.allowReset = allowReset;
 		this.storage = storageCreator.apply(this, addIfNotContained(parents, device));
 	}
@@ -72,6 +77,18 @@ public class VkCommandPool implements FreeableWrapper {
 	
 	public VkInstance instance() {
 		return device.instance();
+	}
+	
+	public final @NotNull Thread owner;
+	
+	public @NotNull Thread owner() {
+		return owner;
+	}
+	
+	public void validateThread() {
+		Thread currThread = Thread.currentThread();
+		if (currThread != owner)
+			throw new IllegalCallerException("Owned by Thread " + owner + " but was called from a different Thread " + currThread);
 	}
 	
 	//address
@@ -89,7 +106,7 @@ public class VkCommandPool implements FreeableWrapper {
 		return storage;
 	}
 	
-	public static class Storage extends FreeableStorage {
+	public static class Storage extends Cleaner {
 		
 		private final @NotNull VkDevice device;
 		private final long address;
@@ -114,7 +131,9 @@ public class VkCommandPool implements FreeableWrapper {
 		return allowReset;
 	}
 	
-	public synchronized VkCommandBuffer allocCommandBuffer(int level, Object[] parents) {
+	//alloc
+	public @NotNull VkCommandBufferOwned allocCommandBuffer(int level, @NotNull Object[] parents) {
+		validateThread();
 		try (AllocatorFrame frame = Allocator.frame()) {
 			VkCommandBufferAllocateInfo info = mallocStruct(frame, VkCommandBufferAllocateInfo::create, VkCommandBufferAllocateInfo.SIZEOF).set(
 					VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -131,7 +150,8 @@ public class VkCommandPool implements FreeableWrapper {
 		}
 	}
 	
-	public synchronized VkCommandBuffer[] allocCommandBuffers(int level, int count, Object[] parents) {
+	public @NotNull VkCommandBuffer[] allocCommandBuffers(int level, int count, @NotNull Object[] parents) {
+		validateThread();
 		try (AllocatorFrame frame = Allocator.frame()) {
 			VkCommandBuffer[] ret = new VkCommandBuffer[count];
 			
@@ -152,31 +172,53 @@ public class VkCommandPool implements FreeableWrapper {
 		}
 	}
 	
-	public void releaseCommandBuffer(VkCommandBuffer commandBuffer) {
+	//allocAndRecord
+	public @NotNull VkCommandBuffer allocAndRecordCommandBuffer(int level, Object[] parents, int recordFlags, Function<? super VkCommandBufferOwned, Object> function) {
+		return allocAndRecordCommandBuffer(level, parents, recordFlags, null, function);
+	}
+	
+	public @NotNull VkCommandBuffer allocAndRecordCommandBuffer(int level, Object[] parents, int recordFlags, @Nullable VkCommandBufferInheritanceInfo inheritanceInfo, Function<? super VkCommandBufferOwned, Object> record) {
+		VkCommandBufferOwned cmd = allocCommandBuffer(level, parents);
+		cmd.record(recordFlags, inheritanceInfo, record);
+		return cmd.deown();
+	}
+	
+	//release
+	public void releaseCommandBuffer(@NotNull VkCommandBuffer commandBuffer) {
 		releaseCommandBuffer(commandBuffer.address());
 	}
 	
 	public void releaseCommandBuffer(long commandBuffer) {
+		if (Thread.currentThread() == owner)
+			releaseCommandBufferInternal(commandBuffer);
+		else
+			ThreadBound.submit(owner, () -> releaseCommandBufferInternal(commandBuffer));
+	}
+	
+	private void releaseCommandBufferInternal(long commandBuffer) {
 		try (AllocatorFrame frame = Allocator.frame()) {
 			PointerBufferLong ptr = PointerBufferLong.alloc(frame, commandBuffer);
-			synchronized (this) {
-				nvkFreeCommandBuffers(device, this.address(), 1, ptr.address());
-				assertVk();
-			}
+			nvkFreeCommandBuffers(device, this.address(), 1, ptr.address());
+			assertVk();
 		}
 	}
 	
-	public void releaseCommandBuffers(VkCommandBuffer[] commandBuffers) {
+	public void releaseCommandBuffers(@NotNull VkCommandBuffer[] commandBuffers) {
 		releaseCommandBuffers(Arrays.stream(commandBuffers).mapToLong(VkCommandBuffer::address).toArray());
 	}
 	
 	public void releaseCommandBuffers(long[] commandBuffers) {
+		if (Thread.currentThread() == owner)
+			releaseCommandBuffersInternal(commandBuffers);
+		else
+			ThreadBound.submit(owner, () -> releaseCommandBuffersInternal(commandBuffers));
+	}
+	
+	private void releaseCommandBuffersInternal(long[] commandBuffers) {
 		try (AllocatorFrame frame = Allocator.frame()) {
 			ArrayBufferLong ptrs = ArrayBufferLong.alloc(frame, commandBuffers);
-			synchronized (this) {
-				nvkFreeCommandBuffers(device, this.address(), commandBuffers.length, ptrs.address());
-				assertVk();
-			}
+			nvkFreeCommandBuffers(device, this.address(), commandBuffers.length, ptrs.address());
+			assertVk();
 		}
 	}
 }

@@ -5,7 +5,7 @@ import org.lwjgl.vulkan.VkLayerProperties;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.pointer.PointerBufferInt;
-import space.engine.freeableStorage.Freeable;
+import space.engine.freeable.Freeable;
 import space.engine.vulkan.exception.UnsupportedConfigurationException;
 
 import java.util.Arrays;
@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.lwjgl.vulkan.VK10.*;
-import static space.engine.freeableStorage.Freeable.ROOT_LIST;
+import static space.engine.freeable.Freeable.ROOT_LIST;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocBuffer;
 import static space.engine.vulkan.VkException.assertVk;
 

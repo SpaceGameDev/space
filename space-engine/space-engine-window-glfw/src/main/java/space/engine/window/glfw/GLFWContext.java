@@ -10,7 +10,7 @@ import space.engine.delegate.collection.ObservableCollection;
 import space.engine.event.Event;
 import space.engine.event.SequentialEventBuilder;
 import space.engine.event.typehandler.TypeHandlerParallel;
-import space.engine.freeableStorage.Freeable;
+import space.engine.freeable.Freeable;
 import space.engine.key.attribute.AbstractAttributeList;
 import space.engine.key.attribute.AttributeList;
 import space.engine.window.InputDevice;
@@ -32,11 +32,10 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static space.engine.barrier.Barrier.nowRun;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
-import static space.engine.window.WindowContext.FreeableWrapper;
+import static space.engine.freeable.Freeable.*;
 import static space.engine.window.glfw.GLFWUtil.*;
 
-public class GLFWContext implements WindowContext, FreeableWrapper {
+public class GLFWContext implements WindowContext, CleanerWrapper {
 	
 	public final @NotNull GLFWWindowFramework framework;
 	private final @NotNull Storage storage;

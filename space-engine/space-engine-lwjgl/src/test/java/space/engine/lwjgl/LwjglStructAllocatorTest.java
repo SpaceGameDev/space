@@ -7,7 +7,7 @@ import space.engine.buffer.AbstractBuffer;
 import space.engine.buffer.AbstractBuffer.Storage;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
-import space.engine.freeableStorage.Freeable;
+import space.engine.freeable.Freeable;
 
 import static org.junit.Assert.*;
 import static space.engine.lwjgl.LwjglStructAllocator.*;

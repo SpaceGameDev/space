@@ -6,9 +6,9 @@ import space.engine.barrier.BarrierImpl;
 import space.engine.barrier.DelayTask;
 import space.engine.barrier.future.Future;
 import space.engine.barrier.timer.BarrierTimerWithTimeControl;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.orderingGuarantee.SequentialOrderingGuarantee;
 import space.engine.vulkan.VkSemaphore;
 import space.engine.vulkan.managed.device.ManagedDevice;
@@ -23,7 +23,7 @@ import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
 import static space.engine.barrier.Barrier.*;
 
-public class FpsRenderer<INFOS extends Infos> implements FreeableWrapper {
+public class FpsRenderer<INFOS extends Infos> implements CleanerWrapper {
 	
 	public FpsRenderer(@NotNull ManagedDevice device, @NotNull ManagedSwapchain<?> swapchain, @NotNull ManagedFrameBuffer<INFOS> frameBuffer, @NotNull InfoCreator<INFOS> infoCreator, float fps, Object[] parents) {
 		this.device = device;
@@ -33,8 +33,8 @@ public class FpsRenderer<INFOS extends Infos> implements FreeableWrapper {
 		
 		//all explicitly freed in Storage
 		this.timer = new BarrierTimerWithTimeControl(fps / 1_000_000_000f, -System.nanoTime(), EMPTY_OBJECT_ARRAY);
-		this.semaphoreImageReady = device.vkSemaphorePool().allocate(EMPTY_OBJECT_ARRAY);
-		this.semaphoreRenderDone = device.vkSemaphorePool().allocate(EMPTY_OBJECT_ARRAY);
+		this.semaphoreImageReady = device.vkSemaphorePool().allocate();
+		this.semaphoreRenderDone = device.vkSemaphorePool().allocate();
 		this.storage = new Storage(this, Freeable.addIfNotContained(parents, swapchain, frameBuffer));
 		
 		start();
@@ -65,7 +65,7 @@ public class FpsRenderer<INFOS extends Infos> implements FreeableWrapper {
 		return storage;
 	}
 	
-	public static class Storage extends FreeableStorage {
+	public static class Storage extends Cleaner {
 		
 		private final @NotNull AtomicBoolean isRunning;
 		private final @NotNull Barrier exitBarrier;

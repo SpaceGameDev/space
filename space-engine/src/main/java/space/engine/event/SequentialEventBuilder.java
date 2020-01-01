@@ -107,7 +107,6 @@ public class SequentialEventBuilder<FUNCTION> extends AbstractEventBuilder<FUNCT
 	
 	@Override
 	public void clearCache() {
-		super.clearCache();
 		build = null;
 	}
 }

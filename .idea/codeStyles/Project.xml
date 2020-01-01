@@ -16,6 +16,9 @@
         <value />
       </option>
     </JavaCodeStyleSettings>
+    <MarkdownNavigatorCodeStyleSettings>
+      <option name="RIGHT_MARGIN" value="72" />
+    </MarkdownNavigatorCodeStyleSettings>
     <codeStyleSettings language="GLSL">
       <indentOptions>
         <option name="USE_TAB_CHARACTER" value="true" />

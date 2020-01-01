@@ -1,32 +1,30 @@
 package space.game.asteroidsDemo.entity;
 
-import space.engine.vector.Matrix3f;
-import space.engine.vector.Quaternionf;
-import space.engine.vector.Translation;
-import space.engine.vector.Vector3f;
+import space.engine.vector.Quaternion;
+import space.engine.vector.TranslationBuilder;
+import space.engine.vector.Vector3;
 
 public class Entity {
 	
-	public final Vector3f position = new Vector3f();
-	public final Quaternionf rotation = new Quaternionf();
+	public Vector3 position = Vector3.zero();
+	public Quaternion rotation = Quaternion.identity();
 	
 	public Entity() {
 	}
 	
-	public Entity rotateRelative(Quaternionf relative) {
-		rotation.multiply(relative);
+	public Entity rotateRelative(Quaternion relative) {
+		rotation = relative.multiply(rotation);
 		return this;
 	}
 	
-	public Entity translateRelative(Vector3f relative) {
-		position.add(new Vector3f(relative).rotate(rotation));
+	public Entity translateRelative(Vector3 relative) {
+		position = position.add(relative.rotateInverse(rotation));
 		return this;
 	}
 	
-	public Translation toTranslation(Translation translation) {
-		return translation
-				.zero()
-				.moveForwards(position)
-				.rotateForwards(rotation.toMatrix3(new Matrix3f()));
+	public TranslationBuilder toTranslation() {
+		return new TranslationBuilder()
+				.appendMove(position)
+				.appendRotate(rotation);
 	}
 }

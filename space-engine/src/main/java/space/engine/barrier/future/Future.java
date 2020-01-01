@@ -1,12 +1,26 @@
 package space.engine.barrier.future;
 
-import org.jetbrains.annotations.NotNull;
 import space.engine.barrier.Barrier;
+import space.engine.barrier.Delegate;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public interface Future<R> extends BaseFuture<R>, Barrier {
+public interface Future<R> extends GenericFuture<R>, Barrier {
+	
+	static <T> Delegate<Future<T>, CompletableFuture<T>> delegate() {
+		return new Delegate<>() {
+			@Override
+			public CompletableFuture<T> createCompletable() {
+				return new CompletableFuture<>();
+			}
+			
+			@Override
+			public void complete(CompletableFuture<T> ret, Future<T> delegate) {
+				ret.complete(delegate.assertGet());
+			}
+		};
+	}
 	
 	//abstract get
 	R awaitGet() throws InterruptedException;
@@ -78,6 +92,9 @@ public interface Future<R> extends BaseFuture<R>, Barrier {
 	//default
 	@Override
 	default Future<R> dereference() {
+		if (isDone())
+			return finished(assertGet());
+		
 		CompletableFuture<R> future = new CompletableFuture<>();
 		this.addHook(() -> future.complete(this.assertGet()));
 		return future;
@@ -85,7 +102,8 @@ public interface Future<R> extends BaseFuture<R>, Barrier {
 	
 	//static
 	static <R> Future<R> finished(R get) {
-		return new Future<>() {
+		class Finished extends Barrier.DoneBarrier implements Future<R> {
+			
 			@Override
 			public R awaitGet() {
 				return get;
@@ -100,32 +118,8 @@ public interface Future<R> extends BaseFuture<R>, Barrier {
 			public R assertGet() throws FutureNotFinishedException {
 				return get;
 			}
-			
-			@Override
-			public boolean isDone() {
-				return true;
-			}
-			
-			@Override
-			public void addHook(@NotNull Runnable run) {
-				run.run();
-			}
-			
-			@Override
-			public void removeHook(@NotNull Runnable run) {
-				run.run();
-			}
-			
-			@Override
-			public void await() {
-			
-			}
-			
-			@Override
-			public void await(long time, TimeUnit unit) {
-			
-			}
-		};
+		}
+		return new Finished();
 	}
 	
 	/**

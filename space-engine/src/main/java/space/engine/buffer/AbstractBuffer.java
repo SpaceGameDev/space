@@ -4,12 +4,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import space.engine.barrier.Barrier;
 import space.engine.baseobject.ToString;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.string.toStringHelper.ToStringHelper;
 import space.engine.string.toStringHelper.ToStringHelper.ToStringHelperObjectsInstance;
 
-public abstract class AbstractBuffer extends Buffer implements FreeableWrapper, ToString {
+public abstract class AbstractBuffer extends Buffer implements CleanerWrapper, ToString {
 	
 	private final @NotNull Storage storage;
 	
@@ -24,11 +24,11 @@ public abstract class AbstractBuffer extends Buffer implements FreeableWrapper, 
 	
 	//storage
 	@Override
-	public @NotNull FreeableStorage getStorage() {
+	public @NotNull Cleaner getStorage() {
 		return storage;
 	}
 	
-	public static class Storage extends FreeableStorage {
+	public static class Storage extends Cleaner {
 		
 		public final Allocator allocator;
 		private final long address;

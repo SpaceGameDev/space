@@ -6,13 +6,13 @@ import space.engine.buffer.AbstractBuffer.Storage;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack;
 import space.engine.buffer.alloc.AllocatorStackImpl.AllocatorFrame;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.freeableStorage.stack.AbstractFreeableStack;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
+import space.engine.freeable.stack.AbstractFreeableStack;
 import space.engine.unsafe.UnsafeInstance;
 import sun.misc.Unsafe;
 
-public class AllocatorStackImpl extends AbstractFreeableStack<AllocatorFrame> implements AllocatorStack, FreeableWrapper {
+public class AllocatorStackImpl extends AbstractFreeableStack<AllocatorFrame> implements AllocatorStack, CleanerWrapper {
 	
 	private static Unsafe UNSAFE = UnsafeInstance.getUnsafe();
 	

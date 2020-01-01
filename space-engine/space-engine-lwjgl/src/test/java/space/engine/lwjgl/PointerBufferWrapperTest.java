@@ -7,7 +7,7 @@ import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferPointer;
 import space.engine.buffer.pointer.PointerBufferPointer;
-import space.engine.freeableStorage.Freeable;
+import space.engine.freeable.Freeable;
 
 import static org.junit.Assert.assertEquals;
 import static space.engine.Empties.EMPTY_OBJECT_ARRAY;

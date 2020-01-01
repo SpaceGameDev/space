@@ -92,7 +92,7 @@ public class AttributeListModify<TYPE> extends AbstractAttributeList<TYPE> {
 		}
 	}
 	
-	public void putAll(AbstractAttributeList list, @NotNull AttributeKey<?>... keys) {
+	public void putAll(AbstractAttributeList<?> list, @NotNull AttributeKey<?>... keys) {
 		for (AttributeKey<?> key : keys) {
 			verifyKey(key);
 			indexMap.put(key.id, list.getDirect(key));

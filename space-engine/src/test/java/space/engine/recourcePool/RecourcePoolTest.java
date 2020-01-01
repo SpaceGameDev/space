@@ -9,10 +9,10 @@ import static org.junit.Assert.assertEquals;
 
 public class RecourcePoolTest {
 	
-	private final ResourcePool<Integer> pool;
+	private final BlockResourcePool<Integer> pool;
 	
 	public RecourcePoolTest() {
-		pool = new ResourcePool<Integer>(4) {
+		pool = new BlockResourcePool<>(4) {
 			
 			private AtomicInteger counter = new AtomicInteger();
 			

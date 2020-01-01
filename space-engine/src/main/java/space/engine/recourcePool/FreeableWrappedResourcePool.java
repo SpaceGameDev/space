@@ -3,8 +3,8 @@ package space.engine.recourcePool;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import space.engine.barrier.Barrier;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
 
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -12,9 +12,9 @@ import java.util.function.Consumer;
 import static space.engine.barrier.Barrier.DONE_BARRIER;
 
 /**
- * {@link FreeableWrappedResourcePool} uses a ResourcePool and wraps allocated resources in another {@link space.engine.freeableStorage.Freeable} for easy releasing by calling {@link Freeable#free()}
+ * {@link FreeableWrappedResourcePool} uses a ResourcePool and wraps allocated resources in another {@link space.engine.freeable.Freeable} for easy releasing by calling {@link Freeable#free()}
  */
-public abstract class FreeableWrappedResourcePool<I, O extends Freeable> {
+public abstract class FreeableWrappedResourcePool<I, O extends Freeable> implements FreeableResourcePool<O> {
 	
 	//static
 	public static <I, O extends Freeable> FreeableWrappedResourcePool<I, O> withLamdba(@NotNull ResourcePool<I> resourcePool, @NotNull WrapFunction<I, O> wrap, Consumer<I> reset) {
@@ -49,25 +49,28 @@ public abstract class FreeableWrappedResourcePool<I, O extends Freeable> {
 	
 	public abstract void reset(@NotNull I inner);
 	
-	public @NotNull O allocate(Object[] parents) {
+	@Override
+	public O allocateParents(Object[] parents) {
 		I inner = resourcePool.allocate();
 		return wrap(inner, storageCreator(inner), parents);
 	}
 	
-	public @NotNull O[] allocate(@NotNull O[] outers, Object[] parents) {
-		@NotNull I[] inners = resourcePool.allocate(outers.length);
+	@Override
+	public O[] allocateParents(O[] os, Object[] parents) {
+		//noinspection unchecked
+		I[] inners = resourcePool.allocate((I[]) new Object[os.length]);
 		for (int i = 0; i < inners.length; i++) {
 			I inner = inners[i];
-			outers[i] = wrap(inner, storageCreator(inner), parents);
+			os[i] = wrap(inner, storageCreator(inner), parents);
 		}
-		return outers;
+		return os;
 	}
 	
 	private @NotNull BiFunction<? super Object, Object[], Freeable> storageCreator(@NotNull I inner) {
 		return (outer, objects) -> new OuterStorage(outer, inner, objects);
 	}
 	
-	private class OuterStorage extends FreeableStorage {
+	private class OuterStorage extends Cleaner {
 		
 		private final @NotNull I inner;
 		

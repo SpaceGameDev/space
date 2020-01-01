@@ -7,8 +7,8 @@ import org.lwjgl.assimp.AIVector3D;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferByte;
-import space.engine.vector.Matrix4f;
-import space.engine.vector.Vector3f;
+import space.engine.vector.Matrix4;
+import space.engine.vector.Vector3;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,7 +22,7 @@ import static space.engine.lwjgl.PointerBufferWrapper.streamPointerBuffer;
 
 public class ModelFromAssimp {
 	
-	public static float[] loadModel(InputStream stream, Matrix4f scale) throws IOException {
+	public static float[] loadModel(InputStream stream, Matrix4 scale) throws IOException {
 		byte[] bytes = stream.readAllBytes();
 		
 		try (AllocatorFrame frame = Allocator.frame()) {
@@ -48,7 +48,7 @@ public class ModelFromAssimp {
 					for (int i : new int[] {0, 2, 1}) {
 						AIVector3D vertexAssimp = vertices.get(indices.get(i));
 						AIVector3D normalAssimp = normals.get(indices.get(i));
-						Vector3f vertex = new Vector3f(vertexAssimp.x(), vertexAssimp.y(), vertexAssimp.z()).rotate(scale);
+						Vector3 vertex = new Vector3(vertexAssimp.x(), vertexAssimp.y(), vertexAssimp.z()).rotate(scale);
 						ret[index++] = vertex.x;
 						ret[index++] = vertex.y;
 						ret[index++] = vertex.z;

@@ -3,6 +3,7 @@ package space.engine.observable;
 import org.junit.Test;
 import space.engine.barrier.Barrier;
 import space.engine.barrier.BarrierImpl;
+import space.engine.barrier.DelayTask;
 import space.engine.event.EventEntry;
 
 import java.util.stream.IntStream;
@@ -11,7 +12,7 @@ import static org.junit.Assert.*;
 
 public class ObservableReferenceTest {
 	
-	ObservableReference<Integer> reference = new ObservableReference<>();
+	MutableObservableReference<Integer> reference = new MutableObservableReference<>();
 	
 	@Test
 	public void testBasics() {
@@ -45,7 +46,7 @@ public class ObservableReferenceTest {
 		BarrierImpl[] callbackWait = new BarrierImpl[1];
 		reference.addHook(i -> {
 			if (callbackWait[0] != null)
-				callbackWait[0].awaitUninterrupted();
+				throw new DelayTask(callbackWait[0]);
 		});
 		
 		assertNull(reference.assertGet());
@@ -74,13 +75,13 @@ public class ObservableReferenceTest {
 		callbackWait[3].triggerNow();
 		reference.addHook(new EventEntry<>(i -> {
 			callbackNotify[i].triggerNow();
-			callbackWait[i].awaitUninterrupted();
+			throw new DelayTask(callbackWait[i]);
 		})).awaitUninterrupted();
 		
-		Barrier setTo0 = reference.set(0);
+		Barrier setTo0 = reference.setMayCancel(0);
 		callbackNotify[0].awaitUninterrupted();
-		Barrier setTo1 = reference.set(1);
-		Barrier setTo2 = reference.set(2);
+		Barrier setTo1 = reference.setMayCancel(1);
+		Barrier setTo2 = reference.setMayCancel(2);
 		
 		assertFalse(setTo0.isDone());
 		assertFalse(setTo1.isDone());
@@ -110,23 +111,5 @@ public class ObservableReferenceTest {
 		assertTrue(callbackNotify[0].isDone());
 		assertFalse(callbackNotify[1].isDone()); //cancelled -> not called -> false
 		assertTrue(callbackNotify[2].isDone());
-	}
-	
-	@Test
-	@SuppressWarnings("deprecation")
-	public void testGeneratingReference() {
-		ObservableReference<Integer> a = new ObservableReference<>(1);
-		ObservableReference<Integer> b = new ObservableReference<>(2);
-		ObservableReference<Integer> res = ObservableReference.generatingReference(() -> a.assertGet() + b.assertGet(), a, b);
-		
-		a.set(2).awaitUninterrupted();
-		res.getLatestBarrier().awaitUninterrupted();
-		assertEquals((Integer) 4, res.assertGet());
-		a.set(3).awaitUninterrupted();
-		res.getLatestBarrier().awaitUninterrupted();
-		assertEquals((Integer) 5, res.assertGet());
-		b.set(3).awaitUninterrupted();
-		res.getLatestBarrier().awaitUninterrupted();
-		assertEquals((Integer) 6, res.assertGet());
 	}
 }

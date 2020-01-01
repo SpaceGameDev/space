@@ -4,15 +4,15 @@ import org.jetbrains.annotations.NotNull;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.pointer.PointerBufferPointer;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 
 import java.util.function.BiFunction;
 
 import static org.lwjgl.vulkan.VK10.nvkGetDeviceQueue;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 
-public class VkQueue extends org.lwjgl.vulkan.VkQueue implements FreeableWrapper {
+public class VkQueue extends org.lwjgl.vulkan.VkQueue implements CleanerWrapper {
 	
 	//alloc
 	public static @NotNull VkQueue alloc(@NotNull VkDevice device, @NotNull VkQueueFamilyProperties family, int queueIndex, @NotNull Object[] parents) {

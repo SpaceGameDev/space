@@ -4,7 +4,7 @@ import org.lwjgl.PointerBuffer;
 import space.engine.buffer.Buffer;
 import space.engine.buffer.array.ArrayBufferPointer;
 import space.engine.buffer.pointer.PointerBufferPointer;
-import space.engine.freeableStorage.Freeable;
+import space.engine.freeable.Freeable;
 
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;

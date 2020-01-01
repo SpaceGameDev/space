@@ -7,7 +7,6 @@ import space.engine.barrier.functions.Starter;
 import space.engine.event.Event;
 import space.engine.event.EventEntry;
 import space.engine.event.SequentialEventBuilder;
-import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
 import space.engine.simpleQueue.pool.Executor;
 import space.engine.simpleQueue.pool.SimpleThreadPool;
 
@@ -18,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class Side {
 	
 	//pool
-	private static final SimpleThreadPool POOL = new SimpleThreadPool(Runtime.getRuntime().availableProcessors(), new ConcurrentLinkedSimpleQueue<>(), new ThreadFactory() {
+	private static final SimpleThreadPool POOL = new SimpleThreadPool(Runtime.getRuntime().availableProcessors(), new ThreadFactory() {
 		private final AtomicInteger COUNT = new AtomicInteger();
 		
 		@Override
@@ -38,9 +37,9 @@ public class Side {
 	}
 	
 	//event exit
-	public static final Event<Starter> EVENT_EXIT = new SequentialEventBuilder<>();
-	public static final EventEntry<Starter> EXIT_EVENT_ENTRY_BEFORE_APPLICATION_SHUTDOWN;
-	public static final EventEntry<Starter> EXIT_EVENT_ENTRY_POOL_EXIT;
+	public static final Event<Starter<Barrier>> EVENT_EXIT = new SequentialEventBuilder<>();
+	public static final EventEntry<Starter<Barrier>> EXIT_EVENT_ENTRY_BEFORE_APPLICATION_SHUTDOWN;
+	public static final EventEntry<Starter<Barrier>> EXIT_EVENT_ENTRY_POOL_EXIT;
 	
 	static {
 		EVENT_EXIT.addHook(EXIT_EVENT_ENTRY_BEFORE_APPLICATION_SHUTDOWN = new EventEntry<>(Starter.noop()));

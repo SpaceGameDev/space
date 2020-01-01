@@ -23,8 +23,8 @@ import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.StringConverter;
 import space.engine.buffer.array.ArrayBufferFloat;
 import space.engine.buffer.pointer.PointerBufferLong;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkGraphicsPipeline;
 import space.engine.vulkan.VkPipelineLayout;
@@ -43,7 +43,7 @@ import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.engine.primitive.Primitives.FP32;
 
-public class AsteroidPipeline implements FreeableWrapper {
+public class AsteroidPipeline implements CleanerWrapper {
 	
 	public AsteroidPipeline(@NotNull AsteroidDemoRenderPass renderPass, @NotNull Object[] parents) {
 		this.renderPass = renderPass;
@@ -96,12 +96,12 @@ public class AsteroidPipeline implements FreeableWrapper {
 							allocBuffer(frame, VkVertexInputBindingDescription::create, VkVertexInputBindingDescription.SIZEOF,
 										perVertex -> perVertex.set(
 												0,
-												FP32.bytes * 9,
+												FP32.bytes * 6,
 												VK_VERTEX_INPUT_RATE_VERTEX
 										),
 										perInstance -> perInstance.set(
 												1,
-												FP32.bytes * 28,
+												FP32.bytes * 16,
 												VK_VERTEX_INPUT_RATE_INSTANCE
 										)
 							),
@@ -136,29 +136,11 @@ public class AsteroidPipeline implements FreeableWrapper {
 												VK_FORMAT_R32G32B32_SFLOAT,
 												FP32.bytes * 8
 										),
-										inInstanceMatrixInverse1 -> inInstanceMatrixInverse1.set(
+										inInstanceOffset -> inInstanceOffset.set(
 												11,
 												1,
 												VK_FORMAT_R32G32B32_SFLOAT,
 												FP32.bytes * 12
-										),
-										inInstanceMatrixInverse2 -> inInstanceMatrixInverse2.set(
-												12,
-												1,
-												VK_FORMAT_R32G32B32_SFLOAT,
-												FP32.bytes * 16
-										),
-										inInstanceMatrixInverse3 -> inInstanceMatrixInverse3.set(
-												13,
-												1,
-												VK_FORMAT_R32G32B32_SFLOAT,
-												FP32.bytes * 20
-										),
-										inInstanceOffset -> inInstanceOffset.set(
-												14,
-												1,
-												VK_FORMAT_R32G32B32_SFLOAT,
-												FP32.bytes * 24
 										)
 							)
 					),

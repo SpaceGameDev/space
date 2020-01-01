@@ -6,9 +6,9 @@ import org.lwjgl.glfw.GLFWErrorCallbackI;
 import org.lwjgl.glfw.GLFWMonitorCallbackI;
 import space.engine.barrier.Barrier;
 import space.engine.delegate.collection.ObservableCollection;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.FreeableList;
-import space.engine.freeableStorage.FreeableStorageWeak;
+import space.engine.freeable.CleanerDependencyList;
+import space.engine.freeable.CleanerWeak;
+import space.engine.freeable.Freeable;
 import space.engine.window.exception.WindowFrameworkInitializationException;
 
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,7 +44,7 @@ public class GLFWInstance implements Freeable {
 		}
 		
 		GLFWInstance inst = new GLFWInstance();
-		instanceRef = new Storage(inst, new FreeableList[] {Freeable.ROOT_LIST});
+		instanceRef = new Storage(inst, new CleanerDependencyList[] {Freeable.ROOT_LIST});
 		return inst;
 	}
 	
@@ -68,13 +68,13 @@ public class GLFWInstance implements Freeable {
 	}
 	
 	@Override
-	public @NotNull FreeableList getSubList() {
+	public @NotNull CleanerDependencyList getSubList() {
 		if (instanceRef != null)
 			return instanceRef.getSubList();
 		throw new RuntimeException("getInstance() has to be called before getSubList()!");
 	}
 	
-	protected static class Storage extends FreeableStorageWeak<GLFWInstance> {
+	protected static class Storage extends CleanerWeak<GLFWInstance> {
 		
 		public Storage(GLFWInstance referent, Object[] parents) {
 			super(referent, parents);

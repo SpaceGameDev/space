@@ -8,9 +8,9 @@ import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferInt;
 import space.engine.buffer.pointer.PointerBufferInt;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.vulkan.VkInstance;
 import space.engine.vulkan.VkPhysicalDevice;
 import space.engine.window.Window;
@@ -21,11 +21,11 @@ import java.util.stream.Collectors;
 
 import static org.lwjgl.vulkan.KHRSurface.*;
 import static org.lwjgl.vulkan.VK10.*;
-import static space.engine.freeableStorage.Freeable.addIfNotContained;
+import static space.engine.freeable.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.*;
 import static space.engine.vulkan.VkException.assertVk;
 
-public class VkSurface<WINDOW extends Window> implements FreeableWrapper {
+public class VkSurface<WINDOW extends Window> implements CleanerWrapper {
 	
 	//create
 	public static <WINDOW extends Window> VkSurface<WINDOW> create(long address, @NotNull VkPhysicalDevice physicalDevice, @NotNull WINDOW window, @NotNull Object[] parents) {
@@ -37,7 +37,7 @@ public class VkSurface<WINDOW extends Window> implements FreeableWrapper {
 	}
 	
 	//struct
-	public VkSurface(long address, @NotNull VkPhysicalDevice physicalDevice, @NotNull WINDOW window, @NotNull BiFunction<VkSurface, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
+	public VkSurface(long address, @NotNull VkPhysicalDevice physicalDevice, @NotNull WINDOW window, @NotNull BiFunction<? super VkSurface<WINDOW>, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
 		this.physicalDevice = physicalDevice;
 		this.window = window;
 		this.address = address;
@@ -108,7 +108,7 @@ public class VkSurface<WINDOW extends Window> implements FreeableWrapper {
 		return storage;
 	}
 	
-	public static class Storage extends FreeableStorage {
+	public static class Storage extends Cleaner {
 		
 		private final @NotNull VkInstance instance;
 		private final long address;

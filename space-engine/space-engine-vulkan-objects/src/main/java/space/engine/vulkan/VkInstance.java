@@ -15,9 +15,9 @@ import space.engine.buffer.array.ArrayBufferPointer;
 import space.engine.buffer.pointer.PointerBufferInt;
 import space.engine.buffer.pointer.PointerBufferPointer;
 import space.engine.delegate.collection.ObservableCollection;
-import space.engine.freeableStorage.Freeable;
-import space.engine.freeableStorage.Freeable.FreeableWrapper;
-import space.engine.freeableStorage.FreeableStorage;
+import space.engine.freeable.Cleaner;
+import space.engine.freeable.Freeable;
+import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.logger.LogLevel;
 import space.engine.logger.Logger;
 import space.engine.lwjgl.LwjglStructAllocator;
@@ -37,7 +37,7 @@ import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 import static space.engine.vulkan.VkException.assertVk;
 
-public class VkInstance extends org.lwjgl.vulkan.VkInstance implements FreeableWrapper {
+public class VkInstance extends org.lwjgl.vulkan.VkInstance implements CleanerWrapper {
 	
 	//alloc
 	public static VkInstance alloc(@NotNull VkInstanceCreateInfo info, @NotNull Logger logger, boolean initDebugCallback, @NotNull Object[] parents) {
@@ -165,7 +165,7 @@ public class VkInstance extends org.lwjgl.vulkan.VkInstance implements FreeableW
 	/**
 	 * destory objects without reference to vkInstance
 	 */
-	public static class Storage extends FreeableStorage {
+	public static class Storage extends Cleaner {
 		
 		private final long function_vkDestroyInstance;
 		private final long function_vkDestroyDebugUtilsMessengerEXT;
@@ -227,7 +227,7 @@ public class VkInstance extends org.lwjgl.vulkan.VkInstance implements FreeableW
 				return possibleDevices[0];
 			
 			//determine best device by optional extensions
-			long[] score = Arrays.stream(possibleDevices).mapToLong(dev -> optionalExtensions.stream().filter(ex -> dev.extensionNameMap().keySet().contains(ex)).count()).toArray();
+			long[] score = Arrays.stream(possibleDevices).mapToLong(dev -> optionalExtensions.stream().filter(ex -> dev.extensionNameMap().containsKey(ex)).count()).toArray();
 			OptionalInt index = IntStream.range(0, possibleDevices.length)
 										 .reduce((left, right) -> score[left] >= score[right] ? left : right);
 			if (index.isPresent())
