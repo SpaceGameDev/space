@@ -1,7 +1,6 @@
 package space.engine.barrier;
 
 import org.junit.Test;
-import space.engine.SingleThreadPoolTest;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -9,7 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.junit.Assert.*;
 import static space.engine.barrier.Barrier.*;
 
-public class TasksTest extends SingleThreadPoolTest {
+public class TasksTest {
 	
 	@Test
 	public void testRun() {
