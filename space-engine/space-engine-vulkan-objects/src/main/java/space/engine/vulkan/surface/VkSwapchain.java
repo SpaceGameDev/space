@@ -34,7 +34,7 @@ public class VkSwapchain<WINDOW extends Window> implements CleanerWrapper {
 	}
 	
 	//const
-	public VkSwapchain(long address, @NotNull VkDevice device, @NotNull VkSurface<WINDOW> surface, int imageFormat, int width, int height, int layers, @NotNull BiFunction<VkSwapchain, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
+	public VkSwapchain(long address, @NotNull VkDevice device, @NotNull VkSurface<WINDOW> surface, int imageFormat, int width, int height, int layers, @NotNull BiFunction<? super VkSwapchain<WINDOW>, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
 		this.device = device;
 		this.surface = surface;
 		this.address = address;

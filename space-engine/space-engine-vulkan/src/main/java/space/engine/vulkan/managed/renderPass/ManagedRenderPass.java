@@ -36,7 +36,7 @@ import static space.engine.vulkan.VkException.assertVk;
 public class ManagedRenderPass<INFOS extends Infos> extends VkRenderPass {
 	
 	//alloc
-	public static class Attachment {
+	public static class Attachment<INFOS extends Infos> {
 		
 		public final int
 				flags,
@@ -51,7 +51,7 @@ public class ManagedRenderPass<INFOS extends Infos> extends VkRenderPass {
 		
 		public final float[] clearColor;
 		
-		private @Nullable ManagedRenderPass renderPass;
+		private @Nullable ManagedRenderPass<INFOS> renderPass;
 		private int id = -1;
 		
 		//no clear
@@ -97,7 +97,7 @@ public class ManagedRenderPass<INFOS extends Infos> extends VkRenderPass {
 			this.clearColor = clearColor;
 		}
 		
-		public @NotNull ManagedRenderPass renderPass() {
+		public @NotNull ManagedRenderPass<INFOS> renderPass() {
 			if (renderPass == null)
 				throw new IllegalStateException("Renderpass not yet allocated!");
 			return renderPass;
@@ -121,13 +121,13 @@ public class ManagedRenderPass<INFOS extends Infos> extends VkRenderPass {
 				this.layout = layout;
 			}
 			
-			public Attachment attachment() {
+			public Attachment<INFOS> attachment() {
 				return Attachment.this;
 			}
 		}
 	}
 	
-	public static class Subpass {
+	public static class Subpass<INFOS extends Infos> {
 		
 		public final int
 				flags,
@@ -137,13 +137,13 @@ public class ManagedRenderPass<INFOS extends Infos> extends VkRenderPass {
 				colorAttachments,
 				resolveAttachments;
 		public final @Nullable Reference depthStencilAttachment;
-		public final @Nullable Attachment[] preserveAttachments;
+		public final @Nullable Attachment<INFOS>[] preserveAttachments;
 		
-		private @Nullable ManagedRenderPass renderPass;
+		private @Nullable ManagedRenderPass<INFOS> renderPass;
 		private int id = -1;
 		private @Nullable VkCommandBufferInheritanceInfo inheritanceInfo;
 		
-		public Subpass(int flags, int pipelineBindPoint, @Nullable Reference[] inputAttachments, @Nullable Reference[] colorAttachments, @Nullable Reference[] resolveAttachments, @Nullable Reference depthStencilAttachment, @Nullable Attachment[] preserveAttachments) {
+		public Subpass(int flags, int pipelineBindPoint, @Nullable Reference[] inputAttachments, @Nullable Reference[] colorAttachments, @Nullable Reference[] resolveAttachments, @Nullable Reference depthStencilAttachment, @Nullable Attachment<INFOS>[] preserveAttachments) {
 			this.flags = flags;
 			this.pipelineBindPoint = pipelineBindPoint;
 			this.inputAttachments = inputAttachments;
@@ -153,7 +153,7 @@ public class ManagedRenderPass<INFOS extends Infos> extends VkRenderPass {
 			this.preserveAttachments = preserveAttachments;
 		}
 		
-		public @NotNull ManagedRenderPass renderPass() {
+		public @NotNull ManagedRenderPass<INFOS> renderPass() {
 			if (renderPass == null)
 				throw new IllegalStateException("Renderpass not yet allocated!");
 			return renderPass;
@@ -177,9 +177,9 @@ public class ManagedRenderPass<INFOS extends Infos> extends VkRenderPass {
 		}
 	}
 	
-	public static class SubpassDependency {
+	public static class SubpassDependency<INFOS extends Infos> {
 		
-		public final @Nullable Subpass
+		public final @Nullable Subpass<INFOS>
 				srcSubpass,
 				dstSubpass;
 		public final int
@@ -189,10 +189,10 @@ public class ManagedRenderPass<INFOS extends Infos> extends VkRenderPass {
 				dstAccessMask,
 				dependencyFlags;
 		
-		private @Nullable ManagedRenderPass renderPass;
+		private @Nullable ManagedRenderPass<INFOS> renderPass;
 		private int id = -1;
 		
-		public SubpassDependency(@Nullable Subpass srcSubpass, @Nullable Subpass dstSubpass, int srcStageMask, int dstStageMask, int srcAccessMask, int dstAccessMask, int dependencyFlags) {
+		public SubpassDependency(@Nullable Subpass<INFOS> srcSubpass, @Nullable Subpass<INFOS> dstSubpass, int srcStageMask, int dstStageMask, int srcAccessMask, int dstAccessMask, int dependencyFlags) {
 			this.srcSubpass = srcSubpass;
 			this.dstSubpass = dstSubpass;
 			this.srcStageMask = srcStageMask;
@@ -202,7 +202,7 @@ public class ManagedRenderPass<INFOS extends Infos> extends VkRenderPass {
 			this.dependencyFlags = dependencyFlags;
 		}
 		
-		public @NotNull ManagedRenderPass renderPass() {
+		public @NotNull ManagedRenderPass<INFOS> renderPass() {
 			if (renderPass == null)
 				throw new IllegalStateException("Renderpass not yet allocated!");
 			return renderPass;
@@ -215,7 +215,7 @@ public class ManagedRenderPass<INFOS extends Infos> extends VkRenderPass {
 		}
 	}
 	
-	public static <INFOS extends Infos> ManagedRenderPass<INFOS> alloc(VkDevice device, @NotNull Attachment[] attachments, @NotNull Subpass[] subpasses, @NotNull SubpassDependency[] subpassDependencies, Object[] parents) {
+	public static <INFOS extends Infos> ManagedRenderPass<INFOS> alloc(VkDevice device, @NotNull Attachment<INFOS>[] attachments, @NotNull Subpass<INFOS>[] subpasses, @NotNull SubpassDependency<INFOS>[] subpassDependencies, Object[] parents) {
 		for (int i = 0; i < attachments.length; i++) {
 			if (attachments[i].renderPass != null)
 				throw new IllegalArgumentException("Attachment attachments[" + i + "] already used!");
@@ -291,9 +291,9 @@ public class ManagedRenderPass<INFOS extends Infos> extends VkRenderPass {
 			renderPass = new ManagedRenderPass<>(ptr.getPointer(), device, attachments, subpasses, subpassDependencies, parents);
 		}
 		
-		for (Attachment attachment : attachments)
+		for (Attachment<INFOS> attachment : attachments)
 			attachment.renderPass = renderPass;
-		for (Subpass subpass : subpasses) {
+		for (Subpass<INFOS> subpass : subpasses) {
 			subpass.renderPass = renderPass;
 			subpass.inheritanceInfo = mallocStruct(heap(), VkCommandBufferInheritanceInfo::create, VkCommandBufferInheritanceInfo.SIZEOF, new Object[] {renderPass}).set(
 					VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
@@ -306,13 +306,13 @@ public class ManagedRenderPass<INFOS extends Infos> extends VkRenderPass {
 					0
 			);
 		}
-		for (SubpassDependency subpassDependency : subpassDependencies)
+		for (SubpassDependency<INFOS> subpassDependency : subpassDependencies)
 			subpassDependency.renderPass = renderPass;
 		
 		return renderPass;
 	}
 	
-	private static @Nullable IntBuffer createAttachmentBuffer(AllocatorFrame frame, @Nullable Attachment[] attachments) {
+	private static @Nullable IntBuffer createAttachmentBuffer(AllocatorFrame frame, @Nullable Attachment<?>[] attachments) {
 		if (attachments == null || attachments.length == 0)
 			return null;
 		return ArrayBufferInt.alloc(frame,
@@ -336,7 +336,7 @@ public class ManagedRenderPass<INFOS extends Infos> extends VkRenderPass {
 	}
 	
 	//object
-	private ManagedRenderPass(long address, @NotNull VkDevice device, @NotNull Attachment[] attachments, @NotNull Subpass[] subpasses, @NotNull SubpassDependency[] subpassDependencies, @NotNull Object[] parents) {
+	private ManagedRenderPass(long address, @NotNull VkDevice device, @NotNull Attachment<INFOS>[] attachments, @NotNull Subpass<INFOS>[] subpasses, @NotNull SubpassDependency<INFOS>[] subpassDependencies, @NotNull Object[] parents) {
 		super(address, device, VkRenderPass.Storage::new, parents);
 		this.attachments = attachments;
 		this.subpasses = subpasses;
@@ -360,19 +360,19 @@ public class ManagedRenderPass<INFOS extends Infos> extends VkRenderPass {
 	}
 	
 	//sub-resources
-	private final @NotNull Attachment[] attachments;
-	private final @NotNull Subpass[] subpasses;
-	private final @NotNull SubpassDependency[] subpassDependencies;
+	private final @NotNull Attachment<INFOS>[] attachments;
+	private final @NotNull Subpass<INFOS>[] subpasses;
+	private final @NotNull SubpassDependency<INFOS>[] subpassDependencies;
 	
-	public @NotNull Attachment[] attachments() {
+	public @NotNull Attachment<INFOS>[] attachments() {
 		return attachments;
 	}
 	
-	public @NotNull Subpass[] subpasses() {
+	public @NotNull Subpass<INFOS>[] subpasses() {
 		return subpasses;
 	}
 	
-	public @NotNull SubpassDependency[] subpassDependencies() {
+	public @NotNull SubpassDependency<INFOS>[] subpassDependencies() {
 		return subpassDependencies;
 	}
 	

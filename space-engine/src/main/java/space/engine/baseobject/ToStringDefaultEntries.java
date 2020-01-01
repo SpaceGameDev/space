@@ -15,11 +15,13 @@ import java.util.function.BiFunction;
 class ToStringDefaultEntries {
 	
 	//constant
+	@SuppressWarnings("rawtypes")
 	private static final BiFunction<ToStringHelper<?>, Collection, Object> ENTRY_LIST = (api, list) -> api.toString(list.toArray());
+	@SuppressWarnings("rawtypes")
 	private static final BiFunction<ToStringHelper<?>, Map, Object> ENTRY_MAP = (api, map) -> {
 		ToStringHelperTable<?> mapper = api.createMapper(map.getClass().getName(), "->", true);
 		int index = 0;
-		for (Entry entry : ((Map<?, ?>) map).entrySet()) {
+		for (Entry<?, ?> entry : ((Map<?, ?>) map).entrySet()) {
 			mapper.put(new int[] {index, 0}, api.toString(entry.getKey()));
 			mapper.put(new int[] {index, 1}, api.toString(entry.getValue()));
 			index++;

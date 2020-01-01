@@ -216,7 +216,7 @@ public class IndexMultiMap2D<VALUE> implements IndexMultiMap<VALUE> {
 		}
 	}
 	
-	public IndexMultiMap2D copy() {
+	public IndexMultiMap2D<VALUE> copy() {
 		return new IndexMultiMap2D<>(buffer.clone(), length.clone(), height);
 	}
 	

@@ -314,7 +314,7 @@ public class IndexMapArray<VALUE> implements IndexMap<VALUE>, ToString {
 			public boolean contains(Object o) {
 				if (!(o instanceof IndexMap.Entry))
 					return false;
-				IndexMap.Entry entry = (IndexMap.Entry) o;
+				IndexMap.Entry<?> entry = (IndexMap.Entry<?>) o;
 				return Objects.equals(get(entry.getIndex()), entry.getValue());
 			}
 			

@@ -45,7 +45,7 @@ public class DelegatingEntry<VALUE> implements Entry<VALUE>, ToString {
 	public boolean equals(Object obj) {
 		if (!(obj instanceof IndexMap.Entry))
 			return false;
-		IndexMap.Entry other = (IndexMap.Entry) obj;
+		IndexMap.Entry<?> other = (IndexMap.Entry<?>) obj;
 		return (this == obj) || (this.getIndex() == other.getIndex() && Objects.equals(this.getValue(), other.getValue()));
 	}
 	

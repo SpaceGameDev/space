@@ -37,7 +37,7 @@ public class VkSurface<WINDOW extends Window> implements CleanerWrapper {
 	}
 	
 	//struct
-	public VkSurface(long address, @NotNull VkPhysicalDevice physicalDevice, @NotNull WINDOW window, @NotNull BiFunction<VkSurface, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
+	public VkSurface(long address, @NotNull VkPhysicalDevice physicalDevice, @NotNull WINDOW window, @NotNull BiFunction<? super VkSurface<WINDOW>, Object[], Freeable> storageCreator, @NotNull Object[] parents) {
 		this.physicalDevice = physicalDevice;
 		this.window = window;
 		this.address = address;
