@@ -42,9 +42,6 @@ public class BarrierImpl implements Barrier {
 		synchronized (this) {
 			if (!TRIGGERED.compareAndSet(this, false, true))
 				throw exceptionBarrierAlreadyTriggered();
-			
-			//trigger this Barrier
-			this.notifyAll();
 		}
 		
 		//run all hooks
@@ -78,22 +75,41 @@ public class BarrierImpl implements Barrier {
 		run.run();
 	}
 	
-	@Override
-	public synchronized void await() throws InterruptedException {
-		while (!finished)
-			this.wait();
+	protected Runnable createAwaitNotifyRunnable() {
+		Runnable runnable = new Runnable() {
+			@Override
+			public synchronized void run() {
+				this.notify();
+			}
+		};
+		addHook(runnable);
+		return runnable;
 	}
 	
 	@Override
-	public synchronized void await(long time, TimeUnit unit) throws InterruptedException, TimeoutException {
+	public void await() throws InterruptedException {
+		Runnable runnable = createAwaitNotifyRunnable();
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
+		synchronized (runnable) {
+			while (!finished)
+				runnable.wait();
+		}
+	}
+	
+	@Override
+	public void await(long time, TimeUnit unit) throws InterruptedException, TimeoutException {
+		Runnable runnable = createAwaitNotifyRunnable();
 		long sleepTime = unit.toNanos(time);
 		long deadline = System.nanoTime() + sleepTime;
 		
-		while (!finished) {
-			this.wait(sleepTime / 1000000, (int) (sleepTime % 1000000));
-			sleepTime = deadline - System.nanoTime();
-			if (sleepTime <= 0)
-				throw new TimeoutException();
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
+		synchronized (runnable) {
+			while (!finished) {
+				runnable.wait(sleepTime / 1000000, (int) (sleepTime % 1000000));
+				sleepTime = deadline - System.nanoTime();
+				if (sleepTime <= 0)
+					throw new TimeoutException();
+			}
 		}
 	}
 	
