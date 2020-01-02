@@ -26,7 +26,7 @@ public class TasksTest {
 	public void testRunDelayedReturn() {
 		BarrierImpl start = new BarrierImpl();
 		AtomicBoolean b = new AtomicBoolean(false);
-		Barrier task = start.thenRun(() -> nowRun(() -> b.set(true)));
+		Barrier task = start.thenStart(() -> nowRun(() -> b.set(true)));
 		
 		assertFalse(b.get());
 		start.triggerNow();
