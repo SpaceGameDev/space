@@ -84,20 +84,25 @@ public interface Barrier {
 		}
 	}
 	
-	Barrier DONE_BARRIER = new DoneBarrier();
+	DoneBarrier DONE_BARRIER = new DoneBarrier();
+	
+	class DelegateBarrier implements Delegate<Barrier, BarrierImpl> {
+		
+		@Override
+		public BarrierImpl createCompletable() {
+			return new BarrierImpl();
+		}
+		
+		@Override
+		public void complete(BarrierImpl ret, Barrier delegate) {
+			ret.triggerNow();
+		}
+	}
+	
+	DelegateBarrier DELEGATE = new DelegateBarrier();
 	
 	static Delegate<Barrier, BarrierImpl> delegate() {
-		return new Delegate<>() {
-			@Override
-			public BarrierImpl createCompletable() {
-				return new BarrierImpl();
-			}
-			
-			@Override
-			public void complete(BarrierImpl ret, Barrier delegate) {
-				ret.triggerNow();
-			}
-		};
+		return DELEGATE;
 	}
 	
 	//getter
