@@ -19,7 +19,7 @@ public class SimpleQueueTest {
 	
 	@Parameters
 	public static Collection<Supplier<? extends SimpleQueue<Integer>>> parameters() {
-		return List.of(() -> new ArraySimpleQueue<>(16), LinkedSimpleQueue::new, ConcurrentLinkedSimpleQueue::new);
+		return List.of(() -> new ArraySimpleQueue<>(16), LinkedSimpleQueue::new, ConcurrentLinkedSimpleQueue::new, () -> new HighlyConcurrentSimpleQueue<>(2));
 	}
 	
 	private final SimpleQueue<Integer> queue;
@@ -36,9 +36,9 @@ public class SimpleQueueTest {
 		queue.add(3);
 		
 		int[] slots = new int[4];
-		for (int i = 0; i < 3; i++)
-			slots[Objects.requireNonNull(queue.remove())] = 1;
-		assertEquals(3, Arrays.stream(slots).sum());
+		for (int i = 0; i < 4; i++)
+			slots[Objects.requireNonNull(queue.remove())] += 1;
+		assertArrayEquals(new int[] {1, 1, 1, 1}, slots);
 	}
 	
 	@Test
@@ -66,5 +66,20 @@ public class SimpleQueueTest {
 		//array
 		queue.addArray(new Integer[] {0, 1, 2, 3});
 		remove4Numbers.run();
+	}
+	
+	@Test
+	public void testAddAndRemoveMixed() {
+		int[] slots = new int[3];
+		
+		queue.add(0);
+		queue.add(1);
+		slots[Objects.requireNonNull(queue.remove())] += 1;
+		queue.add(2);
+		slots[Objects.requireNonNull(queue.remove())] += 1;
+		slots[Objects.requireNonNull(queue.remove())] += 1;
+		assertNull(queue.remove());
+		
+		assertArrayEquals(new int[] {1, 1, 1}, slots);
 	}
 }

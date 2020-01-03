@@ -9,6 +9,14 @@ import java.util.Iterator;
 
 public interface SimpleQueue<E> {
 	
+	static <E> SimpleQueue<E> recommendSinglethread() {
+		return new LinkedSimpleQueue<>();
+	}
+	
+	static <E> SimpleQueue<E> recommendConcurrent(int threadCount) {
+		return new HighlyConcurrentSimpleQueue<>(Math.max(threadCount * 1, 16));
+	}
+	
 	/**
 	 * add a new element e to the {@link SimpleQueue}.
 	 *
