@@ -1,13 +1,14 @@
 package space.engine.barrier;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.VarHandle;
-import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 
 /**
  * A basic Implementation of {@link Barrier}. The {@link Barrier} is triggered by calling {@link #triggerNow()}.
@@ -26,14 +27,13 @@ public class BarrierImpl implements Barrier {
 	}
 	
 	private volatile boolean finished;
-	private @NotNull ArrayList<Runnable> hookList;
+	private @Nullable Runnable hookFirst;
+	private @Nullable Stream.Builder<Runnable> hookList;
 	
 	public BarrierImpl() {
-		this.hookList = new ArrayList<>();
 	}
 	
 	public BarrierImpl(boolean initialTriggerState) {
-		this();
 		this.finished = initialTriggerState;
 	}
 	
@@ -45,10 +45,14 @@ public class BarrierImpl implements Barrier {
 		}
 		
 		//run all hooks
-		ArrayList<Runnable> hookList = this.hookList;
-		//noinspection ConstantConditions
-		this.hookList = null;
-		hookList.forEach(Runnable::run);
+		if (hookFirst != null) {
+			hookFirst.run();
+			hookFirst = null;
+		}
+		if (hookList != null) {
+			this.hookList.build().forEach(Runnable::run);
+			this.hookList = null;
+		}
 	}
 	
 	protected static IllegalStateException exceptionBarrierAlreadyTriggered() {
@@ -66,7 +70,13 @@ public class BarrierImpl implements Barrier {
 		if (!finished) {
 			synchronized (this) {
 				if (!finished) {
-					hookList.add(run);
+					if (hookFirst == null) {
+						hookFirst = run;
+					} else {
+						if (hookList == null)
+							hookList = Stream.builder();
+						hookList.add(run);
+					}
 					return;
 				}
 			}
