@@ -39,11 +39,10 @@ public class TransactionTest {
 		
 		public SyncLock lock = new SyncLockImpl();
 		public int count = 0;
-		public Executor executor = pool();
 		
 		@Override
 		public void execute(@NotNull Runnable command) {
-			executor.execute(command);
+			pool().execute(command);
 		}
 	}
 	

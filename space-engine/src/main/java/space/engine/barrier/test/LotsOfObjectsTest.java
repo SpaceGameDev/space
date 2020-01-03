@@ -20,7 +20,7 @@ public class LotsOfObjectsTest {
 	public static final int[] OBJECT_COUNT = new int[] {500, 1000, 2000, 3000, 4000};
 	public static final boolean FANCY_PRINTOUT = false;
 	public static final boolean TIMER_PRINTOUT = false;
-	public static final int CORES = Runtime.getRuntime().availableProcessors();
+	public static final int CORES = Runtime.getRuntime().availableProcessors() * 16;
 	
 	public static void main(String[] args) throws InterruptedException {
 		try {
