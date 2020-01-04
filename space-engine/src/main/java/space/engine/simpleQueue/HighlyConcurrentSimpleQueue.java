@@ -97,19 +97,19 @@ public class HighlyConcurrentSimpleQueue<E> implements SimpleQueue<E> {
 		if (newNode) {
 			label:
 			while (true) {
-				if (cache.add != null && cache.add.state == Node.STATE_OPEN) {
-					//use cache.add node
-					node = cache.add;
-				} else {
-					//get next node from LinkedList
-					Node<E> head;
-					do {
-						head = this.head;
-						node = head.next;
-						if (node == null)
-							return null;
-					} while (!HEAD.compareAndSet(this, head, node));
-				}
+//				if (cache.add != null && cache.add.state == Node.STATE_OPEN) {
+//					//use cache.add node
+//					node = cache.add;
+//				} else {
+				//get next node from LinkedList
+				Node<E> head;
+				do {
+					head = this.head;
+					node = head.next;
+					if (node == null)
+						return null;
+				} while (!HEAD.compareAndSet(this, head, node));
+//				}
 				
 				while (true) {
 					//lock node
