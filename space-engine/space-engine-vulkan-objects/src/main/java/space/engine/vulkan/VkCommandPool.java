@@ -194,7 +194,7 @@ public class VkCommandPool implements CleanerWrapper {
 			releaseCommandBufferInternal(commandBuffer);
 			return done();
 		} else {
-			return nowRun(ThreadBound.getQueue(owner), () -> releaseCommandBufferInternal(commandBuffer));
+			return nowRun(ThreadBound.queue(owner), () -> releaseCommandBufferInternal(commandBuffer));
 		}
 	}
 	
@@ -215,7 +215,7 @@ public class VkCommandPool implements CleanerWrapper {
 			releaseCommandBuffersInternal(commandBuffers);
 			return done();
 		} else {
-			return nowRun(ThreadBound.getQueue(owner), () -> releaseCommandBuffersInternal(commandBuffers));
+			return nowRun(ThreadBound.queue(owner), () -> releaseCommandBuffersInternal(commandBuffers));
 		}
 	}
 	
