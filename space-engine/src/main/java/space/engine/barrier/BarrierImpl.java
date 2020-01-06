@@ -6,50 +6,53 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.VarHandle;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.Stream;
 
 /**
  * A basic Implementation of {@link Barrier}. The {@link Barrier} is triggered by calling {@link #triggerNow()}.
  */
 public class BarrierImpl implements Barrier {
 	
-	private static final VarHandle HOOKLIST;
+	private static final VarHandle TRIGGERED;
 	
 	static {
 		try {
 			Lookup lookup = MethodHandles.lookup();
-			HOOKLIST = lookup.findVarHandle(BarrierImpl.class, "hookList", List.class);
+			TRIGGERED = lookup.findVarHandle(BarrierImpl.class, "finished", boolean.class);
 		} catch (IllegalAccessException | NoSuchFieldException e) {
 			throw new ExceptionInInitializerError(e);
 		}
 	}
 	
-	private volatile @Nullable List<Runnable> hookList;
+	private volatile boolean finished;
+	private @Nullable Runnable hookFirst;
+	private @Nullable Stream.Builder<Runnable> hookList;
 	
 	public BarrierImpl() {
-		this(false);
 	}
 	
 	public BarrierImpl(boolean initialTriggerState) {
-		hookList = initialTriggerState ? null : new ArrayList<>(0);
+		this.finished = initialTriggerState;
 	}
 	
 	//trigger
 	public void triggerNow() {
-		List<Runnable> hookList;
 		synchronized (this) {
-			//noinspection unchecked
-			hookList = (List<Runnable>) HOOKLIST.getAndSet(this, null);
-			if (hookList == null)
+			if (!TRIGGERED.compareAndSet(this, false, true))
 				throw exceptionBarrierAlreadyTriggered();
-			
-			//trigger this Barrier
-			this.notifyAll();
 		}
-		hookList.forEach(Runnable::run);
+		
+		//run all hooks
+		if (hookFirst != null) {
+			hookFirst.run();
+			hookFirst = null;
+		}
+		if (hookList != null) {
+			this.hookList.build().forEach(Runnable::run);
+			this.hookList = null;
+		}
 	}
 	
 	protected static IllegalStateException exceptionBarrierAlreadyTriggered() {
@@ -59,17 +62,21 @@ public class BarrierImpl implements Barrier {
 	//impl
 	@Override
 	public boolean isDone() {
-		return hookList == null;
+		return finished;
 	}
 	
 	@Override
 	public void addHook(@NotNull Runnable run) {
-		List<Runnable> hookList = this.hookList;
-		if (hookList != null) {
+		if (!finished) {
 			synchronized (this) {
-				hookList = this.hookList;
-				if (hookList != null) {
-					hookList.add(run);
+				if (!finished) {
+					if (hookFirst == null) {
+						hookFirst = run;
+					} else {
+						if (hookList == null)
+							hookList = Stream.builder();
+						hookList.add(run);
+					}
 					return;
 				}
 			}
@@ -78,27 +85,46 @@ public class BarrierImpl implements Barrier {
 		run.run();
 	}
 	
-	@Override
-	public synchronized void await() throws InterruptedException {
-		while (hookList != null)
-			this.wait();
+	protected Runnable createAwaitNotifyRunnable() {
+		Runnable runnable = new Runnable() {
+			@Override
+			public synchronized void run() {
+				this.notify();
+			}
+		};
+		addHook(runnable);
+		return runnable;
 	}
 	
 	@Override
-	public synchronized void await(long time, TimeUnit unit) throws InterruptedException, TimeoutException {
+	public void await() throws InterruptedException {
+		Runnable runnable = createAwaitNotifyRunnable();
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
+		synchronized (runnable) {
+			while (!finished)
+				runnable.wait();
+		}
+	}
+	
+	@Override
+	public void await(long time, TimeUnit unit) throws InterruptedException, TimeoutException {
+		Runnable runnable = createAwaitNotifyRunnable();
 		long sleepTime = unit.toNanos(time);
 		long deadline = System.nanoTime() + sleepTime;
 		
-		while (hookList != null) {
-			this.wait(sleepTime / 1000000, (int) (sleepTime % 1000000));
-			sleepTime = deadline - System.nanoTime();
-			if (sleepTime <= 0)
-				throw new TimeoutException();
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
+		synchronized (runnable) {
+			while (!finished) {
+				runnable.wait(sleepTime / 1000000, (int) (sleepTime % 1000000));
+				sleepTime = deadline - System.nanoTime();
+				if (sleepTime <= 0)
+					throw new TimeoutException();
+			}
 		}
 	}
 	
 	@Override
 	public String toString() {
-		return isDone() ? "finished" : "waiting";
+		return finished ? "finished" : "waiting";
 	}
 }

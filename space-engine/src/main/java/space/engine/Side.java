@@ -1,7 +1,6 @@
 package space.engine;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import space.engine.barrier.Barrier;
 import space.engine.barrier.functions.Starter;
 import space.engine.event.Event;
@@ -25,15 +24,9 @@ public class Side {
 			return new Thread(r, "space-pool-" + COUNT.incrementAndGet());
 		}
 	});
-	private static final ThreadLocal<Executor> THLOCAL_POOL_OVERRIDE = new ThreadLocal<>();
-	
-	public static void overrideThreadlocalPool(@Nullable Executor executor) {
-		THLOCAL_POOL_OVERRIDE.set(executor);
-	}
 	
 	public static Executor pool() {
-		Executor executor = THLOCAL_POOL_OVERRIDE.get();
-		return executor != null ? executor : POOL;
+		return POOL;
 	}
 	
 	//event exit

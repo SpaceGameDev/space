@@ -68,7 +68,7 @@ public class ConcurrentLinkedSimpleQueue<E> implements SimpleQueue<E> {
 		return i;
 	}
 	
-	public static class Node<E> {
+	private static class Node<E> {
 		
 		private final E item;
 		private volatile @Nullable Node<E> next;

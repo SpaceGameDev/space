@@ -8,18 +8,24 @@ import java.util.concurrent.TimeoutException;
 
 public interface Future<R> extends GenericFuture<R>, Barrier {
 	
+	class DelegateFuture<T> implements Delegate<Future<T>, CompletableFuture<T>> {
+		
+		@Override
+		public CompletableFuture<T> createCompletable() {
+			return new CompletableFuture<>();
+		}
+		
+		@Override
+		public void complete(CompletableFuture<T> ret, Future<T> delegate) {
+			ret.complete(delegate.assertGet());
+		}
+	}
+	
+	DelegateFuture<Object> DELEGATE = new DelegateFuture<>();
+	
+	@SuppressWarnings("unchecked")
 	static <T> Delegate<Future<T>, CompletableFuture<T>> delegate() {
-		return new Delegate<>() {
-			@Override
-			public CompletableFuture<T> createCompletable() {
-				return new CompletableFuture<>();
-			}
-			
-			@Override
-			public void complete(CompletableFuture<T> ret, Future<T> delegate) {
-				ret.complete(delegate.assertGet());
-			}
-		};
+		return (Delegate<Future<T>, CompletableFuture<T>>) (Object) DELEGATE;
 	}
 	
 	//abstract get

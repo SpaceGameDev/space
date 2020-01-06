@@ -45,14 +45,14 @@ public abstract class SimpleMessagePool<MSG> {
 	 * @see SimpleMessagePool#SimpleMessagePool(int, ThreadFactory, SimpleQueue, int, boolean)
 	 */
 	public SimpleMessagePool(int threadCnt) {
-		this(threadCnt, Executors.defaultThreadFactory(), new ConcurrentLinkedSimpleQueue<>(), DEFAULT_PAUSE_COUNTDOWN);
+		this(threadCnt, Executors.defaultThreadFactory(), SimpleQueue.recommendConcurrent(threadCnt), DEFAULT_PAUSE_COUNTDOWN);
 	}
 	
 	/**
 	 * @see SimpleMessagePool#SimpleMessagePool(int, ThreadFactory, SimpleQueue, int, boolean)
 	 */
 	public SimpleMessagePool(int threadCnt, ThreadFactory threadFactory) {
-		this(threadCnt, threadFactory, new ConcurrentLinkedSimpleQueue<>(), DEFAULT_PAUSE_COUNTDOWN);
+		this(threadCnt, threadFactory, SimpleQueue.recommendConcurrent(threadCnt), DEFAULT_PAUSE_COUNTDOWN);
 	}
 	
 	public SimpleMessagePool(int threadCnt, ThreadFactory threadFactory, @NotNull SimpleQueue<MSG> queue) {
@@ -63,7 +63,7 @@ public abstract class SimpleMessagePool<MSG> {
 	 * Creates a new {@link SimpleThreadPool}
 	 *
 	 * @param threadCnt      the amount of threads in the pool
-	 * @param queue          the {@link SimpleQueue} to use. Recommended: {@link ConcurrentLinkedSimpleQueue}
+	 * @param queue          the {@link SimpleQueue} to use. Recommended: {@link SimpleQueue#recommendConcurrent(int)}
 	 * @param threadFactory  the {@link ThreadFactory} to construct {@link Thread Threads} from
 	 * @param pauseCountdown the amount of tasks to execute before 'pausing' and handling {@link ThreadBound} tasks
 	 */
