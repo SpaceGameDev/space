@@ -12,7 +12,7 @@ import static space.engine.Side.pool;
 
 public class SyncLockImpl implements SyncLock {
 	
-	public static int SYNCLOCK_CALLBACK_TRIES = 2;
+	public static int SYNCLOCK_CALLBACK_TRIES = 1;
 	
 	private static final VarHandle LOCKED;
 	private static final VarHandle MODID;

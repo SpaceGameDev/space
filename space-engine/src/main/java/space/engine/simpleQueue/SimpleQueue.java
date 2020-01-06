@@ -14,7 +14,7 @@ public interface SimpleQueue<E> {
 	}
 	
 	static <E> SimpleQueue<E> recommendConcurrent(int threadCount) {
-		return new HighlyConcurrentSimpleQueue<>(Math.max(threadCount * 1, 16));
+		return new HighlyConcurrentSimpleQueue<>(Math.max(threadCount * 4, 16));
 	}
 	
 	/**
