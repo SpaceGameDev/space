@@ -24,6 +24,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static org.lwjgl.vulkan.VK10.*;
+import static space.engine.barrier.Barrier.*;
 import static space.engine.freeable.Freeable.addIfNotContained;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 import static space.engine.vulkan.VkException.assertVk;
@@ -184,15 +185,17 @@ public class VkCommandPool implements CleanerWrapper {
 	}
 	
 	//release
-	public void releaseCommandBuffer(@NotNull VkCommandBuffer commandBuffer) {
-		releaseCommandBuffer(commandBuffer.address());
+	public Barrier releaseCommandBuffer(@NotNull VkCommandBuffer commandBuffer) {
+		return releaseCommandBuffer(commandBuffer.address());
 	}
 	
-	public void releaseCommandBuffer(long commandBuffer) {
-		if (Thread.currentThread() == owner)
+	public Barrier releaseCommandBuffer(long commandBuffer) {
+		if (Thread.currentThread() == owner) {
 			releaseCommandBufferInternal(commandBuffer);
-		else
-			ThreadBound.submit(owner, () -> releaseCommandBufferInternal(commandBuffer));
+			return done();
+		} else {
+			return nowRun(ThreadBound.getQueue(owner), () -> releaseCommandBufferInternal(commandBuffer));
+		}
 	}
 	
 	private void releaseCommandBufferInternal(long commandBuffer) {
@@ -203,15 +206,17 @@ public class VkCommandPool implements CleanerWrapper {
 		}
 	}
 	
-	public void releaseCommandBuffers(@NotNull VkCommandBuffer[] commandBuffers) {
-		releaseCommandBuffers(Arrays.stream(commandBuffers).mapToLong(VkCommandBuffer::address).toArray());
+	public Barrier releaseCommandBuffers(@NotNull VkCommandBuffer[] commandBuffers) {
+		return releaseCommandBuffers(Arrays.stream(commandBuffers).mapToLong(VkCommandBuffer::address).toArray());
 	}
 	
-	public void releaseCommandBuffers(long[] commandBuffers) {
-		if (Thread.currentThread() == owner)
+	public Barrier releaseCommandBuffers(long[] commandBuffers) {
+		if (Thread.currentThread() == owner) {
 			releaseCommandBuffersInternal(commandBuffers);
-		else
-			ThreadBound.submit(owner, () -> releaseCommandBuffersInternal(commandBuffers));
+			return done();
+		} else {
+			return nowRun(ThreadBound.getQueue(owner), () -> releaseCommandBuffersInternal(commandBuffers));
+		}
 	}
 	
 	private void releaseCommandBuffersInternal(long[] commandBuffers) {

@@ -8,7 +8,6 @@ import space.engine.freeable.Freeable;
 
 import java.util.function.BiFunction;
 
-import static space.engine.barrier.Barrier.DONE_BARRIER;
 import static space.engine.freeable.Freeable.addIfNotContained;
 
 public abstract class VkCommandBuffer extends org.lwjgl.vulkan.VkCommandBuffer implements Freeable {
@@ -87,8 +86,7 @@ public abstract class VkCommandBuffer extends org.lwjgl.vulkan.VkCommandBuffer i
 		
 		@Override
 		protected @NotNull Barrier handleFree() {
-			commandPool.releaseCommandBuffer(address);
-			return DONE_BARRIER;
+			return commandPool.releaseCommandBuffer(address);
 		}
 	}
 }

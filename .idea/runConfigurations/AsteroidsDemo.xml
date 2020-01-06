@@ -1,0 +1,16 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="AsteroidsDemo" type="Application" factoryName="Application" nameIsGenerated="true">
+    <option name="MAIN_CLASS_NAME" value="space.game.asteroidsDemo.AsteroidsDemo" />
+    <module name="space-game.main" />
+    <option name="VM_PARAMETERS" value="-Xmx4G -XX:+UnlockExperimentalVMOptions -XX:+UseShenandoahGC" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="space.game.asteroidsDemo.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
