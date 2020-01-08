@@ -1,7 +1,6 @@
 package space.game.asteroidsDemo;
 
 import org.jetbrains.annotations.NotNull;
-import org.lwjgl.vulkan.EXTDebugUtils;
 import org.lwjgl.vulkan.VkExtent2D;
 import org.lwjgl.vulkan.VkOffset2D;
 import org.lwjgl.vulkan.VkRect2D;
@@ -34,7 +33,6 @@ import space.engine.vulkan.VkInstanceValidationLayers;
 import space.engine.vulkan.VkPhysicalDevice;
 import space.engine.vulkan.managed.device.ManagedDevice;
 import space.engine.vulkan.managed.device.ManagedDeviceSingleQueue;
-import space.engine.vulkan.managed.instance.ManagedInstance;
 import space.engine.vulkan.managed.renderPass.ManagedFrameBuffer;
 import space.engine.vulkan.managed.surface.ManagedSwapchain;
 import space.engine.vulkan.surface.VkSurface;
@@ -95,7 +93,7 @@ public class AsteroidsDemo implements RunnableWithDelay {
 	public static BaseLogger baseLogger = BaseLogger.defaultPrinter(BaseLogger.defaultHandler(new BaseLogger()));
 	
 	public boolean VK_LAYER_LUNARG_standard_validation = true;
-	public boolean VK_LAYER_RENDERDOC_Capture = false;
+	public boolean VK_LAYER_RENDERDOC_Capture = true;
 	private Logger logger = baseLogger.subLogger("asteroidsDemo");
 	
 	public void run() throws DelayTask {
@@ -109,27 +107,6 @@ public class AsteroidsDemo implements RunnableWithDelay {
 			GLFWWindowFramework windowFramework = new GLFWWindowFramework();
 			VkSurfaceGLFW.assertSupported(windowFramework);
 			
-			//extension / layer selection
-			List<String> instanceExtensions = new ArrayList<>();
-			List<String> instanceLayers = new ArrayList<>();
-			if (VK_LAYER_LUNARG_standard_validation) {
-				instanceExtensions.add(EXTDebugUtils.VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-				instanceLayers.add("VK_LAYER_LUNARG_standard_validation");
-			}
-			if (VK_LAYER_RENDERDOC_Capture) {
-				instanceLayers.add("VK_LAYER_RENDERDOC_Capture");
-			}
-			instanceExtensions.addAll(VkSurfaceGLFW.getRequiredInstanceExtensions(windowFramework));
-			
-			//instance
-			ManagedInstance instance = ManagedInstance.alloc(
-					"asteroidsDemo",
-					1,
-					baseLogger.subLogger("Vulkan"),
-					VkInstanceValidationLayers.makeLayerList(instanceLayers, List.of()),
-					VkInstanceExtensions.makeExtensionList(instanceExtensions, List.of()),
-					new Object[] {side}
-			);
 			
 			//physical device
 			logger.log(LogLevel.INFO, "Physical Devices: " + instance.physicalDevicesGenerateInfoString());

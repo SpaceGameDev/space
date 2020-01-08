@@ -2,8 +2,10 @@ package space.engine.observable;
 
 import org.jetbrains.annotations.NotNull;
 import space.engine.barrier.Barrier;
+import space.engine.barrier.BarrierImpl;
 import space.engine.barrier.DelayTask;
 import space.engine.barrier.functions.ConsumerWithDelay;
+import space.engine.barrier.functions.SupplierWithDelay;
 import space.engine.barrier.future.Future;
 import space.engine.barrier.future.FutureNotFinishedException;
 import space.engine.barrier.future.GenericFuture;
@@ -12,6 +14,8 @@ import space.engine.event.Event;
 import space.engine.event.EventEntry;
 import space.engine.event.SequentialEventBuilder;
 import space.engine.orderingGuarantee.GeneratingOrderingGuarantee;
+
+import java.util.function.Function;
 
 import static space.engine.barrier.Barrier.*;
 
@@ -24,6 +28,63 @@ import static space.engine.barrier.Barrier.*;
  * - {@link GeneratingObservableReference}: generates te value out of one or multiple other ObservableReferences. Automatically updates if one of the dependencies changes.
  */
 public abstract class ObservableReference<T> {
+	
+	//static factory supplier
+	public static <T> StaticObservableReference<T> fromSupplierStatic(SupplierWithDelay<T> supplier) {
+		return fromSupplier(StaticObservableReference::new, supplier);
+	}
+	
+	public static <T> MutableObservableReference<T> fromSupplierMutable(SupplierWithDelay<T> supplier) {
+		return fromSupplier(MutableObservableReference::new, supplier);
+	}
+	
+	public static <R extends ObservableReference<T>, T> R fromSupplier(Function<Barrier, R> referenceCreator, SupplierWithDelay<T> supplier) {
+		return fromFuture(referenceCreator, nowFuture(supplier));
+	}
+	
+	//static factory future
+	public static <T> StaticObservableReference<T> fromFutureStatic(Future<T> future) {
+		return fromFuture(StaticObservableReference::new, future);
+	}
+	
+	public static <T> MutableObservableReference<T> fromFutureMutable(Future<T> future) {
+		return fromFuture(MutableObservableReference::new, future);
+	}
+	
+	public static <R extends ObservableReference<T>, T> R fromFuture(Function<Barrier, R> referenceCreator, Future<T> future) {
+		class S implements Generator<T> {
+			
+			final R reference;
+			
+			public S() {
+				BarrierImpl initialBarrier = new BarrierImpl();
+				reference = referenceCreator.apply(initialBarrier);
+				future.addHook(() -> reference.setInternalAlways(this).addHook(initialBarrier::triggerNow));
+			}
+			
+			@Override
+			public T get(T previous) {
+				return future.assertGet();
+			}
+		}
+		return new S().reference;
+	}
+	
+	public static <T> MutableObservableReference<T> mutable() {
+		return new MutableObservableReference<>();
+	}
+	
+	public static <T> MutableObservableReference<T> mutable(T initial) {
+		return new MutableObservableReference<>(initial);
+	}
+	
+	public static <T> MutableObservableReference<T> mutable(SupplierWithDelay<T> supplier) {
+		try {
+			return new MutableObservableReference<>(supplier.get());
+		} catch (DelayTask delayTask) {
+			return new MutableObservableReference<>(delayTask.barrier);
+		}
+	}
 	
 	//generator
 	@FunctionalInterface
@@ -75,11 +136,11 @@ public abstract class ObservableReference<T> {
 	
 	@SuppressWarnings("ConstantConditions")
 	protected ObservableReference() {
-		this(DONE_BARRIER, null);
+		this(done(), null);
 	}
 	
 	protected ObservableReference(T initial) {
-		this(DONE_BARRIER, initial);
+		this(done(), initial);
 	}
 	
 	@SuppressWarnings("ConstantConditions")
