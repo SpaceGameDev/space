@@ -178,7 +178,7 @@ public class Vector3 implements ToVector3 {
 		return divide(length());
 	}
 	
-	public Vector3 cross(Vector3 vec1, Vector3 vec2) {
+	public static Vector3 cross(Vector3 vec1, Vector3 vec2) {
 		return new Vector3(
 				vec1.y * vec2.z - vec2.y * vec1.z,
 				vec1.z * vec2.x - vec2.z * vec1.x,

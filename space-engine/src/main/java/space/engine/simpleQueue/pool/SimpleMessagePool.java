@@ -112,24 +112,28 @@ public abstract class SimpleMessagePool<MSG> {
 						continue;
 					
 					//sleeping is allowed
+					MSG msg;
 					synchronized (SimpleMessagePool.this) {
 						SOMETHREADSLEEPING.set(SimpleMessagePool.this, true);
 						
 						//preconditions for sleeping
 						if (!isRunning)
 							break;
-						MSG msg = queue.remove();
-						if (msg != null) {
-							handle(msg);
-							continue;
+						msg = queue.remove();
+						if (msg == null) {
+							
+							//actually sleep
+							try {
+								SimpleMessagePool.this.wait();
+							} catch (InterruptedException ignored) {
+							
+							}
 						}
-						
-						//actually sleep
-						try {
-							SimpleMessagePool.this.wait();
-						} catch (InterruptedException ignored) {
-						
-						}
+					}
+					
+					//handle msg gotten when trying to sleep
+					if (msg != null) {
+						handle(msg);
 					}
 				}
 				
