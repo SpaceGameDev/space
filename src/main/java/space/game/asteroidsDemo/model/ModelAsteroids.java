@@ -1,5 +1,7 @@
 package space.game.asteroidsDemo.model;
 
+import space.engine.indexmap.IndexMap;
+import space.engine.indexmap.IndexMapArray;
 import space.engine.vector.Vector3;
 
 import java.util.Arrays;
@@ -12,14 +14,16 @@ import static java.lang.Math.sqrt;
 
 public class ModelAsteroids {
 	
-	public static Result generateAsteroid(float radius, float[] config) {
-		return generateAsteroid(radius, config, System.currentTimeMillis());
+	public static Result generateAsteroid(float radius, float[] config, boolean flat) {
+		return generateAsteroid(radius, config, flat, System.currentTimeMillis());
 	}
 	
-	public static Result generateAsteroid(float radius, float[] config, long seed) {
+	public static Result generateAsteroid(float radius, float[] config, boolean flat, long seed) {
 		Result result = icosaeder(radius, seed, config.length > 0 ? config[0] : 0);
 		for (int i = 1; i < config.length; i++)
 			result = subdivision(result, radius, seed, config[i]);
+		if (flat)
+			result = result.flatten();
 		return result;
 	}
 	
@@ -182,6 +186,25 @@ public class ModelAsteroids {
 		public Result(float[] vertices, int[] indices) {
 			this.vertices = vertices;
 			this.indices = indices;
+		}
+		
+		public Result flatten() {
+			IndexMap<Vector3> positions = new IndexMapArray<>();
+			for (int i = 0; i < vertices.length / 6; i++)
+				positions.put(i, Vector3.read(vertices, i * 6));
+			
+			float[] outVertex = new float[indices.length * 6];
+			for (int i = 0; i < indices.length / 3; i++) {
+				Vector3[] pos = Arrays.stream(new int[] {indices[i * 3], indices[i * 3 + 1], indices[i * 3 + 2]})
+									  .mapToObj(positions::get)
+									  .toArray(Vector3[]::new);
+				Vector3 normal = Vector3.cross(pos[1].sub(pos[0]), pos[2].sub(pos[0])).normalize();
+				for (int j = 0; j < 3; j++) {
+					pos[j].write(outVertex, i * 6 * 3 + j * 6);
+					normal.write(outVertex, i * 6 * 3 + j * 6 + 3);
+				}
+			}
+			return new Result(outVertex, IntStream.range(0, indices.length).toArray());
 		}
 		
 		public float[] unpackIndexBuffer() {

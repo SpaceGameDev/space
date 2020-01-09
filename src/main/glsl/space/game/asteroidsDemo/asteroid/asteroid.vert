@@ -7,6 +7,7 @@
 layout(binding = 0) uniform UniformGlobal {
 	mat4 projection;
 	Translation cameraTranslation;
+	vec3 lightDir;
 } uniformGlobal;
 
 //in per vertex
