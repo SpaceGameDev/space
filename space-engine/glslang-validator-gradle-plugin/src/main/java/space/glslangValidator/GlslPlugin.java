@@ -18,8 +18,12 @@ public class GlslPlugin implements Plugin<Project> {
 	
 	@Override
 	public void apply(Project project) {
-		//java plugin + convention
 		project.getPlugins().withType(JavaBasePlugin.class, appliedPlugin -> {
+			
+			//extension for configuration
+			project.getExtensions().create(GlslConfigurationExtension.EXTENSION_NAME, GlslConfigurationExtension.class, project);
+			
+			//for each sourceSets
 			JavaPluginConvention javaPluginConvention = project.getConvention().getPlugin(JavaPluginConvention.class);
 			javaPluginConvention.getSourceSets().all(sourceSet -> {
 				

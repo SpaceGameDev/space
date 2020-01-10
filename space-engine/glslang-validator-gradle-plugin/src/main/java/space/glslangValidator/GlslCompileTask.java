@@ -9,7 +9,6 @@ import org.gradle.process.internal.ExecException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
 
 public class GlslCompileTask extends SourceTask {
 	
@@ -46,6 +45,8 @@ public class GlslCompileTask extends SourceTask {
 	
 	@TaskAction
 	protected void compile() {
+		GlslConfigurationExtension ext = getProject().getExtensions().getByType(GlslConfigurationExtension.class);
+		
 		getSource().visit(src -> {
 			if (src.isDirectory()) {
 				File target = src.getRelativePath().getFile(destinationDir.get());
@@ -56,13 +57,18 @@ public class GlslCompileTask extends SourceTask {
 				
 				ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 				try {
-					getProject().exec(execSpec -> {
-						try {
-							execSpec.commandLine("glslc", "-c", src.getFile().getCanonicalPath(), "-o", target.getCanonicalPath());
-							execSpec.setStandardOutput(outputStream);
-						} catch (IOException e) {
-							throw new RuntimeException(e);
+					getProject().exec(spec -> {
+						switch (ext.getCompiler()) {
+							case "glslangValidator":
+								spec.commandLine(ext.getGlslangValidatorPath(), "-V", src.getFile().getAbsolutePath(), "-o", target.getAbsolutePath());
+								break;
+							case "glslc":
+								spec.commandLine(ext.getGlslcPath(), "-c", src.getFile().getAbsolutePath(), "-o", target.getAbsolutePath());
+								break;
+							default:
+								throw new IllegalArgumentException("Compiler " + ext.getCompiler() + " not supported!");
 						}
+						spec.setStandardOutput(outputStream);
 					}).rethrowFailure();
 				} catch (ExecException e) {
 					throw new ExecException(e.getMessage() + "\n" + outputStream.toString(), e);
