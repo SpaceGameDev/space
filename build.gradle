@@ -25,6 +25,14 @@ glsl {
 	compiler = "glslc"
 }
 
+sourceSets {
+	main {
+		glsl {
+			srcDirs(java.sourceDirectories)
+		}
+	}
+}
+
 dependencies {
 	api 'SpaceGameDev:space-engine:1.0'
 	implementation 'SpaceGameDev:space-engine-vulkan:1.0'
