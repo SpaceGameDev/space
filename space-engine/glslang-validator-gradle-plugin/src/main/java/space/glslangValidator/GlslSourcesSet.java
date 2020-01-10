@@ -1,9 +1,12 @@
 package space.glslangValidator;
 
+import groovy.lang.Closure;
 import org.gradle.api.Project;
 import org.gradle.api.file.SourceDirectorySet;
 import org.gradle.api.internal.tasks.DefaultSourceSet;
 import org.gradle.api.tasks.SourceSet;
+
+import static org.gradle.util.ConfigureUtil.configure;
 
 public class GlslSourcesSet {
 	
@@ -19,5 +22,10 @@ public class GlslSourcesSet {
 	
 	public SourceDirectorySet getGlsl() {
 		return glsl;
+	}
+	
+	public GlslSourcesSet glsl(Closure<?> closure) {
+		configure(closure, getGlsl());
+		return this;
 	}
 }
