@@ -3,7 +3,7 @@ package space.glslangValidator;
 import org.gradle.api.Plugin;
 import org.gradle.api.Project;
 import org.gradle.api.internal.plugins.DslObject;
-import org.gradle.api.plugins.JavaPlugin;
+import org.gradle.api.plugins.JavaBasePlugin;
 import org.gradle.api.plugins.JavaPluginConvention;
 
 import javax.inject.Inject;
@@ -18,23 +18,29 @@ public class GlslPlugin implements Plugin<Project> {
 	
 	@Override
 	public void apply(Project project) {
-		//java plugin + convention
-		project.getPluginManager().apply(JavaPlugin.class);
-		JavaPluginConvention javaPluginConvention = project.getConvention().getPlugin(JavaPluginConvention.class);
-		javaPluginConvention.getSourceSets().all(sourceSet -> {
+		project.getPlugins().withType(JavaBasePlugin.class, appliedPlugin -> {
 			
-			//SourceDirectorySet
-			final GlslSourcesSet glslSourcesSet = new GlslSourcesSet(sourceSet, project);
-			glslSourcesSet.getGlsl().setOutputDir(project.provider(() -> new File(project.getBuildDir(), "spirv/" + sourceSet.getName())));
-			new DslObject(sourceSet).getConvention().getPlugins().put("glsl", glslSourcesSet);
+			//extension for configuration
+			project.getExtensions().create(GlslConfigurationExtension.EXTENSION_NAME, GlslConfigurationExtension.class, project);
 			
-			//compile task
-			GlslCompileTask compileTask = project.getTasks().create(sourceSet.getCompileTaskName("glsl"), GlslCompileTask.class, glslCompileTask ->
-					glslCompileTask.setSourcesSet(glslSourcesSet.getGlsl())
-			);
-			
-			//output directory
-			project.afterEvaluate(project1 -> sourceSet.getOutput().dir(Map.of("builtBy", compileTask.getName()), glslSourcesSet.getGlsl().getOutputDir()));
+			//for each sourceSets
+			JavaPluginConvention javaPluginConvention = project.getConvention().getPlugin(JavaPluginConvention.class);
+			javaPluginConvention.getSourceSets().all(sourceSet -> {
+				
+				//SourceDirectorySet
+				final GlslSourcesSet glslSourcesSet = new GlslSourcesSet(sourceSet, project);
+				glslSourcesSet.getGlsl().setOutputDir(project.provider(() -> new File(project.getBuildDir(), "spirv/" + sourceSet.getName())));
+				new DslObject(sourceSet).getConvention().getPlugins().put("glsl", glslSourcesSet);
+				
+				//compile task
+				GlslCompileTask compileTask = project.getTasks().create(sourceSet.getCompileTaskName("glsl"), GlslCompileTask.class, task -> {
+					task.source(glslSourcesSet.getGlsl());
+					task.setDestinationDir(glslSourcesSet.getGlsl().getOutputDir());
+				});
+				
+				//output directory
+				sourceSet.getOutput().dir(Map.of("builtBy", compileTask.getName()), glslSourcesSet.getGlsl().getOutputDir());
+			});
 		});
 	}
 }

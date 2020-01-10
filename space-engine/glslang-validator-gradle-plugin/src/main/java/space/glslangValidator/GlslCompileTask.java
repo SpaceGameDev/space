@@ -1,66 +1,79 @@
 package space.glslangValidator;
 
-import org.gradle.api.DefaultTask;
-import org.gradle.api.file.FileTree;
-import org.gradle.api.file.SourceDirectorySet;
-import org.gradle.api.tasks.InputFiles;
+import org.gradle.api.provider.Property;
+import org.gradle.api.provider.Provider;
 import org.gradle.api.tasks.OutputDirectory;
-import org.gradle.api.tasks.PathSensitive;
-import org.gradle.api.tasks.PathSensitivity;
-import org.gradle.api.tasks.SkipWhenEmpty;
+import org.gradle.api.tasks.SourceTask;
 import org.gradle.api.tasks.TaskAction;
 import org.gradle.process.internal.ExecException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
 
-public class GlslCompileTask extends DefaultTask {
-	
-	private SourceDirectorySet sourcesSet;
-	
-	public SourceDirectorySet getSourcesSet() {
-		return sourcesSet;
-	}
-	
-	public void setSourcesSet(SourceDirectorySet sourcesSet) {
-		this.sourcesSet = sourcesSet;
-	}
-	
-	@InputFiles
-	@SkipWhenEmpty
-	@PathSensitive(PathSensitivity.ABSOLUTE)
-	public FileTree getSource() {
-		return getProject().files(sourcesSet).getAsFileTree();
-	}
+public class GlslCompileTask extends SourceTask {
 	
 	@OutputDirectory
+	private final Property<File> destinationDir = getProject().getObjects().property(File.class);
+	
+	/**
+	 * Returns the directory to generate the {@code .class} files into.
+	 *
+	 * @return The destination directory.
+	 */
+	@OutputDirectory
 	public File getDestinationDir() {
-		return sourcesSet.getOutputDir();
+		return destinationDir.getOrNull();
+	}
+	
+	/**
+	 * Sets the directory to generate the {@code .class} files into.
+	 *
+	 * @param destinationDir The destination directory. Must not be null.
+	 */
+	public void setDestinationDir(File destinationDir) {
+		this.destinationDir.set(destinationDir);
+	}
+	
+	/**
+	 * Sets the directory to generate the {@code .class} files into.
+	 *
+	 * @param destinationDir The destination directory. Must not be null.
+	 */
+	public void setDestinationDir(Provider<File> destinationDir) {
+		this.destinationDir.set(destinationDir);
 	}
 	
 	@TaskAction
 	protected void compile() {
-		for (File srcDir : sourcesSet.getSrcDirs()) {
-			for (File src : getProject().fileTree(srcDir).matching(sourcesSet.getFilter()).getFiles()) {
-				File target = new File(sourcesSet.getOutputDir(), src.toString().substring(srcDir.toString().length()) + ".spv");
+		GlslConfigurationExtension ext = getProject().getExtensions().getByType(GlslConfigurationExtension.class);
+		
+		getSource().visit(src -> {
+			if (src.isDirectory()) {
+				File target = src.getRelativePath().getFile(destinationDir.get());
 				//noinspection ResultOfMethodCallIgnored
-				target.getParentFile().mkdirs();
+				target.mkdir();
+			} else {
+				File target = src.getRelativePath().getParent().append(true, src.getName() + ".spv").getFile(destinationDir.get());
 				
 				ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 				try {
-					getProject().exec(execSpec -> {
-						try {
-							execSpec.commandLine("glslc", "-c", src.getCanonicalPath(), "-o", target.getCanonicalPath());
-							execSpec.setStandardOutput(outputStream);
-						} catch (IOException e) {
-							throw new RuntimeException(e);
+					getProject().exec(spec -> {
+						switch (ext.getCompiler()) {
+							case "glslangValidator":
+								spec.commandLine(ext.getGlslangValidatorPath(), "-V", src.getFile().getAbsolutePath(), "-o", target.getAbsolutePath());
+								break;
+							case "glslc":
+								spec.commandLine(ext.getGlslcPath(), "-c", src.getFile().getAbsolutePath(), "-o", target.getAbsolutePath());
+								break;
+							default:
+								throw new IllegalArgumentException("Compiler " + ext.getCompiler() + " not supported!");
 						}
+						spec.setStandardOutput(outputStream);
 					}).rethrowFailure();
 				} catch (ExecException e) {
 					throw new ExecException(e.getMessage() + "\n" + outputStream.toString(), e);
 				}
 			}
-		}
+		});
 	}
 }
