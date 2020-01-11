@@ -3,14 +3,25 @@ package space.engine.indexmap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import space.engine.Empties;
+import space.engine.delegate.indexmap.UnmodifiableIndexMap;
 
 import java.util.Collection;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.ToIntFunction;
+import java.util.stream.Collector;
 
 public interface IndexMap<VALUE> {
 	
 	int[] EMPTYINT = Empties.EMPTY_INT_ARRAY;
+	
+	static <I, T> Collector<I, IndexMap<T>, IndexMap<T>> collector(ToIntFunction<I> key, Function<I, T> value) {
+		return Collector.of(IndexMapArray::new, (map, v) -> map.put(key.applyAsInt(v), value.apply(v)), (map1, map2) -> {
+			map1.putAll(map2);
+			return map1;
+		}, UnmodifiableIndexMap::new);
+	}
 	
 	//capacity
 	
