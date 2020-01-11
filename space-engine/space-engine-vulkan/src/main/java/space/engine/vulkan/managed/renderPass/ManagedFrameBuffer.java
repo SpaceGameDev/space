@@ -8,13 +8,13 @@ import org.lwjgl.vulkan.VkOffset2D;
 import org.lwjgl.vulkan.VkRect2D;
 import org.lwjgl.vulkan.VkRenderPassBeginInfo;
 import space.engine.barrier.Barrier;
-import space.engine.barrier.DelayTask;
 import space.engine.barrier.future.Future;
 import space.engine.buffer.Allocator;
 import space.engine.buffer.AllocatorStack.AllocatorFrame;
 import space.engine.buffer.array.ArrayBufferLong;
 import space.engine.freeable.Freeable;
 import space.engine.freeable.Freeable.CleanerWrapper;
+import space.engine.indexmap.IndexMap;
 import space.engine.orderingGuarantee.SequentialOrderingGuarantee;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkFramebuffer;
@@ -28,7 +28,6 @@ import space.engine.vulkan.managed.renderPass.ManagedRenderPass.Subpass;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -197,33 +196,27 @@ public class ManagedFrameBuffer<INFOS extends Infos> implements CleanerWrapper {
 	private final @NotNull SequentialOrderingGuarantee orderingGuarantee = new SequentialOrderingGuarantee();
 	
 	public Future<Barrier> render(INFOS infos, VkSemaphore[] waitSemaphores, int[] waitDstStageMasks, VkSemaphore[] signalSemaphores) {
-		return orderingGuarantee.next(prev -> prev.thenFuture(() -> {
+		return orderingGuarantee.next(prev -> prev.thenStart(() -> {
 			@NotNull Subpass[] subpasses = renderPass.subpasses();
 			
-			List<List<Future<VkCommandBuffer[]>>> cmdBuffersInput = new ArrayList<>();
+			List<Future<IndexMap<VkCommandBuffer[]>>> cmdBuffersInput = new ArrayList<>();
 			renderPass.callbacks.runImmediatelyThrowIfWait(callback -> cmdBuffersInput.add(callback.getCmdBuffers(this, infos)));
 			
-			List<Future<VkCommandBuffer[]>> cmdBuffersSorted = Arrays
-					.stream(renderPass.subpasses())
-					.map(subpass -> {
-							 List<Future<VkCommandBuffer[]>> futures = cmdBuffersInput
-									 .stream()
-									 .map(list -> list.get(subpass.id()))
-									 .collect(Collectors.toUnmodifiableList());
-						return when(futures).thenFuture(() -> futures
-									 .stream()
-									 .map(Future::assertGet)
-									 .flatMap(Arrays::stream)
-									 .toArray(VkCommandBuffer[]::new)
+			return when(cmdBuffersInput).thenStart(() -> {
+				IndexMap<VkCommandBuffer[]> cmdBuffersSorted = Arrays
+						.stream(renderPass.subpasses())
+						.collect(IndexMap.collector(
+								Subpass::id,
+								subpass -> cmdBuffersInput
+										.stream()
+										.map(Future::assertGet)
+										.map(list -> list.get(subpass.id()))
+										.flatMap(Stream::of)
+										.toArray(VkCommandBuffer[]::new))
 						);
-						 }
-					)
-					.collect(Collectors.toUnmodifiableList());
-			
-			throw new DelayTask(when(cmdBuffersSorted).<Barrier>thenFuture(() -> {
-				VkCommandBuffer cmdMain;
-				try (AllocatorFrame frame = Allocator.frame()) {
-					cmdMain = queue.poolShortLived().allocAndRecordCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, EMPTY_OBJECT_ARRAY, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, cmd -> {
+				
+				VkCommandBuffer cmdMain = queue.poolShortLived().allocAndRecordCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, EMPTY_OBJECT_ARRAY, VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT, cmd -> {
+					try (AllocatorFrame frame = Allocator.frame()) {
 						vkCmdBeginRenderPass(cmd, mallocStruct(frame, VkRenderPassBeginInfo::create, VkRenderPassBeginInfo.SIZEOF).set(
 								VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
 								0,
@@ -241,7 +234,7 @@ public class ManagedFrameBuffer<INFOS extends Infos> implements CleanerWrapper {
 						), VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 						
 						for (int i = 0; i < subpasses.length; i++) {
-							VkCommandBuffer[] vkCommandBuffers = cmdBuffersSorted.get(i).assertGet();
+							VkCommandBuffer[] vkCommandBuffers = cmdBuffersSorted.get(i);
 							if (vkCommandBuffers.length > 0) {
 								ArrayBufferLong vkCommandBufferPtrs = ArrayBufferLong.alloc(heap(), Arrays.stream(vkCommandBuffers).mapToLong(VkCommandBuffer::address).toArray(), new Object[] {frame});
 								nvkCmdExecuteCommands(cmd, (int) vkCommandBufferPtrs.length(), vkCommandBufferPtrs.address());
@@ -253,8 +246,8 @@ public class ManagedFrameBuffer<INFOS extends Infos> implements CleanerWrapper {
 						
 						vkCmdEndRenderPass(cmd);
 						return null;
-					});
-				}
+					}
+				});
 				
 				infos.frameDone.addHook(cmdMain::free);
 				Future<Barrier> ret = queue.submit(
@@ -265,9 +258,9 @@ public class ManagedFrameBuffer<INFOS extends Infos> implements CleanerWrapper {
 				);
 				
 				inner(ret).addHook(infos.frameDone::triggerNow);
-				throw new DelayTask(ret);
-			}));
-		}));
+				return ret;
+			}, Future.delegate());
+		}, Future.delegate()));
 	}
 	
 	//inheritanceInfo
