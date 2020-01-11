@@ -267,7 +267,6 @@ public class IndexMapArray<VALUE> implements IndexMap<VALUE>, ToString {
 	
 	@NotNull
 	@Override
-	@SuppressWarnings("FuseStreamOperations")
 	public Collection<VALUE> values() {
 		return new UnmodifiableCollection<>(Arrays.stream(array).filter(Objects::nonNull).collect(Collectors.toList()));
 	}

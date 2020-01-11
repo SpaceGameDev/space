@@ -6,11 +6,14 @@ import space.engine.Empties;
 import space.engine.delegate.indexmap.UnmodifiableIndexMap;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 import java.util.stream.Collector;
+
+import static space.engine.Empties.EMPTY_OBJECT_ARRAY;
 
 public interface IndexMap<VALUE> {
 	
@@ -21,6 +24,118 @@ public interface IndexMap<VALUE> {
 			map1.putAll(map2);
 			return map1;
 		}, UnmodifiableIndexMap::new);
+	}
+	
+	static <T> IndexMap<T> of() {
+		return new IndexMap<T>() {
+			@Override
+			public int size() {
+				return 0;
+			}
+			
+			@Override
+			public @Nullable T get(int index) {
+				return null;
+			}
+			
+			@Override
+			public @NotNull Entry<T> getEntry(int index) {
+				return Entry.of(index);
+			}
+			
+			@Override
+			public T put(int index, T t) {
+				throw new UnsupportedOperationException();
+			}
+			
+			@Override
+			public T remove(int index) {
+				throw new UnsupportedOperationException();
+			}
+			
+			@Override
+			@SuppressWarnings("unchecked")
+			public T[] toArray() {
+				return (T[]) EMPTY_OBJECT_ARRAY;
+			}
+			
+			@Override
+			public T[] toArray(@NotNull T[] array) {
+				return array;
+			}
+			
+			@Override
+			public void clear() {
+				throw new UnsupportedOperationException();
+			}
+			
+			@Override
+			public @NotNull Collection<T> values() {
+				return Collections.emptyList();
+			}
+			
+			@Override
+			public @NotNull Collection<Entry<T>> entrySet() {
+				return Collections.emptyList();
+			}
+		};
+	}
+	
+	static <T> IndexMap<T> of(int index1, T value1) {
+		return new IndexMap<T>() {
+			@Override
+			public int size() {
+				return 1;
+			}
+			
+			@Override
+			public @Nullable T get(int index) {
+				return index == index1 ? value1 : null;
+			}
+			
+			@Override
+			public @NotNull Entry<T> getEntry(int index) {
+				return index == index1 ? Entry.of(index1, value1) : Entry.of(index);
+			}
+			
+			@Override
+			public T put(int index, T t) {
+				throw new UnsupportedOperationException();
+			}
+			
+			@Override
+			public T remove(int index) {
+				throw new UnsupportedOperationException();
+			}
+			
+			@Override
+			public T[] toArray() {
+				//noinspection unchecked
+				T[] ret = (T[]) new Object[index1 + 1];
+				ret[index1] = value1;
+				return ret;
+			}
+			
+			@Override
+			public T[] toArray(@NotNull T[] array) {
+				return toArray();
+			}
+			
+			@Override
+			public void clear() {
+				throw new UnsupportedOperationException();
+			}
+			
+			@Override
+			public @NotNull Collection<T> values() {
+				return Collections.singleton(value1);
+			}
+			
+			@Override
+			public @NotNull Collection<Entry<T>> entrySet() {
+				return Collections.singleton(Entry.of(index1, value1));
+			}
+		};
 	}
 	
 	//capacity
@@ -155,6 +270,31 @@ public interface IndexMap<VALUE> {
 	
 	//entry
 	interface Entry<VALUE> {
+		
+		@SuppressWarnings("ConstantConditions")
+		static <T> Entry<T> of(int index) {
+			return of(index, null);
+		}
+		
+		static <T> Entry<T> of(int index, T value) {
+			return new Entry<T>() {
+				@Override
+				public int getIndex() {
+					return index;
+				}
+				
+				@Nullable
+				@Override
+				public T getValue() {
+					return value;
+				}
+				
+				@Override
+				public void setValue(T v) {
+					throw new UnsupportedOperationException();
+				}
+			};
+		}
 		
 		int getIndex();
 		
