@@ -99,6 +99,7 @@ public class AsteroidsDemo implements RunnableWithDelay {
 	public boolean VK_LAYER_LUNARG_standard_validation = true;
 	public boolean VK_LAYER_RENDERDOC_Capture = false;
 	private Logger logger = baseLogger.subLogger("asteroidsDemo");
+	public final boolean ASTEROIDS_FLAT = true;
 	
 	public void run() throws DelayTask {
 		try (Frame side = Freeable.frame()) {
@@ -221,40 +222,39 @@ public class AsteroidsDemo implements RunnableWithDelay {
 					new float[] {0.5f, 0.3f, 0.2f},
 					new float[] {0.5f, 0.3f, 0.2f, 0.1f},
 			};
-			boolean flat = true;
 			
 			VmaBuffer[] asteroid_r2 = uploadAsteroids(device, new Object[] {side},
-													  ModelAsteroids.generateAsteroid(2, config[2], flat, 1),
-													  ModelAsteroids.generateAsteroid(2, config[1], flat, 1),
-													  ModelAsteroids.generateAsteroid(2, config[0], flat, 1)
+													  ModelAsteroids.generateAsteroid(2, config[2], ASTEROIDS_FLAT, 1),
+													  ModelAsteroids.generateAsteroid(2, config[1], ASTEROIDS_FLAT, 1),
+													  ModelAsteroids.generateAsteroid(2, config[0], ASTEROIDS_FLAT, 1)
 			).awaitGetUninterrupted();
 			VmaBuffer[] asteroid_r4 = uploadAsteroids(device, new Object[] {side},
-													  ModelAsteroids.generateAsteroid(4, config[2], flat, 2),
-													  ModelAsteroids.generateAsteroid(4, config[1], flat, 2),
-													  ModelAsteroids.generateAsteroid(4, config[0], flat, 2)
+													  ModelAsteroids.generateAsteroid(4, config[2], ASTEROIDS_FLAT, 2),
+													  ModelAsteroids.generateAsteroid(4, config[1], ASTEROIDS_FLAT, 2),
+													  ModelAsteroids.generateAsteroid(4, config[0], ASTEROIDS_FLAT, 2)
 			).awaitGetUninterrupted();
 			VmaBuffer[] asteroid_r6 = uploadAsteroids(device, new Object[] {side},
-													  ModelAsteroids.generateAsteroid(6, config[2], flat, 3),
-													  ModelAsteroids.generateAsteroid(6, config[1], flat, 3),
-													  ModelAsteroids.generateAsteroid(6, config[0], flat, 3)
+													  ModelAsteroids.generateAsteroid(6, config[2], ASTEROIDS_FLAT, 3),
+													  ModelAsteroids.generateAsteroid(6, config[1], ASTEROIDS_FLAT, 3),
+													  ModelAsteroids.generateAsteroid(6, config[0], ASTEROIDS_FLAT, 3)
 			).awaitGetUninterrupted();
 			VmaBuffer[] asteroid_r8 = uploadAsteroids(device, new Object[] {side},
-													  ModelAsteroids.generateAsteroid(8, config[3], flat, 4),
-													  ModelAsteroids.generateAsteroid(8, config[2], flat, 4),
-													  ModelAsteroids.generateAsteroid(8, config[1], flat, 4),
-													  ModelAsteroids.generateAsteroid(8, config[0], flat, 4)
+													  ModelAsteroids.generateAsteroid(8, config[3], ASTEROIDS_FLAT, 4),
+													  ModelAsteroids.generateAsteroid(8, config[2], ASTEROIDS_FLAT, 4),
+													  ModelAsteroids.generateAsteroid(8, config[1], ASTEROIDS_FLAT, 4),
+													  ModelAsteroids.generateAsteroid(8, config[0], ASTEROIDS_FLAT, 4)
 			).awaitGetUninterrupted();
 			VmaBuffer[] asteroid_r10 = uploadAsteroids(device, new Object[] {side},
-													   ModelAsteroids.generateAsteroid(10, config[3], flat, 5),
-													   ModelAsteroids.generateAsteroid(10, config[2], flat, 5),
-													   ModelAsteroids.generateAsteroid(10, config[1], flat, 5),
-													   ModelAsteroids.generateAsteroid(10, config[0], flat, 5)
+													   ModelAsteroids.generateAsteroid(10, config[3], ASTEROIDS_FLAT, 5),
+													   ModelAsteroids.generateAsteroid(10, config[2], ASTEROIDS_FLAT, 5),
+													   ModelAsteroids.generateAsteroid(10, config[1], ASTEROIDS_FLAT, 5),
+													   ModelAsteroids.generateAsteroid(10, config[0], ASTEROIDS_FLAT, 5)
 			).awaitGetUninterrupted();
 			VmaBuffer[] asteroid_r12 = uploadAsteroids(device, new Object[] {side},
-													   ModelAsteroids.generateAsteroid(12, config[3], flat, 6),
-													   ModelAsteroids.generateAsteroid(12, config[2], flat, 6),
-													   ModelAsteroids.generateAsteroid(12, config[1], flat, 6),
-													   ModelAsteroids.generateAsteroid(12, config[0], flat, 6)
+													   ModelAsteroids.generateAsteroid(12, config[3], ASTEROIDS_FLAT, 6),
+													   ModelAsteroids.generateAsteroid(12, config[2], ASTEROIDS_FLAT, 6),
+													   ModelAsteroids.generateAsteroid(12, config[1], ASTEROIDS_FLAT, 6),
+													   ModelAsteroids.generateAsteroid(12, config[0], ASTEROIDS_FLAT, 6)
 			).awaitGetUninterrupted();
 			
 			AsteroidRenderer asteroidRenderer = new AsteroidRenderer(
