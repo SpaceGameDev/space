@@ -6,7 +6,9 @@ import space.engine.barrier.functions.Starter;
 import space.engine.event.Event;
 import space.engine.event.EventEntry;
 import space.engine.event.SequentialEventBuilder;
+import space.engine.simpleQueue.ConcurrentLinkedSimpleQueue;
 import space.engine.simpleQueue.pool.Executor;
+import space.engine.simpleQueue.pool.SimpleMessagePool;
 import space.engine.simpleQueue.pool.SimpleThreadPool;
 
 import java.util.concurrent.ThreadFactory;
@@ -23,7 +25,7 @@ public class Side {
 		public Thread newThread(@NotNull Runnable r) {
 			return new Thread(r, "space-pool-" + COUNT.incrementAndGet());
 		}
-	});
+	}, new ConcurrentLinkedSimpleQueue<>(), SimpleMessagePool.DEFAULT_PAUSE_COUNTDOWN);
 	
 	public static Executor pool() {
 		return POOL;
