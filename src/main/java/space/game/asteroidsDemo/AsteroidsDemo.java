@@ -50,12 +50,14 @@ import space.engine.window.extensions.VideoModeDesktopExtension;
 import space.engine.window.glfw.GLFWContext;
 import space.engine.window.glfw.GLFWWindow;
 import space.engine.window.glfw.GLFWWindowFramework;
-import space.game.asteroidsDemo.asteroid.Asteroid;
 import space.game.asteroidsDemo.asteroid.AsteroidPipeline;
 import space.game.asteroidsDemo.asteroid.AsteroidPlacer;
 import space.game.asteroidsDemo.asteroid.AsteroidRenderer;
 import space.game.asteroidsDemo.asteroid.AsteroidRenderer.AsteroidModel;
 import space.game.asteroidsDemo.entity.Camera;
+import space.game.asteroidsDemo.gasgiant.Gasgiant;
+import space.game.asteroidsDemo.gasgiant.GasgiantPipeline;
+import space.game.asteroidsDemo.gasgiant.GasgiantRenderer;
 import space.game.asteroidsDemo.model.ModelAsteroids;
 import space.game.asteroidsDemo.model.ModelAsteroids.Result;
 import space.game.asteroidsDemo.renderPass.AsteroidDemoInfos;
@@ -208,6 +210,8 @@ public class AsteroidsDemo implements RunnableWithDelay {
 			
 			//renderPass and pipeline
 			AsteroidDemoRenderPass asteroidDemoRenderPass = new AsteroidDemoRenderPass(device, swapExtend, swapchain.imageFormat(), new Object[] {side});
+			
+			//asteroids
 			AsteroidPipeline asteroidPipeline = new AsteroidPipeline(asteroidDemoRenderPass, new Object[] {side});
 			ManagedFrameBuffer<AsteroidDemoInfos> frameBuffer = asteroidDemoRenderPass.createManagedFrameBuffer(swapchain, device.getQueue(QUEUE_TYPE_GRAPHICS, QUEUE_FLAG_REALTIME_BIT), new Object[] {side});
 			
@@ -219,10 +223,6 @@ public class AsteroidsDemo implements RunnableWithDelay {
 			};
 			boolean flat = true;
 			
-			//renderer
-			VmaBuffer[] asteroid_gasgiant = uploadAsteroids(device, new Object[] {side},
-															ModelAsteroids.generateAsteroid(3000, new float[] {0f, 0f, 0f, 0.0f}, false, 0)
-			).awaitGetUninterrupted();
 			VmaBuffer[] asteroid_r2 = uploadAsteroids(device, new Object[] {side},
 													  ModelAsteroids.generateAsteroid(2, config[2], flat, 1),
 													  ModelAsteroids.generateAsteroid(2, config[1], flat, 1),
@@ -260,7 +260,7 @@ public class AsteroidsDemo implements RunnableWithDelay {
 			AsteroidRenderer asteroidRenderer = new AsteroidRenderer(
 					asteroidDemoRenderPass,
 					asteroidPipeline,
-					Stream.of(asteroid_gasgiant, asteroid_r2, asteroid_r4, asteroid_r6, asteroid_r8, asteroid_r10, asteroid_r12)
+					Stream.of(asteroid_r2, asteroid_r4, asteroid_r6, asteroid_r8, asteroid_r10, asteroid_r12)
 						  .map(models -> {
 							  float[] minDistance;
 							  switch (models.length) {
@@ -285,19 +285,25 @@ public class AsteroidsDemo implements RunnableWithDelay {
 					new Object[] {side}
 			);
 			asteroidDemoRenderPass.callbacks().addHook(asteroidRenderer);
-			//gas giant
-			Asteroid gasGiant = new Asteroid(0);
+			AsteroidPlacer.placeAsteroids(asteroidRenderer, new float[] {3, 2, 2, 1, 1, 1}, 1);
+			
+			//gasgiant
+			Gasgiant gasGiant = new Gasgiant(0);
 			gasGiant.position[0] = new Vector3(0, 0, 2000 * AsteroidPlacer.RADIUS_FACTOR);
 			gasGiant.rotation[0] = gasGiant.rotation[0].multiply(new AxisAngle(0, 1, 0, (float) Math.PI));
 			gasGiant.rotation[1] = gasGiant.rotation[1].multiply(new AxisAngle(0, 1, 0, (float) Math.PI / 150));
-			asteroidRenderer.addAsteroid(gasGiant);
-			//asteroids
-			AsteroidPlacer.placeAsteroids(asteroidRenderer, new float[] {0, 3, 2, 2, 1, 1, 1}, 1);
+			
+			VmaBuffer gasgiant_model = uploadAsteroids(device, new Object[] {side},
+													   ModelAsteroids.generateAsteroid(3000, new float[] {0f, 0f, 0f, 0f, 0f, 0f}, false, 0)
+			).awaitGetUninterrupted()[0];
+			GasgiantPipeline gasgiantPipeline = new GasgiantPipeline(asteroidDemoRenderPass, new Object[] {side});
+			GasgiantRenderer gasgiantRenderer = new GasgiantRenderer(asteroidDemoRenderPass, gasgiantPipeline, gasgiant_model, gasGiant, new Object[] {side});
+			asteroidDemoRenderPass.callbacks().addHook(gasgiantRenderer);
 			
 			//uniform buffer
 			VmaMappedBuffer uniformBuffer = VmaMappedBuffer.alloc(
 					0,
-					(4 + 3 + 1 + 1) * 4 * FP32.bytes,
+					AsteroidDemoInfos.UNIFORM_GLOBAL_SIZEOF,
 					VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 					VMA_ALLOCATION_CREATE_MAPPED_BIT,
 					VMA_MEMORY_USAGE_CPU_TO_GPU,

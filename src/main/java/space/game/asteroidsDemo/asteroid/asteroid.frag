@@ -1,21 +1,21 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-#include "translation.glsl"
+#include "../Translation.glsl"
 
-layout(binding = 0) uniform UniformGlobal {
-	mat4 projection;
-	Translation cameraTranslation;
-	vec3 lightDir;
-} uniformGlobal;
+//uniform
+#include "../renderPass/UniformGlobal.glsl"
 
+//in
 layout(location = 0) in vec3 inPosScreenspace;
 layout(location = 1) in vec3 inPosWorldspace;
 layout(location = 2) in vec3 inNormal;
 layout(location = 3) in vec3 fragVertexDistance;
 
+//out
 layout(location = 0) out vec4 outColor;
 
+//const
 const vec3 gasgiantPos = vec3(0, 0, 2000 * 4);
 const float gasgiantRadius = 3000;
 const float ambientStrength = 0.2;
