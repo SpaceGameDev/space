@@ -73,7 +73,7 @@ public class AsteroidRenderer implements CleanerWrapper, Callback<AsteroidDemoIn
 	}
 	
 	@Override
-	public @NotNull List<Future<VkCommandBuffer[]>> getCmdBuffers(@NotNull ManagedFrameBuffer<AsteroidDemoInfos> render, AsteroidDemoInfos infos) {
+	public @NotNull Future<IndexMap<VkCommandBuffer[]>> getCmdBuffers(@NotNull ManagedFrameBuffer<AsteroidDemoInfos> render, AsteroidDemoInfos infos) {
 		List<? extends Future<ArrayList<VkCommandBuffer>>> futures = asteroids.entrySet().stream().filter(entry -> entry.getValue() != null).map(entry -> nowFuture(() -> {
 			int indexAsteroid = entry.getIndex();
 			AsteroidModel model = asteroidModels[indexAsteroid];
@@ -139,16 +139,13 @@ public class AsteroidRenderer implements CleanerWrapper, Callback<AsteroidDemoIn
 			return cmdBuffers;
 		})).collect(Collectors.toUnmodifiableList());
 		
-		Future<VkCommandBuffer[]> renderFuture = when(futures).thenFuture(() -> futures
-				.stream()
-				.map(Future::assertGet)
-				.flatMap(ArrayList::stream)
-				.toArray(VkCommandBuffer[]::new)
-		);
-		
-		return List.of(
-				renderFuture
-		);
+		return when(futures).thenFuture(() -> IndexMap.of(
+				renderPass.subpassRender.id(),
+				futures.stream()
+					   .map(Future::assertGet)
+					   .flatMap(ArrayList::stream)
+					   .toArray(VkCommandBuffer[]::new)
+		));
 	}
 	
 	//storage

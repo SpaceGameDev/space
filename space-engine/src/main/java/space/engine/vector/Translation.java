@@ -18,6 +18,18 @@ public class Translation {
 		return new TranslationBuilder(rotation, offset);
 	}
 	
+	public float[] write4Aligned(float[] array, int offset) {
+		this.matrix.write4Aligned(array, offset);
+		this.offset.write4Aligned(array, offset + 12);
+		return array;
+	}
+	
+	public float[] write(float[] array, int offset) {
+		this.matrix.write(array, offset);
+		this.offset.write(array, offset + 9);
+		return array;
+	}
+	
 	@Override
 	public String toString() {
 		return "Translation{" +

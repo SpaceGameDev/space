@@ -17,6 +17,7 @@ import space.engine.buffer.array.ArrayBufferInt;
 import space.engine.buffer.pointer.PointerBufferPointer;
 import space.engine.event.Event;
 import space.engine.event.SequentialEventBuilder;
+import space.engine.indexmap.IndexMap;
 import space.engine.vulkan.VkCommandBuffer;
 import space.engine.vulkan.VkDevice;
 import space.engine.vulkan.VkRenderPass;
@@ -24,7 +25,6 @@ import space.engine.vulkan.managed.renderPass.ManagedRenderPass.Attachment.Refer
 
 import java.nio.IntBuffer;
 import java.util.Arrays;
-import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -381,7 +381,7 @@ public class ManagedRenderPass<INFOS extends Infos> extends VkRenderPass {
 	
 	public interface Callback<INFOS extends Infos> {
 		
-		@NotNull List<Future<VkCommandBuffer[]>> getCmdBuffers(@NotNull ManagedFrameBuffer<INFOS> render, INFOS infos);
+		@NotNull Future<IndexMap<VkCommandBuffer[]>> getCmdBuffers(@NotNull ManagedFrameBuffer<INFOS> render, INFOS infos);
 	}
 	
 	public Event<Callback<INFOS>> callbacks() {
