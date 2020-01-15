@@ -55,8 +55,7 @@ public class GasgiantPipeline implements CleanerWrapper {
 		VkRect2D swapExtend = renderPass.swapExtend();
 		
 		descriptorSetLayout = VkDescriptorSetLayout.alloc(device, 0, new VkDescriptorSetBinding[] {
-				new VkDescriptorSetBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT),
-				new VkDescriptorSetBinding(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT)
+				new VkDescriptorSetBinding(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
 		}, new Object[] {this});
 		pipelineLayout = VkPipelineLayout.alloc(device, new VkDescriptorSetLayout[] {descriptorSetLayout}, new Object[] {this});
 		
