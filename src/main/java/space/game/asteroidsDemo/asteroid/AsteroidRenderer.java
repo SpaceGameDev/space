@@ -14,7 +14,7 @@ import space.engine.vector.Translation;
 import space.engine.vector.Vector3;
 import space.engine.vulkan.VkBuffer;
 import space.engine.vulkan.VkCommandBuffer;
-import space.engine.vulkan.managed.descriptorSet.ManagedDescriptorSetPool;
+import space.engine.vulkan.managed.descriptorSet.StaticDescriptorSetPool;
 import space.engine.vulkan.managed.renderPass.ManagedFrameBuffer;
 import space.engine.vulkan.managed.renderPass.ManagedRenderPass.Callback;
 import space.engine.vulkan.vma.VmaMappedBuffer;
@@ -45,7 +45,7 @@ public class AsteroidRenderer implements CleanerWrapper, Callback<AsteroidDemoIn
 	private final int asteroidModelsCount;
 	private final IndexMap<Collection<Asteroid>> asteroids = new IndexMapArray<>();
 	
-	private final ManagedDescriptorSetPool descriptorSetPool;
+	private final StaticDescriptorSetPool descriptorSetPool;
 	
 	public AsteroidRenderer(AsteroidDemoRenderPass renderPass, AsteroidPipeline asteroidPipeline, AsteroidModel[] asteroidModels, Object[] parents) {
 		this.renderPass = renderPass;
@@ -61,7 +61,7 @@ public class AsteroidRenderer implements CleanerWrapper, Callback<AsteroidDemoIn
 		this.asteroidModelsCount = modelCount;
 		
 		this.storage = Freeable.createDummy(this, addIfNotContained(parents, renderPass, asteroidPipeline));
-		this.descriptorSetPool = new ManagedDescriptorSetPool(renderPass.device(), asteroidPipeline.descriptorSetLayout(), asteroidModelsCount, new Object[] {this});
+		this.descriptorSetPool = new StaticDescriptorSetPool(renderPass.device(), asteroidPipeline.descriptorSetLayout(), asteroidModelsCount, new Object[] {this});
 	}
 	
 	public void addAsteroid(Asteroid asteroid) {

@@ -25,9 +25,13 @@ import java.util.stream.IntStream;
 import static org.lwjgl.vulkan.VK10.*;
 import static space.engine.lwjgl.LwjglStructAllocator.mallocStruct;
 
-public class ManagedDescriptorSetPool implements CleanerWrapper {
+/**
+ * A {@link VkDescriptorPool} allocated for a specific {@link VkDescriptorSetLayout} and {@link VkDescriptorSet} count.
+ * {@link VkDescriptorSet VkDescriptorSets} will be allocated immediately from the pool and kept alive until the {@link StaticDescriptorSetPool} is destroyed.
+ */
+public class StaticDescriptorSetPool implements CleanerWrapper {
 	
-	public ManagedDescriptorSetPool(ManagedDevice device, VkDescriptorSetLayout layout, int setCount, Object[] parents) {
+	public StaticDescriptorSetPool(ManagedDevice device, VkDescriptorSetLayout layout, int setCount, Object[] parents) {
 		this.device = device;
 		this.storage = Freeable.createDummy(this, parents);
 		

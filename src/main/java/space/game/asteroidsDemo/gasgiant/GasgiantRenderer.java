@@ -7,7 +7,7 @@ import space.engine.freeable.Freeable.CleanerWrapper;
 import space.engine.indexmap.IndexMap;
 import space.engine.vulkan.VkBuffer;
 import space.engine.vulkan.VkCommandBuffer;
-import space.engine.vulkan.managed.descriptorSet.ManagedDescriptorSetPool;
+import space.engine.vulkan.managed.descriptorSet.StaticDescriptorSetPool;
 import space.engine.vulkan.managed.renderPass.ManagedFrameBuffer;
 import space.engine.vulkan.managed.renderPass.ManagedRenderPass.Callback;
 import space.game.asteroidsDemo.renderPass.AsteroidDemoInfos;
@@ -26,7 +26,7 @@ public class GasgiantRenderer implements CleanerWrapper, Callback<AsteroidDemoIn
 	private final VkBuffer model;
 	public final Gasgiant gasgiant;
 	
-	private final ManagedDescriptorSetPool descriptorSetPool;
+	private final StaticDescriptorSetPool descriptorSetPool;
 	
 	public GasgiantRenderer(AsteroidDemoRenderPass renderPass, GasgiantPipeline gasgiantPipeline, VkBuffer model, Gasgiant gasgiant, Object[] parents) {
 		this.renderPass = renderPass;
@@ -36,7 +36,7 @@ public class GasgiantRenderer implements CleanerWrapper, Callback<AsteroidDemoIn
 		
 		this.storage = Freeable.createDummy(addIfNotContained(parents, renderPass, gasgiantPipeline, model));
 		
-		this.descriptorSetPool = new ManagedDescriptorSetPool(renderPass.device(), gasgiantPipeline.descriptorSetLayout(), 1, new Object[] {this});
+		this.descriptorSetPool = new StaticDescriptorSetPool(renderPass.device(), gasgiantPipeline.descriptorSetLayout(), 1, new Object[] {this});
 	}
 	
 	@Override
