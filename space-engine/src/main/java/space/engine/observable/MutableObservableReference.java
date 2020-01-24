@@ -1,6 +1,7 @@
 package space.engine.observable;
 
 import space.engine.barrier.Barrier;
+import space.engine.barrier.functions.SupplierWithDelay;
 import space.engine.baseobject.CanceledCheck;
 
 /**
@@ -20,6 +21,10 @@ public class MutableObservableReference<T> extends ObservableReference<T> {
 		super(initial);
 	}
 	
+	public MutableObservableReference(SupplierWithDelay<T> supplier) {
+		set(supplier);
+	}
+	
 	public MutableObservableReference(Generator<T> supplier) {
 		set(supplier);
 	}
@@ -32,6 +37,12 @@ public class MutableObservableReference<T> extends ObservableReference<T> {
 	public Barrier set(T t) {
 		return ordering.next(prev -> prev.thenStartCancelable(
 				canceledCheck -> setInternalAlways(t)
+		));
+	}
+	
+	public Barrier set(SupplierWithDelay<T> supplier) {
+		return ordering.next(prev -> prev.thenStartCancelable(
+				canceledCheck -> setInternalAlways(p -> supplier.get())
 		));
 	}
 	
@@ -48,6 +59,12 @@ public class MutableObservableReference<T> extends ObservableReference<T> {
 	}
 	
 	//setMayCancel
+	public Barrier setMayCancel(SupplierWithDelay<T> supplier) {
+		return ordering.next(prev -> prev.thenStartCancelable(
+				canceledCheck -> setInternalMayCancel(p -> supplier.get(), canceledCheck)
+		));
+	}
+	
 	public Barrier setMayCancel(T t) {
 		return ordering.next(prev -> prev.thenStartCancelable(
 				canceledCheck -> setInternalMayCancel(t, canceledCheck)
