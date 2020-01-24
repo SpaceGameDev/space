@@ -55,7 +55,7 @@ public class ParallelEventBuilder<FUNCTION> extends AbstractEventBuilder<FUNCTIO
 	}
 	
 	private List<Node> computeBuild() {
-		return computeDependencyOrderedList();
+		return computeDependencyOrderedList(computeNodeMap(true));
 	}
 	
 	@Override

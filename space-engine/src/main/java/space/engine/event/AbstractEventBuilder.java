@@ -10,12 +10,12 @@ import space.engine.string.toStringHelper.ToStringHelper.ToStringHelperObjectsIn
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public abstract class AbstractEventBuilder<FUNCTION> implements Event<FUNCTION>, Cache {
@@ -66,26 +66,22 @@ public abstract class AbstractEventBuilder<FUNCTION> implements Event<FUNCTION>,
 		return allNodes;
 	}
 	
-	protected List<Node> computeDependencyOrderedList() {
-		return computeDependencyOrderedList(computeNodeMap(true));
-	}
-	
 	protected List<Node> computeDependencyOrderedList(Map<EventEntry<?>, Node> nodeMap) {
-		Map<Node, AtomicInteger> runMap = nodeMap.values().stream().collect(Collectors.toMap(node -> node, node -> new AtomicInteger(node.prev.size()), (a, b) -> b));
+		Map<Node, Integer> runMap = nodeMap.values().stream().collect(Collectors.toMap(node -> node, node -> node.prev.size(), (a, b) -> b));
 		
 		List<Node> ret = new ArrayList<>(nodeMap.size());
 		while (runMap.size() != 0) {
 			boolean foundAny = false;
-			Set<Entry<Node, AtomicInteger>> entrySet = runMap.entrySet();
-			//noinspection unchecked
-			for (Entry<Node, AtomicInteger> entry : entrySet.toArray(new Entry[0])) {
-				if (entry.getValue().get() == 0) {
-					entrySet.remove(entry);
+			Iterator<Entry<Node, Integer>> entrySet = runMap.entrySet().iterator();
+			while (entrySet.hasNext()) {
+				Entry<Node, Integer> entry = entrySet.next();
+				if (entry.getValue() == 0) {
+					entrySet.remove();
 					foundAny = true;
 					
 					Node node = entry.getKey();
 					ret.add(node);
-					node.next.forEach(nextNode -> runMap.get(nextNode).decrementAndGet());
+					node.next.forEach(nextNode -> runMap.computeIfPresent(nextNode, (n, i) -> i - 1));
 				}
 			}
 			

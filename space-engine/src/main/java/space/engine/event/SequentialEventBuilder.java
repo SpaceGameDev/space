@@ -102,7 +102,7 @@ public class SequentialEventBuilder<FUNCTION> extends AbstractEventBuilder<FUNCT
 	
 	@NotNull
 	private List<FUNCTION> computeBuild() {
-		return computeDependencyOrderedList().stream().map(node -> node.entry.function).collect(Collectors.toList());
+		return computeDependencyOrderedList(computeNodeMap(false)).stream().map(node -> node.entry.function).collect(Collectors.toList());
 	}
 	
 	@Override
