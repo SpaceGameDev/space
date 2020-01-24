@@ -33,6 +33,12 @@ sourceSets {
 	}
 }
 
+test {
+	testLogging {
+		exceptionFormat = 'full'
+	}
+}
+
 dependencies {
 	api 'SpaceGameDev:space-engine:1.0'
 	implementation 'SpaceGameDev:space-engine-vulkan:1.0'

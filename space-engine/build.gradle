@@ -19,6 +19,12 @@ allprojects {
 		mavenLocal()
 		mavenCentral()
 	}
+
+	test {
+		testLogging {
+			exceptionFormat = 'full'
+		}
+	}
 }
 
 dependencies {
