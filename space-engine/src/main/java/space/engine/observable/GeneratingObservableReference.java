@@ -1,7 +1,6 @@
 package space.engine.observable;
 
 import space.engine.barrier.Barrier;
-import space.engine.barrier.BarrierImpl;
 import space.engine.barrier.DelayTask;
 import space.engine.event.EventEntry;
 
@@ -23,8 +22,7 @@ public class GeneratingObservableReference<T> extends ObservableReference<T> {
 			volatile I1 i1;
 			
 			public S() {
-				BarrierImpl initialBarrier = new BarrierImpl();
-				reference = new GeneratingObservableReference<>(initialBarrier);
+				reference = new GeneratingObservableReference<>();
 				
 				Barrier hooksAdded = when(
 						r1.addHook(new EventEntry<>(o -> {
@@ -37,7 +35,7 @@ public class GeneratingObservableReference<T> extends ObservableReference<T> {
 				reference.ordering.nextInbetween(prev -> when(prev, hooksAdded).thenStart(() -> {
 					updateEnabled = true;
 					return reference.setInternalAlways(this);
-				})).addHook(initialBarrier::triggerNow);
+				}));
 			}
 			
 			public void update() {
@@ -68,8 +66,7 @@ public class GeneratingObservableReference<T> extends ObservableReference<T> {
 			volatile I2 i2;
 			
 			public S() {
-				BarrierImpl initialBarrier = new BarrierImpl();
-				reference = new GeneratingObservableReference<>(initialBarrier);
+				reference = new GeneratingObservableReference<>();
 				
 				Barrier hooksAdded = when(
 						r1.addHook(new EventEntry<>(o -> {
@@ -86,7 +83,7 @@ public class GeneratingObservableReference<T> extends ObservableReference<T> {
 				reference.ordering.nextInbetween(prev -> when(prev, hooksAdded).thenStart(() -> {
 					updateEnabled = true;
 					return reference.setInternalAlways(this);
-				})).addHook(initialBarrier::triggerNow);
+				}));
 			}
 			
 			public void update() {
@@ -118,8 +115,7 @@ public class GeneratingObservableReference<T> extends ObservableReference<T> {
 			volatile I3 i3;
 			
 			public S() {
-				BarrierImpl initialBarrier = new BarrierImpl();
-				reference = new GeneratingObservableReference<>(initialBarrier);
+				reference = new GeneratingObservableReference<>();
 				
 				Barrier hooksAdded = when(
 						r1.addHook(new EventEntry<>(o -> {
@@ -140,7 +136,7 @@ public class GeneratingObservableReference<T> extends ObservableReference<T> {
 				reference.ordering.nextInbetween(prev -> when(prev, hooksAdded).thenStart(() -> {
 					updateEnabled = true;
 					return reference.setInternalAlways(this);
-				})).addHook(initialBarrier::triggerNow);
+				}));
 			}
 			
 			public void update() {
@@ -173,8 +169,7 @@ public class GeneratingObservableReference<T> extends ObservableReference<T> {
 			volatile I4 i4;
 			
 			public S() {
-				BarrierImpl initialBarrier = new BarrierImpl();
-				reference = new GeneratingObservableReference<>(initialBarrier);
+				reference = new GeneratingObservableReference<>();
 				
 				Barrier hooksAdded = when(
 						r1.addHook(new EventEntry<>(o -> {
@@ -199,7 +194,7 @@ public class GeneratingObservableReference<T> extends ObservableReference<T> {
 				reference.ordering.nextInbetween(prev -> when(prev, hooksAdded).thenStart(() -> {
 					updateEnabled = true;
 					return reference.setInternalAlways(this);
-				})).addHook(initialBarrier::triggerNow);
+				}));
 			}
 			
 			public void update() {
@@ -233,8 +228,7 @@ public class GeneratingObservableReference<T> extends ObservableReference<T> {
 			volatile I5 i5;
 			
 			public S() {
-				BarrierImpl initialBarrier = new BarrierImpl();
-				reference = new GeneratingObservableReference<>(initialBarrier);
+				reference = new GeneratingObservableReference<>();
 				
 				Barrier hooksAdded = when(
 						r1.addHook(new EventEntry<>(o -> {
@@ -263,7 +257,7 @@ public class GeneratingObservableReference<T> extends ObservableReference<T> {
 				reference.ordering.nextInbetween(prev -> when(prev, hooksAdded).thenStart(() -> {
 					updateEnabled = true;
 					return reference.setInternalAlways(this);
-				})).addHook(initialBarrier::triggerNow);
+				}));
 			}
 			
 			public void update() {
@@ -280,8 +274,7 @@ public class GeneratingObservableReference<T> extends ObservableReference<T> {
 	}
 	
 	//object
-	protected GeneratingObservableReference(Barrier initialBarrier) {
-		super(initialBarrier);
+	protected GeneratingObservableReference() {
 	}
 	
 	protected Barrier set(Generator<T> supplier) {

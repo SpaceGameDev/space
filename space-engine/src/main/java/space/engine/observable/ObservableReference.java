@@ -2,6 +2,7 @@ package space.engine.observable;
 
 import org.jetbrains.annotations.NotNull;
 import space.engine.barrier.Barrier;
+import space.engine.barrier.BarrierImpl;
 import space.engine.barrier.DelayTask;
 import space.engine.barrier.functions.ConsumerWithDelay;
 import space.engine.barrier.future.Future;
@@ -70,26 +71,15 @@ public abstract class ObservableReference<T> {
 	protected final GeneratingOrderingGuarantee ordering = new GeneratingOrderingGuarantee();
 	protected final SequentialEventBuilder<ConsumerWithDelay<? super T>> changeEvent = new SequentialEventBuilder<>();
 	
-	private final @NotNull Future<T> initialBarrier;
+	private final BarrierImpl initialBarrier = new BarrierImpl();
 	private volatile T t;
 	
-	@SuppressWarnings("ConstantConditions")
 	protected ObservableReference() {
-		this(DONE_BARRIER, null);
 	}
 	
 	protected ObservableReference(T initial) {
-		this(DONE_BARRIER, initial);
-	}
-	
-	@SuppressWarnings("ConstantConditions")
-	protected ObservableReference(Barrier initialBarrier) {
-		this(initialBarrier, null);
-	}
-	
-	protected ObservableReference(@NotNull Barrier initialBarrier, T t) {
-		this.initialBarrier = initialBarrier.dereference().toFuture(() -> this.t);
-		this.t = t;
+		this.t = initial;
+		initialBarrier.triggerNow();
 	}
 	
 	//get
@@ -98,7 +88,7 @@ public abstract class ObservableReference<T> {
 	 * Calling this function outside of a callback may cause it to suddenly return a different value.
 	 * When using this method query the value once and use it over your entire lifespan so it won't change on the fly.
 	 * <p>
-	 * Calling this is the same as calling {@link #future()}.{@link Future#assertGet() assertGet()}
+	 * Calling this is the same as calling {@link #future()}.{@link Future#assertGet() assertGet()} but more efficient.
 	 *
 	 * @return the current T
 	 * @throws FutureNotFinishedException if the initial calculation of t has not yet completed
@@ -117,7 +107,7 @@ public abstract class ObservableReference<T> {
 	 * @return a Future which is finished when the initial value is calculated
 	 */
 	public @NotNull Future<T> future() {
-		return initialBarrier;
+		return initialBarrier.toFuture(() -> this.t);
 	}
 	
 	//setInternalMayCancel
@@ -225,6 +215,7 @@ public abstract class ObservableReference<T> {
 	 */
 	protected Barrier setInternalAlways(T t) {
 		this.t = t;
+		initialBarrier.triggerNow();
 		return changeEvent.runImmediatelyIfPossible(tConsumer -> tConsumer.accept(t));
 	}
 	

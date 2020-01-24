@@ -10,13 +10,13 @@ import java.util.stream.IntStream;
 
 import static org.junit.Assert.*;
 
-public class ObservableReferenceTest {
+public class MutableObservableReferenceTest {
 	
 	MutableObservableReference<Integer> reference = new MutableObservableReference<>();
 	
 	@Test
 	public void testBasics() {
-		assertNull(reference.assertGet());
+		assertFalse(reference.future().isDone());
 		
 		reference.set(1).awaitUninterrupted();
 		assertEquals((Integer) 1, reference.assertGet());
@@ -30,7 +30,7 @@ public class ObservableReferenceTest {
 		Integer[] lastCallback = new Integer[1];
 		reference.addHook(i -> lastCallback[0] = i);
 		
-		assertNull(reference.assertGet());
+		assertFalse(reference.future().isDone());
 		
 		reference.set(1).awaitUninterrupted();
 		assertEquals((Integer) 1, lastCallback[0]);
@@ -49,7 +49,7 @@ public class ObservableReferenceTest {
 				throw new DelayTask(callbackWait[0]);
 		});
 		
-		assertNull(reference.assertGet());
+		assertFalse(reference.future().isDone());
 		
 		callbackWait[0] = new BarrierImpl();
 		Barrier setTo1 = reference.set(1);

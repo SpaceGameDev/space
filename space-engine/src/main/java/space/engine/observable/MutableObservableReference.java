@@ -1,6 +1,5 @@
 package space.engine.observable;
 
-import org.jetbrains.annotations.NotNull;
 import space.engine.barrier.Barrier;
 import space.engine.baseobject.CanceledCheck;
 
@@ -15,19 +14,18 @@ import space.engine.baseobject.CanceledCheck;
 public class MutableObservableReference<T> extends ObservableReference<T> {
 	
 	public MutableObservableReference() {
-		super();
 	}
 	
 	public MutableObservableReference(T initial) {
 		super(initial);
 	}
 	
-	public MutableObservableReference(Barrier initialBarrier) {
-		super(initialBarrier);
+	public MutableObservableReference(Generator<T> supplier) {
+		set(supplier);
 	}
 	
-	public MutableObservableReference(@NotNull Barrier initialBarrier, T t) {
-		super(initialBarrier, t);
+	public MutableObservableReference(GeneratorWithCancelCheck<T> supplier) {
+		set(supplier);
 	}
 	
 	//set
