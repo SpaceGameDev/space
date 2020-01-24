@@ -51,7 +51,7 @@ public class CompletableFutureWithException<R, EX extends Throwable> extends Bar
 	 */
 	@Override
 	@Deprecated
-	public void triggerNow() {
+	public boolean triggerNow() {
 		throw new UnsupportedOperationException("Use #compete(Object)");
 	}
 	

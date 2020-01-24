@@ -35,7 +35,7 @@ public class CompletableFuture<R> extends BarrierImpl implements Future<R>, Gene
 	 */
 	@Override
 	@Deprecated
-	public void triggerNow() {
+	public boolean triggerNow() {
 		throw new UnsupportedOperationException("Use #compete(Object)");
 	}
 	

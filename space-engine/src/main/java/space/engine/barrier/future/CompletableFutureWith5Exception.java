@@ -95,7 +95,7 @@ public class CompletableFutureWith5Exception<R, EX1 extends Throwable, EX2 exten
 	 */
 	@Override
 	@Deprecated
-	public void triggerNow() {
+	public boolean triggerNow() {
 		throw new UnsupportedOperationException("Use #compete(Object)");
 	}
 	

@@ -15,12 +15,12 @@ import java.util.stream.Stream;
  */
 public class BarrierImpl implements Barrier {
 	
-	private static final VarHandle TRIGGERED;
+	private static final VarHandle FINISHED;
 	
 	static {
 		try {
 			Lookup lookup = MethodHandles.lookup();
-			TRIGGERED = lookup.findVarHandle(BarrierImpl.class, "finished", boolean.class);
+			FINISHED = lookup.findVarHandle(BarrierImpl.class, "finished", boolean.class);
 		} catch (IllegalAccessException | NoSuchFieldException e) {
 			throw new ExceptionInInitializerError(e);
 		}
@@ -38,25 +38,28 @@ public class BarrierImpl implements Barrier {
 	}
 	
 	//trigger
-	public void triggerNow() {
-		synchronized (this) {
-			if (!TRIGGERED.compareAndSet(this, false, true))
-				throw exceptionBarrierAlreadyTriggered();
-		}
+	
+	/**
+	 * triggers the {@link BarrierImpl}.
+	 *
+	 * @return true if it triggered just now. false if it was already triggered.
+	 */
+	public boolean triggerNow() {
+		if (!FINISHED.compareAndSet(this, false, true))
+			return false;
 		
 		//run all hooks
-		if (hookFirst != null) {
-			hookFirst.run();
-			hookFirst = null;
+		synchronized (this) {
+			if (hookFirst != null) {
+				hookFirst.run();
+				hookFirst = null;
+			}
+			if (hookList != null) {
+				this.hookList.build().forEach(Runnable::run);
+				this.hookList = null;
+			}
 		}
-		if (hookList != null) {
-			this.hookList.build().forEach(Runnable::run);
-			this.hookList = null;
-		}
-	}
-	
-	protected static IllegalStateException exceptionBarrierAlreadyTriggered() {
-		return new IllegalStateException("Barrier already triggered!");
+		return true;
 	}
 	
 	//impl
