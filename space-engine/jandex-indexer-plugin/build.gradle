@@ -1,0 +1,29 @@
+plugins {
+	id 'java-gradle-plugin'
+}
+
+gradlePlugin {
+	plugins {
+		simplePlugin {
+			id = 'jandex-indexer'
+			implementationClass = 'space.jandexIndexer.JandexIndexerPlugin'
+		}
+	}
+}
+
+group 'SpaceGameDev'
+version '1.0'
+
+targetCompatibility = 1.10
+sourceCompatibility = 1.10
+
+repositories {
+	mavenLocal()
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'org.jboss:jandex:2.1.2.Final'
+
+	testImplementation 'junit:junit:4.12'
+}

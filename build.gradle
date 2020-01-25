@@ -2,6 +2,7 @@ plugins {
 	id 'java-library'
 	id 'application'
 	id 'glslang-validator'
+	id 'jandex-indexer'
 }
 
 ext {

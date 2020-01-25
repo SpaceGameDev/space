@@ -1,4 +1,5 @@
 rootProject.name = 'space-game'
 
+includeBuild 'space-engine/jandex-indexer-plugin'
 includeBuild 'space-engine/glslang-validator-gradle-plugin'
 includeBuild 'space-engine'
