@@ -281,6 +281,7 @@ public class AsteroidPipeline implements CleanerWrapper {
 					descriptorSet.address(),
 					0,
 					0,
+					1,
 					VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 					null,
 					allocBuffer(frame, VkDescriptorBufferInfo::create, VkDescriptorBufferInfo.SIZEOF, vkDescriptorBufferInfo -> vkDescriptorBufferInfo.set(
