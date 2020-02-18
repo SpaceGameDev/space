@@ -3,7 +3,7 @@ plugins {
 }
 
 dependencies {
-	api parent
+	api rootProject.project(':utils')
 
 	testImplementation 'junit:junit:4.12'
 }

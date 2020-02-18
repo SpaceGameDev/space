@@ -1,0 +1,12 @@
+plugins {
+    id 'java-library'
+}
+
+dependencies {
+    api rootProject.project(':utils')
+    api "org.lwjgl:lwjgl"
+
+    testImplementation 'junit:junit:4.12'
+    //vulkan structs and buffers are used for testing; a VkInstance is never created
+    testImplementation "org.lwjgl:lwjgl-vulkan"
+}

@@ -1,0 +1,13 @@
+plugins {
+    id 'java-library'
+    id 'glslang-validator'
+}
+
+dependencies {
+    api rootProject.project(':utils')
+    api rootProject.project(':vulkan-objects')
+
+    api "org.lwjgl:lwjgl-vma"
+    
+    testImplementation 'junit:junit:4.12'
+}

@@ -1,35 +1,78 @@
 plugins {
-	id 'java-library'
-}
-
-ext {
-	lwjglVersion = '3.2.1'
+	id 'java-platform'
 }
 
 allprojects {
-	group 'SpaceGameDev'
+	group 'space.engine'
 	version '1.0'
+}
 
-	afterEvaluate {
-		targetCompatibility = 1.10
-		sourceCompatibility = 1.10
-	}
+javaPlatform {
+	allowDependencies()
+}
 
-	repositories {
-		mavenLocal()
-		mavenCentral()
-	}
+@CacheableRule
+class LwjglRule implements ComponentMetadataRule {
 
-	test {
-		testLogging {
-			exceptionFormat = 'full'
+	def nativeVariants = [
+			"natives-linux",
+			"natives-windows",
+			"natives-macos"
+	]
+
+	def nativeOverrides = [
+			"lwjgl-vulkan": ["natives-macos"],
+			"lwjgl-bom"   : []
+	]
+
+	void execute(ComponentMetadataContext context) {
+		if (context.details.id.group == 'org.lwjgl') {
+			context.details.allVariants {
+				it.withFiles {
+					def override = nativeOverrides.get(context.details.id.module.name)
+					(override == null ? nativeVariants : override.findAll { nativeVariants.contains(it) }).each {
+						addFile("${context.details.id.name}-${context.details.id.version}-${it}.jar")
+					}
+				}
+			}
 		}
 	}
 }
 
 dependencies {
+	api platform('org.lwjgl:lwjgl-bom:3.2.3')
 	api 'org.jetbrains:annotations:16.0.3'
+}
 
-	testImplementation 'org.hamcrest:hamcrest:2.1'
-	testImplementation 'junit:junit:4.12'
+allprojects {
+	plugins.withType(JavaLibraryPlugin.class).all {
+		targetCompatibility = 1.11
+		sourceCompatibility = 1.11
+
+		repositories {
+			mavenCentral()
+		}
+
+		test {
+			testLogging {
+				exceptionFormat = 'full'
+			}
+		}
+
+		jar {
+			archiveBaseName.set("space-engine${path.replace(':', '-')}")
+		}
+
+		dependencies {
+			api platform(rootProject)
+			implementation 'org.jetbrains:annotations'
+
+			components {
+				all LwjglRule
+			}
+
+			testImplementation 'org.hamcrest:hamcrest:2.1'
+			testImplementation 'junit:junit:4.12'
+		}
+	}
 }

@@ -5,15 +5,11 @@ plugins {
 	id 'jandex-indexer'
 }
 
-ext {
-	lwjglVersion = '3.2.1'
-}
-
-group 'SpaceGameDev'
+group 'space.game'
 version '1.0'
 
-targetCompatibility = 1.10
-sourceCompatibility = 1.10
+targetCompatibility = 1.11
+sourceCompatibility = 1.11
 
 mainClassName = "space.game.asteroidsDemo.AsteroidsDemo"
 
@@ -41,13 +37,54 @@ test {
 }
 
 dependencies {
-	api 'SpaceGameDev:space-engine:1.0'
-	implementation 'SpaceGameDev:space-engine-vulkan:1.0'
-	implementation 'SpaceGameDev:space-engine-window-glfw:1.0'
-	implementation 'SpaceGameDev:space-engine-vulkan-glfw:1.0'
+	api platform('space.engine:space-engine:1.0')
 
-	api "org.lwjgl:lwjgl-assimp:$lwjglVersion"
-	implementation "org.lwjgl:lwjgl-assimp:$lwjglVersion:natives-linux"
-	implementation "org.lwjgl:lwjgl-assimp:$lwjglVersion:natives-windows"
-	implementation "org.lwjgl:lwjgl-assimp:$lwjglVersion:natives-macos"
+	api 'space.engine:utils:1.0'
+	implementation 'space.engine:vulkan:1.0'
+	implementation 'space.engine:window-glfw:1.0'
+	implementation 'space.engine:vulkan-glfw:1.0'
+
+	api "org.lwjgl:lwjgl-assimp"
+}
+
+
+
+
+
+
+
+
+
+@CacheableRule
+class LwjglRule implements ComponentMetadataRule {
+
+	def nativeVariants = [
+			"natives-linux",
+			"natives-windows",
+			"natives-macos"
+	]
+
+	def nativeOverrides = [
+			"lwjgl-vulkan": ["natives-macos"],
+			"lwjgl-bom"   : []
+	]
+
+	void execute(ComponentMetadataContext context) {
+		if (context.details.id.group == 'org.lwjgl') {
+			context.details.allVariants {
+				it.withFiles {
+					def override = nativeOverrides.get(context.details.id.module.name)
+					(override == null ? nativeVariants : override.findAll { nativeVariants.contains(it) }).each {
+						addFile("${context.details.id.name}-${context.details.id.version}-${it}.jar")
+					}
+				}
+			}
+		}
+	}
+}
+
+dependencies {
+	components {
+		all(LwjglRule)
+	}
 }
