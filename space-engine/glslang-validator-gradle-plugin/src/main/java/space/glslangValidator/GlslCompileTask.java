@@ -26,7 +26,6 @@ public class GlslCompileTask extends SourceTask {
 	 *
 	 * @return The destination directory.
 	 */
-	@OutputDirectory
 	public File getDestinationDir() {
 		return destinationDir.getOrNull();
 	}
