@@ -15,9 +15,9 @@ import org.jboss.jandex.IndexWriter;
 import org.jboss.jandex.Indexer;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 @NonNullApi
 public class JandexIndexerTask extends SourceTask {
@@ -36,10 +36,12 @@ public class JandexIndexerTask extends SourceTask {
 			
 			@Override
 			public void visitFile(FileVisitDetails fileDetails) {
-				try (FileInputStream in = new FileInputStream(fileDetails.getFile())) {
-					indexer.index(in);
-				} catch (IOException e) {
-					throw new GradleException("IO Error", e);
+				if (fileDetails.getName().endsWith(".class")) {
+					try (InputStream in = fileDetails.open()) {
+						indexer.index(in);
+					} catch (IOException e) {
+						throw new GradleException("IO Error reading '" + fileDetails.getPath() + "': " + e.getMessage(), e);
+					}
 				}
 			}
 		});
@@ -48,7 +50,7 @@ public class JandexIndexerTask extends SourceTask {
 		try (FileOutputStream out = new FileOutputStream(getIndexOutputFile().getAsFile())) {
 			new IndexWriter(out).write(index);
 		} catch (IOException e) {
-			throw new GradleException("IO Error", e);
+			throw new GradleException("IO Error writing '" + getIndexOutputFile().getAsFile() + "': " + e.getMessage(), e);
 		}
 	}
 	
