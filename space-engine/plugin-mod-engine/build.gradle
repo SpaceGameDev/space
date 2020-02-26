@@ -5,17 +5,17 @@ plugins {
 gradlePlugin {
 	plugins {
 		simplePlugin {
-			id = 'jandex-indexer'
-			implementationClass = 'space.jandexIndexer.JandexIndexerPlugin'
+			id = 'space-plugin-mod-engine'
+			implementationClass = 'space.engine.plugin.modengine.ModEnginePlugin'
 		}
 	}
 }
 
-group 'SpaceGameDev'
+group 'space.engine.plugin'
 version '1.0'
 
-targetCompatibility = 1.10
-sourceCompatibility = 1.10
+targetCompatibility = 1.11
+sourceCompatibility = 1.11
 
 repositories {
 	mavenLocal()

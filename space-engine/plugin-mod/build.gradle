@@ -1,0 +1,31 @@
+plugins {
+	id 'space-plugin-mod-engine'
+	id 'java-gradle-plugin'
+}
+
+gradlePlugin {
+	plugins {
+		simplePlugin {
+			id = 'space-plugin-mod'
+			implementationClass = 'space.engine.plugin.mod.ModPlugin'
+		}
+	}
+}
+
+group 'space.engine.plugin'
+version '1.0'
+
+targetCompatibility = 1.11
+sourceCompatibility = 1.11
+
+repositories {
+	mavenLocal()
+	mavenCentral()
+}
+
+dependencies {
+	implementation 'space.engine.plugin:plugin-mod-engine'
+	implementation rootProject.project(':utils')
+
+	testImplementation 'junit:junit:4.12'
+}
