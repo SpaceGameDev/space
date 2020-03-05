@@ -13,22 +13,29 @@ import org.gradle.api.tasks.TaskProvider;
 @NonNullApi
 public class ModEnginePlugin implements Plugin<Project> {
 	
+	public static final String TASK_PREPARE = "prepare";
+	
 	@Override
 	public void apply(Project project) {
 		project.getPlugins().apply(JavaLibraryPlugin.class);
+		initPrepareTask(project);
+		initJandexIndexing(project);
+	}
+	
+	public static TaskProvider<Task> initPrepareTask(Project project) {
+		return project.getTasks().register(TASK_PREPARE);
+	}
+	
+	public static void initJandexIndexing(Project project) {
 		JavaPluginConvention javaConvention = project.getConvention().getPlugin(JavaPluginConvention.class);
-		
-		//prepare
-		TaskProvider<Task> taskPrepare = project.getTasks().register("prepare");
-		
-		//jandex index
 		javaConvention.getSourceSets().forEach(sourceSet -> {
 			//constants
 			Provider<String> packagePath = project.provider(() -> ClassnameUtils.toValidJavaPackageIdentifier(project.getGroup() + ".jandex"));
-			Provider<String> className = project.provider(() -> ClassnameUtils.toValidJavaClassIdentifier("Jandex-" + project.getName()));
+			Provider<String> className = project.provider(() -> ClassnameUtils.toValidJavaClassIdentifier(project.getName() + "-Index"));
 			
 			//dependencies required
-			project.getDependencies().add("implementation", "org.jboss:jandex:2.1.2.Final");
+//			project.getDependencies().add("implementation", "space.engine:jandex");
+			project.getDependencies().add("api", project.getRootProject().project("jandex"));
 			
 			//generate loader class
 			Provider<Directory> outputDirLoader = project.getLayout().getBuildDirectory().dir("jandex/loader/" + sourceSet.getName());
@@ -39,7 +46,7 @@ public class ModEnginePlugin implements Plugin<Project> {
 			});
 			sourceSet.getJava().srcDir(outputDirLoader);
 			project.getTasks().named(sourceSet.getCompileJavaTaskName()).configure(t -> t.dependsOn(taskGenerateLoader));
-			taskPrepare.configure(t -> t.dependsOn(taskGenerateLoader));
+			project.getTasks().named(TASK_PREPARE).configure(t -> t.dependsOn(taskGenerateLoader));
 			
 			//generate index
 			Provider<Directory> outputDirIndex = project.getLayout().getBuildDirectory().dir("jandex/index/" + sourceSet.getName());

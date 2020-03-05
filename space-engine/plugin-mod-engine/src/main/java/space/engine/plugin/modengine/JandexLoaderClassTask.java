@@ -34,19 +34,27 @@ public class JandexLoaderClassTask extends DefaultTask {
 	@OutputFile
 	@Optional
 	private RegularFileProperty javaFile = getProject().getObjects().fileProperty().convention(packageDirectory.file(className.map(s -> s + ".java")));
+	@OutputFile
+	@Optional
+	private RegularFileProperty jandexFile = getProject().getObjects().fileProperty().convention(packageDirectory.file(className.map(s -> s + ".idx")));
 	
 	@TaskAction
 	protected void index() {
 		getProject().delete(outputDirectory.getAsFileTree());
+		String className = this.className.get();
+		String variableIndex = "index";
+		String variableIndexName = "fileName";
 		
 		String classSrc =
 				"package " + packagePath.get() + ";\n" +
 						"\n" +
 						"import org.jboss.jandex.Index;\n" +
+						"import space.engine.jandex.JandexUtils;\n" +
 						"\n" +
-						"public class " + className.get() + " {\n" +
+						"public class " + className + " {\n" +
 						"\n" +
-						"\tpublic static final String test = \"test\";\n" +
+						"\tpublic static final String " + variableIndexName + " = \"" + jandexFile.get().getAsFile().getName() + "\";\n" +
+						"\tpublic static final Index " + variableIndex + " = JandexUtils.readIndexAssertExists(" + className + ".class, " + variableIndexName + ");" +
 						"\n" +
 						"}\n";
 		try {

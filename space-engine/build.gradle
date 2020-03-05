@@ -74,5 +74,11 @@ allprojects {
 			testImplementation 'org.hamcrest:hamcrest:2.1'
 			testImplementation 'junit:junit:4.12'
 		}
+
+		task extractRuntimeClasspath(type: Sync) {
+			from { configurations.compileClasspath.collect { it.isFile() ? zipTree(it) : it } }
+			into { buildDir.path + "/extractRuntimeClasspath" }
+			dependsOn configurations.compileClasspath
+		}
 	}
 }

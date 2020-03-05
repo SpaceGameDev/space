@@ -3,6 +3,7 @@ rootProject.name = 'space-engine'
 includeBuild 'glslang-validator-gradle-plugin'
 includeBuild 'plugin-mod-engine'
 
+include 'jandex'
 include 'utils'
 include 'lwjgl'
 include 'vulkan-objects'

@@ -39,10 +39,10 @@ test {
 dependencies {
 	api platform('space.engine:space-engine:1.0')
 
-	api 'space.engine:utils:1.0'
-	implementation 'space.engine:vulkan:1.0'
-	implementation 'space.engine:window-glfw:1.0'
-	implementation 'space.engine:vulkan-glfw:1.0'
+	api 'space.engine:utils'
+	implementation 'space.engine:vulkan'
+	implementation 'space.engine:window-glfw'
+	implementation 'space.engine:vulkan-glfw'
 
 	api "org.lwjgl:lwjgl-assimp"
 }
