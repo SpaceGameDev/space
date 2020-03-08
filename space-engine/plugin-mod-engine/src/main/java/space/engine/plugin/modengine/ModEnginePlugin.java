@@ -34,8 +34,7 @@ public class ModEnginePlugin implements Plugin<Project> {
 			Provider<String> className = project.provider(() -> ClassnameUtils.toValidJavaClassIdentifier(project.getName() + "-Index"));
 			
 			//dependencies required
-//			project.getDependencies().add("implementation", "space.engine:jandex");
-			project.getDependencies().add("api", project.getRootProject().project("jandex"));
+			project.getDependencies().add("implementation", "space.engine:jandex");
 			
 			//generate loader class
 			Provider<Directory> outputDirLoader = project.getLayout().getBuildDirectory().dir("jandex/loader/" + sourceSet.getName());
